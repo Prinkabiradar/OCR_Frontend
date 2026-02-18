@@ -1,0 +1,4 @@
+
+ng g m folder/module-name
+
+ng g c reports/tax-deduction-rpt --module=reports/report.module.ts --no-standalone

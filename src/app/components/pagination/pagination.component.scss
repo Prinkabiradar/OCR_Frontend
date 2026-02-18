@@ -1,0 +1,5 @@
+.page-link.active, .active > .page-link {
+    color: var(--bs-primary-inverse);
+    border-radius: 7px !important;
+    background-color: var(--bs-primary) !important;
+}

@@ -1,0 +1,43 @@
+/* You can add global styles to this file, and also import other style files */
+@import "./assets/sass/style.scss";
+// Replace above style with this css file to enable RTL styles
+// @import "./assets/css/style.rtl";
+@import './assets/sass/plugins.scss';
+// @import "./assets/css/style.rtl.css";
+@import "./assets/sass/style.angular.scss";
+ 
+
+// Keenicons - High quality and pixel perfect font icons available in 3 styles, duotone, outline and solid for Metronic elements
+@import "./assets/plugins/keenicons/duotone/style.css";
+@import "./assets/plugins/keenicons/outline/style.css";
+@import "./assets/plugins/keenicons/solid/style.css";
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+.swal2-confirm .swal2-styled{
+    
+        color: var(--bs-primary-inverse);
+        border-color: var(--bs-primary);
+        background-color: var(--bs-primary) !important;
+    
+}
+
+// Apply styles globally to all ng-select2 components
+.select2-container .select2-selection {
+        background-color: var(--bs-gray-100);
+        border-color: var(--bs-gray-100);
+        color: #333333;            // Optional: Text color
+      }
+      
+      // Customize the hover state of dropdown options
+      .select2-container .select2-results__option--highlighted {
+        background-color: var(--bs-gray-100);
+        color: #000;               // Optional: Text color for hover
+      }
+      
+      // Customize the dropdown list background
+      .select2-container .select2-results__options {
+        background-color: var(--bs-gray-100);
+      }
+      
+

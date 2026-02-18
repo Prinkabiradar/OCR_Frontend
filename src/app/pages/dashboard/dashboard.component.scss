@@ -1,0 +1,472 @@
+// Use ::ng-deep to apply styles to ng-select2 elements
+::ng-deep .select2-container .select2-selection {
+  background-color: #f0f0f0;
+  border-color: #cccccc;
+  color: #333333;
+}
+
+::ng-deep .select2-container .select2-results__option--highlighted {
+  background-color: #e0e0e0;
+  color: #000;
+}
+
+::ng-deep .select2-container .select2-results__options {
+  background-color: #f0f0f0;
+}
+
+// Leave Balance Cards
+.leave-balance-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  
+  @media (min-width: 992px) {
+    gap: 1.25rem;
+    margin: 0 -0.625rem;
+  }
+  
+  @media (min-width: 1200px) {
+    gap: 1.5rem;
+    margin: 0 -0.75rem;
+  }
+
+  .quick-stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex: 1 1 280px;
+    min-width: 250px;
+    max-width: 320px;
+    
+    @media (min-width: 992px) {
+      flex: 1 1 300px;
+      min-width: 280px;
+      max-width: 350px;
+    }
+    
+    @media (min-width: 1400px) {
+      flex: 1 1 320px;
+      max-width: 380px;
+    }
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-header {
+      padding: 0;
+      background: none;
+      border: none;
+    }
+
+    h3 {
+      margin: 15px 0 20px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .balance-info {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      
+      .value {
+        margin-right: 10px;
+        font-size: 2rem;
+        font-weight: bold;
+      }
+
+      .label {
+        font-size: 0.875rem;
+        color: #64748b;
+        font-weight: 500;
+        padding-left: 0 !important;
+      }
+    }
+
+    .icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #72cdf7, #72cdf7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px auto;
+      
+      i {
+        font-size: 20px;
+        color: white;
+        margin: 0;
+        padding: 0;
+        line-height: 1;
+      }
+    }
+  }
+}
+
+// Badge Styles
+.badge-border-success {
+  border: 1px solid #198754;
+  background-color: transparent;
+  color: #198754;
+}
+
+.badge-border-warning {
+  border: 1px solid #ffc107;
+  background-color: transparent;
+  color: #ffc107;
+}
+
+.badge-border-cancel {
+  border: 1px solid #a7c1d7;
+  background-color: transparent;
+  color: #a7c1d7;
+}
+
+.badge-border-danger {
+  border: 1px solid #dc3545;
+  background-color: transparent;
+  color: #dc3545;
+}
+
+.badge-border-secondary {
+  border: 1px solid #6c757d;
+  background-color: transparent;
+  color: #6c757d;
+}
+
+.badge-border-info {
+  border: 1px solid #0dcaf0;
+  background-color: transparent;
+  color: #0dcaf0;
+}
+
+.badge-border-primary {
+  border: 1px solid #0d6efd;
+  background-color: transparent;
+  color: #0d6efd;
+}
+
+
+.badge-border-primary2 {
+  border: 1px solid  #0d6efd;
+  background-color: transparent;
+  color:  #5c07db;
+}
+// Widget Grid
+.widget-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  width: 100%;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.leave-summary-widget {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--card-shadow, 0 4px 6px rgba(0, 0, 0, 0.1));
+  width: 100%;
+}
+
+.birthday-widget {
+  background: white;
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: var(--card-shadow, 0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+// Status Cards
+.status-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  
+  .status-card:nth-child(3) {
+    grid-column: span 2;
+  }
+}
+
+.status-card {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  transition: transform 0.3s ease;
+  background: #fff;
+  border: 1px solid #ddd;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  
+  &:hover {
+    transform: scale(1.02);
+  }
+}
+
+.status-approved {
+  background: linear-gradient(135deg, #fff);
+}
+
+.status-pending {
+  background: linear-gradient(135deg,  #fff);
+}
+
+.status-rejected {
+  background: linear-gradient(135deg,  #fff);
+}
+
+// Tab Styles
+.nav-tabs .nav-link.active {
+  background-color: #0d6efd;
+  color: white !important;
+  border-radius: 50px;
+  transition: background-color 0.3s ease;
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  transition: color 0.3s ease;
+}
+
+// BIRTHDAY SECTION STYLES - FIXED
+.birthday-section {
+  margin-bottom: 25px;
+  
+  .birthday-card {
+    background: white;
+    border-radius: 16px;
+    padding: 25px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  .birthday-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #0c0c0b;
+    
+    i {
+      font-size: 24px;
+      margin-right: 15px;
+      animation: bounce-birthday 2s ease-in-out infinite;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: #080808;
+    }
+  }
+
+  // Birthday Table Container
+  .birthday-table-container {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+  }
+
+  .birthday-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    thead {
+      background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+      
+      th {
+        padding: 15px 20px;
+        text-align: left;
+        font-weight: 600;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        border: none;
+        border-bottom: 2px solid #e2e8f0;
+        color: #475569;
+        position: relative;
+      }
+    }
+
+    tbody {
+      tr {
+        transition: all 0.3s ease;
+        border-bottom: 1px solid #f1f5f9;
+        
+        &:hover {
+          background: rgba(248, 250, 252, 0.8);
+          transform: scale(1.005);
+        }
+        
+        &:last-child {
+          border-bottom: none;
+        }
+      }
+
+      td {
+        padding: 15px 20px;
+        vertical-align: middle;
+        border: none;
+        
+        &.name-cell {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          
+          strong {
+            font-size: 16px;
+            color: #1e293b;
+            font-weight: 600;
+          }
+        }
+        
+        &.department-cell {
+          color: #64748b;
+          font-weight: 500;
+          font-size: 14px;
+        }
+        
+        &.role-cell {
+          color: #64748b;
+          font-weight: 500;
+          font-size: 14px;
+        }
+      }
+    }
+  }
+
+  .birthday-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    flex-shrink: 0;
+    font-weight: bold;
+  }
+
+  // No Birthdays State
+  .no-birthdays {
+    text-align: center;
+    padding: 40px 20px;
+    
+    .no-birthday-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+
+      i {
+        font-size: 48px;
+        color: #d1d5db;
+        margin-bottom: 10px;
+      }
+
+      p {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #6b7280;
+      }
+
+      small {
+        color: #9ca3af;
+        font-size: 14px;
+        font-style: italic;
+      }
+    }
+  }
+}
+
+// Animation for birthday icon
+@keyframes bounce-birthday {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-8px);
+  }
+  60% {
+    transform: translateY(-4px);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .widget-grid {
+    grid-template-columns: 1fr;
+    padding: 0.5rem;
+  }
+  
+  .status-container {
+    grid-template-columns: 1fr;
+    
+    .status-card:nth-child(3) {
+      grid-column: span 1;
+    }
+  }
+
+  .birthday-section {
+    .birthday-card {
+      padding: 20px;
+    }
+
+    .birthday-table-container {
+      overflow-x: auto;
+    }
+
+    .birthday-table {
+      min-width: 500px;
+      
+      th, td {
+        padding: 12px 16px;
+        font-size: 13px;
+      }
+    }
+
+    .birthday-avatar {
+      width: 35px;
+      height: 35px;
+      font-size: 16px;
+    }
+
+    .no-birthdays {
+      padding: 30px 15px;
+      
+      .no-birthday-content {
+        i {
+          font-size: 36px;
+        }
+        
+        p {
+          font-size: 16px;
+        }
+      }
+    }
+  }
+
+  ///text
+  
+}

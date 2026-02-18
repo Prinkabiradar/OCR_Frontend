@@ -1,0 +1,119 @@
+<div class="card">
+    <!--begin::Card header-->
+    <div class="card-header">
+        <!--begin::Heading-->
+        <div class="card-title">
+            <!--begin::Search-->
+            <div class="d-flex align-items-center position-relative my-1">
+                <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
+                    <span class="path1"></span>
+                    <span class="path2"></span>
+                </i>
+                <input
+                    type="text"
+                    data-kt-customer-table-filter="search"
+                    (input)="onSearch($event.target)"
+                    class="form-control form-control-solid form-control-sm w-250px ps-12"
+                    placeholder="Search Master" />
+            </div>
+            <!--end::Search-->
+        </div>
+        <!--end::Card title-->
+        <!--end::Heading-->
+
+        <!--begin::Toolbar-->
+        <div class="card-toolbar">
+            <div class="my-1 me-4">
+               
+            </div>
+            <a href="#" class="btn btn-sm btn-primary my-1" [routerLink]="['/settings/mastertable-add']">
+                Add Master
+            </a>
+        </div>
+        <!--end::Toolbar-->
+    </div>
+    <!--end::Card header-->
+
+    <!--begin::Card body-->
+    <div class="card-body pt-0">
+        <!--begin::Table-->
+        <div class="table-responsive">
+            <table class="table align-middle table-row-dashed fs-6 gy-5" id="kt_security_license_usage_table">
+                <!--begin::Thead-->
+                <thead>
+                    <tr class="text-start fw-bold fs-7 text-uppercase gs-0">
+                        <th class="min-w-150px">Master Name</th>
+                        <th class="min-w-50px text-center">Active Status</th>
+                        <th class="min-w-50px text-center">Edit</th>
+                        <th class="min-w-50px text-center">Change Status</th>
+                    </tr>
+                </thead>
+                <!--end::Thead-->
+
+                <!--begin::Tbody-->
+                <tbody class="fw-semibold text-gray-600" *ngIf="mastertableList$ | async as tabledata">
+                    <tr *ngIf="tabledata.length === 0">
+                        <td colspan="7" class="text-center text-warning">
+                          No Master Record available, add Master to see records.
+                        </td>
+                      </tr>
+                    <tr *ngFor="let element of tabledata">
+                        <td>
+                            <a  class="text-gray-800 text-hover-primary">
+                                {{ element.MasterName }}
+                            </a>
+                        </td>
+                        <td class="text-center">
+                            <span
+                              class=" text-center badge py-3 px-4 fs-7 badge-light-{{
+                                element.IsActive ? 'success' : 'danger'
+                              }}"
+                            >
+                              {{ element.IsActive ? "Active" : "Inactive" }}
+                            </span>
+                          </td>
+
+                        <td class="text-center">
+                            <button type="button" (click)="edit(element)"  class="btn btn-sm btn-icon btn-light-primary">
+                                <i class="ki-duotone ki-pencil fs-2">
+                                    <span class="path1"></span>
+                                    <span class="path2"></span>
+                                </i>
+                            </button>
+                        </td>
+
+                        <td class="text-center">
+                            <div
+                              class="form-check form-switch form-check-solid d-flex justify-content-center"
+                            >
+                              <input
+                                class="form-check-input"
+                                type="checkbox"
+                                [checked]="element.IsActive == 1"
+                                (change)="delete(element, $event)"
+                              />
+                            </div>
+                          </td>
+                </tbody>
+                <!--end::Tbody-->
+
+                <tfoot class="fw-semibold text-gray-600">
+                    <tr>
+                        <td colspan="5" class="ps-9">
+                            <app-pagination-data
+                                [currentPage]="currentPage"
+                                [totalPages]="totalPages"
+                                [totalRecords]="totalRecords"
+                                [pageSize]="itemsPerPage"
+                                (pageChange)="onPageChange($event)"
+                                (pageSizeChange)="onPageSizeChange($event)">
+                            </app-pagination-data>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <!--end::Table-->
+    </div>
+    <!--end::Card body-->
+</div>

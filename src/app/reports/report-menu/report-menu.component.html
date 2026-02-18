@@ -1,0 +1,113 @@
+<!-- report-menu.component.html -->
+<div class="reports-container">
+  <div class="reports-header">
+    <h1>Reports</h1>
+  </div>
+  
+  <div class="reports-grid">
+    <!-- Payroll Overview Section -->
+    <div class="report-section" *ngIf="getPayrollReports().length > 0">
+      <h2>Payroll Overview</h2>
+      <div class="report-items">
+        <div 
+          *ngFor="let item of getPayrollReports()"
+          class="report-item"
+          (click)="navigateToReport(item.Route)"
+          [title]="item.Title">
+          <span class="report-icon">▶</span>
+          <span class="report-title">{{ item.Title }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Employee Reports Section -->
+    <div class="report-section" *ngIf="getEmployeeReports().length > 0">
+      <h2>Employee Reports</h2>
+      <div class="report-items">
+        <div 
+          *ngFor="let item of getEmployeeReports()"
+          class="report-item"
+          (click)="navigateToReport(item.Route)"
+          [title]="item.Title">
+          <span class="report-icon">▶</span>
+          <span class="report-title">{{ item.Title }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Statutory Reports Section -->
+    <div class="report-section" *ngIf="getStatutoryReports().length > 0">
+      <h2>LMS Reports</h2>
+      <div class="report-items">
+        <div 
+          *ngFor="let item of getStatutoryReports()"
+          class="report-item"
+          (click)="navigateToReport(item.Route)"
+          [title]="item.Title">
+          <span class="report-icon">▶</span>
+          <span class="report-title">{{ item.Title }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Deduction Reports Section -->
+    <div class="report-section" *ngIf="getDeductionReports().length > 0">
+      <h2>Deduction & Investments</h2>
+      <div class="report-items">
+        <div 
+          *ngFor="let item of getDeductionReports()"
+          class="report-item"
+          (click)="navigateToReport(item.Route)"
+          [title]="item.Title">
+          <span class="report-icon">▶</span>
+          <span class="report-title">{{ item.Title }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Taxes and Forms Section -->
+    <!-- <div class="report-section" *ngIf="getTaxReports().length > 0">
+      <h2>Taxes and Forms</h2>
+      <div class="report-items">
+        <div 
+          *ngFor="let item of getTaxReports()"
+          class="report-item"
+          (click)="navigateToReport(item.Route)"
+          [title]="item.Title">
+          <span class="report-icon">▶</span>
+          <span class="report-title">{{ item.Title }}</span>
+        </div>
+      </div>
+    </div> -->
+    
+    <!-- Declarations & Investments Section -->
+    <!-- <div class="report-section" *ngIf="getInvestmentReports().length > 0">
+      <h2>Declarations & Investments</h2>
+      <div class="report-items">
+        <div 
+          *ngFor="let item of getInvestmentReports()"
+          class="report-item"
+          (click)="navigateToReport(item.Route)"
+          [title]="item.Title">
+          <span class="report-icon">▶</span>
+          <span class="report-title">{{ item.Title }}</span>
+        </div>
+      </div>
+    </div> -->
+    
+    <!-- Others Section - for uncategorized reports -->
+    <div class="report-section" *ngIf="hasOtherReports()">
+      <h2>Others</h2>
+      <div class="report-items">
+        <div 
+          *ngFor="let item of getOtherReports()"
+          class="report-item"
+          (click)="navigateToReport(item.Route)"
+          [title]="item.Title">
+          <span class="report-icon">▶</span>
+          <span class="report-title">{{ item.Title }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

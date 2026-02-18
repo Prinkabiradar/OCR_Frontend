@@ -1,0 +1,112 @@
+// report-menu.component.scss
+.reports-container {
+    padding: 20px;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+  
+    .reports-header {
+      margin-bottom: 30px;
+      
+      h1 {
+        font-size: 2rem;
+        color: #333;
+        font-weight: 600;
+        margin: 0;
+        border-bottom: 3px solid #007bff;
+        display: inline-block;
+        padding-bottom: 5px;
+      }
+    }
+  
+    .reports-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 30px;
+  
+      .report-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e9ecef;
+  
+        h2 {
+          font-size: 1.2rem;
+          color: #495057;
+          margin: 0 0 20px 0;
+          font-weight: 600;
+          border-bottom: 1px solid #e9ecef;
+          padding-bottom: 10px;
+        }
+  
+        .report-items {
+          .report-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            color: #007bff;
+  
+            &:hover {
+              background-color: #f8f9fa;
+              padding-left: 10px;
+              color: #0056b3;
+            }
+  
+            .report-icon {
+              font-size: 12px;
+              margin-right: 10px;
+              transition: transform 0.2s ease;
+            }
+  
+            .report-title {
+              font-size: 0.95rem;
+              font-weight: 400;
+            }
+  
+            &:hover .report-icon {
+              transform: translateX(3px);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Responsive design
+  @media (max-width: 768px) {
+    .reports-container {
+      padding: 15px;
+  
+      .reports-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+  
+      .reports-header h1 {
+        font-size: 1.5rem;
+      }
+    }
+  }
+  
+  // Loading state (optional)
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    color: #6c757d;
+  }
+  
+  // Empty state (optional)
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    
+    h3 {
+      margin-bottom: 10px;
+    }
+  }

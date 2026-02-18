@@ -1,0 +1,348 @@
+<div class="card mb-5 mb-xl-10">
+  <div
+    class="card-header border-0 cursor-pointer"
+    role="button"
+    data-bs-toggle="collapse"
+    data-bs-target="#kt_account_profile_details"
+    aria-expanded="true"
+    aria-controls="kt_account_profile_details"
+  >
+    <div class="card-title m-0">
+      <h3 class="fw-semibold m-0">Work Location</h3>
+    </div>
+  </div>
+  <div id="kt_account_profile_details" class="collapse show">
+    <form class="form" [formGroup]="workLocationForm" (ngSubmit)="onSubmit()">
+      <div class="card-body border-top p-9">
+        <!-- location name -->
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label required fs-6"
+            >Location Name</label
+          >
+          <div class="col-lg-4 fv-row">
+            <input
+              type="text"
+              class="form-control form-control-solid form-control-sm"
+              placeholder="Enter Location Name"
+              formControlName="LocationName"
+            />
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('LocationName')?.touched &&
+                  workLocationForm.get('LocationName')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div
+                *ngIf="
+                  workLocationForm.get('LocationName')?.hasError('required')
+                "
+              >
+                Location Name is required
+              </div>
+              <div
+                *ngIf="
+                  workLocationForm.get('LocationName')?.hasError('maxlength')
+                "
+              >
+                Location Name cannot exceed 50 characters
+              </div>
+              <div
+                *ngIf="
+                  workLocationForm.get('LocationName')?.hasError('specialChars')
+                "
+              >
+                Location Name cannot contain special characters
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label fs-6">Location Address</label>
+          <div class="col-lg-4 fv-row">
+            <textarea
+              class="form-control form-control-solid form-control-sm"
+              placeholder="Enter Location Address"
+              formControlName="LocationAddress"
+            ></textarea>
+            <!-- Error validation -->
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('LocationAddress')?.touched &&
+                  workLocationForm.get('LocationAddress')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div
+                *ngIf="
+                  workLocationForm.get('LocationAddress')?.hasError('required')
+                "
+              >
+                Location Address is required
+              </div>
+              <div
+                *ngIf="
+                  workLocationForm.get('LocationAddress')?.hasError('maxLength')
+                "
+              >
+                Location Address cannot exceed 255 characters
+              </div>
+              <div
+                *ngIf="
+                  workLocationForm
+                    .get('LocationAddress')
+                    ?.hasError('specialChars')
+                "
+              >
+                Location Address cannot contain special characters
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- StateId Select2 Dropdown -->
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label required fs-6">State</label>
+          <div class="col-lg-4 fv-row">
+            <ng-select2
+              [data]="stateData"
+              formControlName="StateId"
+              [options]="stateOptions"
+              [ngClass]="{ 'disabled-field': isEditMode }"
+              [disabled]="isEditMode"
+            >
+            </ng-select2>
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('StateId')?.touched &&
+                  workLocationForm.get('StateId')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div
+                *ngIf="workLocationForm.get('StateId')?.hasError('required')"
+              >
+                State is required
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CityId Select2 Dropdown -->
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label required fs-6">City</label>
+          <div class="col-lg-4 fv-row">
+            <ng-select2
+              [data]="cityData"
+              placeholder="Select a City"
+              formControlName="CityId"
+              [width]="'100%'"
+              [options]="cityOptions"
+              [ngClass]="{ 'disabled-field': isEditMode }"
+              [disabled]="isEditMode"
+            >
+            </ng-select2>
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('CityId')?.touched &&
+                  workLocationForm.get('CityId')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div *ngIf="workLocationForm.get('CityId')?.hasError('required')">
+                City is required
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label required fs-6"
+            >Postal Code</label
+          >
+          <div class="col-lg-4 fv-row">
+            <input
+              type="text"
+              class="form-control form-control-solid form-control-sm"
+              placeholder="Enter Postal Code"
+              formControlName="PostalCode"
+              (input)="pinCodeMaxLength($event)"
+              (keydown)="handlePostalCodeKeypress($event)"
+              [disabled]="isEditMode"
+              [ngClass]="{ 'disabled-field': isEditMode }"
+            />
+            <!-- Error validation -->
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('PostalCode')?.touched &&
+                  workLocationForm.get('PostalCode')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div
+                *ngIf="workLocationForm.get('PostalCode')?.hasError('required')"
+              >
+                Postal Code is required
+              </div>
+              <div
+                *ngIf="workLocationForm.get('PostalCode')?.hasError('pattern')"
+              >
+                Postal Code must contain only numbers
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label required fs-6"
+            >Location Prefix Code</label
+          >
+          <div class="col-lg-4 fv-row">
+            <input
+              type="text"
+              class="form-control form-control-solid form-control-sm"
+              placeholder="Enter Prefix Code"
+              formControlName="PrefixCode"
+              [ngClass]="{ 'disabled-field': isEditMode }"
+            />
+            <!-- Error validation -->
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('PrefixCode')?.touched &&
+                  workLocationForm.get('PrefixCode')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div
+                *ngIf="workLocationForm.get('PrefixCode')?.hasError('required')"
+              >
+                Prefix Code is required
+              </div>
+              <div
+                *ngIf="
+                  workLocationForm
+                    .get('PrefixCode')
+                    ?.hasError('invalidPrefixCode')
+                "
+              >
+                Only capital letters (A-Z) are allowed
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label required fs-6"
+            >Phone Number</label
+          >
+          <div class="col-lg-4 fv-row">
+            <input
+              type="text"
+              class="form-control form-control-solid form-control-sm"
+              placeholder="Enter Phone Number"
+              formControlName="PhoneNumber"
+              (input)="enforceMaxLength($event)"
+              (keydown)="handlePostalCodeKeypress($event)"
+            />
+            <!-- Error validation -->
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('PhoneNumber')?.touched &&
+                  workLocationForm.get('PhoneNumber')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div
+                *ngIf="
+                  workLocationForm.get('PhoneNumber')?.hasError('required')
+                "
+              >
+                Phone Number is required
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label required fs-6">Email ID</label>
+          <div class="col-lg-4 fv-row">
+            <input
+              type="text"
+              class="form-control form-control-solid form-control-sm"
+              placeholder="Enter Email ID"
+              formControlName="EmailId"
+            />
+            <!-- Error validation -->
+            <div
+              *ngIf="
+                isSubmitted ||
+                (workLocationForm.get('EmailId')?.touched &&
+                  workLocationForm.get('EmailId')?.invalid)
+              "
+              class="text-danger"
+            >
+              <div
+                *ngIf="workLocationForm.get('EmailId')?.hasError('required')"
+              >
+                Email ID is required
+              </div>
+              <div *ngIf="workLocationForm.get('EmailId')?.hasError('email')">
+                Invalid email format
+              </div>
+              <div
+                *ngIf="
+                  workLocationForm.get('EmailId')?.hasError('missingAtSymbol')
+                "
+              >
+                Email must contain '&#64;' symbol
+              </div>
+              <div
+                *ngIf="
+                  workLocationForm.get('EmailId')?.hasError('invalidDomain')
+                "
+              >
+                Invalid domain name. Please enter a valid domain like
+                &#64;gmail.com
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Submit and Reset Buttons -->
+      <div class="card-footer d-flex justify-content-end py-6 px-9">
+        <button
+          type="button"
+          [routerLink]="['/settings/worklocation-data']"
+          class="btn btn-sm btn-secondary my-1"
+        >
+          Cancel
+        </button>
+        &nbsp;&nbsp;&nbsp;
+        <!-- <button type="reset" class="btn btn-secondary">Reset</button> &nbsp;&nbsp;&nbsp; -->
+        <button
+          type="submit"
+          class="btn btn-sm btn-primary my-1"
+          [disabled]="!workLocationForm.valid || isLoading"
+        >
+          <ng-container *ngIf="!isLoading">Save Changes</ng-container>
+          <ng-container *ngIf="isLoading">
+            <span class="indicator-progress" style="display: block">
+              Please wait...
+              <span
+                class="spinner-border spinner-border-sm align-middle ms-2"
+              ></span>
+            </span>
+          </ng-container>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

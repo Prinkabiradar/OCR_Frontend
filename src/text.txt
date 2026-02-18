@@ -1,0 +1,4 @@
+https://keenthemes.com/metronic/tailwind/demo1/account/integrations
+
+
+ng g component transactions/termination-employee    --module=transactions/transaction.module.ts       

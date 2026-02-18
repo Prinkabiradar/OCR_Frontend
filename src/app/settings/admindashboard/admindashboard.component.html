@@ -1,0 +1,149 @@
+<!-- Full Page Loader -->
+<div class="full-page-loader" *ngIf="isLoading">
+  <div class="loader-backdrop"></div>
+  <div class="loader-content">
+    <div class="spinner"></div>
+    <div class="loader-text">Loading Dashboard Data...</div>
+  </div>
+</div>
+
+<!-- Dashboard Content with Blur Effect -->
+<div [class.blur-background]="isLoading">
+  <section class="dashboard-container">
+    <!-- Top Stats Cards Row 1 -->
+    <div class="stats-grid">
+      <div class="modern-stat-card">
+        <div class="card-icon calendar-icon">
+          <i class="fas fa-calendar-day fa-3x"></i>
+        </div>
+        <div class="card-content">
+          <div class="card-value">{{ todayDate }}</div>
+          <div class="card-label">Today's Date</div>
+        </div>
+      </div>
+      
+      <div class="modern-stat-card">
+        <div class="card-icon goods-icon">
+          <i class="fas fa-boxes"></i>
+        </div>
+        <div class="card-content">
+          <div class="card-value">{{ goodsCount }}</div>
+          <div class="card-label">Total Goods</div>
+        </div>
+      </div>
+      
+      <div class="modern-stat-card">
+        <div class="card-icon services-icon">
+          <i class="fas fa-cogs"></i>
+        </div>
+        <div class="card-content">
+          <div class="card-value">{{ servicesCount }}</div>
+          <div class="card-label">Total Services</div>
+        </div>
+      </div>
+      
+      <div class="modern-stat-card">
+        <div class="card-icon vendor-icon">
+          <i class="fas fa-truck"></i>
+        </div>
+        <div class="card-content">
+          <div class="card-value">{{ vendorCount }}</div>
+          <div class="card-label">Vendors</div>
+        </div>
+      </div>
+      
+      <div class="modern-stat-card">
+        <div class="card-icon customer-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="card-content">
+          <div class="card-value">{{ customerCount }}</div>
+          <div class="card-label">Customers</div>
+        </div>
+      </div>
+      
+      <div class="modern-stat-card">
+        <div class="card-icon vendor-customer-icon">
+          <i class="fas fa-handshake"></i>
+        </div>
+        <div class="card-content">
+          <div class="card-value">{{ vendorCustomerCount }}</div>
+          <div class="card-label">Vendor Customers</div>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- Charts Section -->
+    <div class="charts-section" *ngIf="monthWiseData.length > 0">
+      <div class="charts-grid">
+        <!-- Bar Chart -->
+        <div class="chart-container">
+          <div class="chart-wrapper">
+            <div #chartContainer class="highcharts-container"></div>
+          </div>
+        </div>
+
+        <!-- Pie Chart -->
+        <!-- <div class="chart-container">
+          <div class="chart-wrapper pie-chart-wrapper">
+            <div #pieChartContainer class="highcharts-container"></div>
+          </div>
+        </div> -->
+      </div>
+      <div class="charts-grid">
+        
+        <!-- Pie Chart -->
+        <div class="chart-container">
+          <div class="chart-wrapper pie-chart-wrapper">
+            <div #pieChartContainer class="highcharts-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary Table -->
+      <!-- <div class="summary-table-container">
+        <h3>Monthly Summary Details</h3>
+        <div class="table-wrapper">
+          <table class="summary-table">
+            <thead>
+              <tr>
+                <th>Month</th>
+                <th>Invoice Total</th>
+                <th>Purchase Total</th>
+                <th>Net Difference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let month of monthWiseData">
+                <td>{{ month.MonthName }}</td>
+                <td class="amount positive">₹{{ month.InvoiceTotal | number:'1.2-2' }}</td>
+                <td class="amount negative">₹{{ month.PurchaseTotal | number:'1.2-2' }}</td>
+                <td class="amount" 
+                    [class.positive]="month.InvoiceTotal - month.PurchaseTotal > 0"
+                    [class.negative]="month.InvoiceTotal - month.PurchaseTotal < 0">
+                  ₹{{ (month.InvoiceTotal - month.PurchaseTotal) | number:'1.2-2' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div> -->
+    </div>
+
+    <!-- No Data Message -->
+    <div class="no-data-message" *ngIf="!isLoading && monthWiseData.length === 0">
+      <i class="fas fa-chart-line fa-3x"></i>
+      <h3>No Monthly Data Available</h3>
+      <p>Monthly summary data will appear here once available.</p>
+    </div>
+
+    <!-- Dashboard Actions -->
+    <!-- <div class="dashboard-actions">
+      <button class="refresh-btn" (click)="loadDashboardData()" [disabled]="isLoading">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+        Refresh Data
+      </button>
+    </div> -->
+  </section>
+</div>

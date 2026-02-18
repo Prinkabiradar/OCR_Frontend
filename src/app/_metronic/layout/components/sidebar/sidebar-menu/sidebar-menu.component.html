@@ -1,0 +1,58 @@
+<div id="kt_app_sidebar_menu_scroll" class="scroll-y my-5 mx-3">
+  <div class="menu menu-column menu-rounded menu-sub-indention fw-semibold fs-6" data-kt-menu="true" data-kt-menu-expand="false">
+    <div *ngFor="let item of menu">
+      <div *ngIf="!item.subMenu || item.subMenu.length === 0" class="menu-item">
+        <a class="menu-link without-sub" [routerLink]="item.route" routerLinkActive="active">
+          <span class="menu-icon">
+            <app-keenicon [name]="item.icon || 'default-icon'" class="fs-2"></app-keenicon>
+          </span>
+          <span class="menu-title">{{ item.title }}</span>
+        </a>
+      </div>
+
+      <div *ngIf="item.subMenu && item.subMenu.length > 0" class="menu-item menu-accordion" data-kt-menu-trigger="click" routerLinkActive="here show">
+        <span class="menu-link">
+          <span class="menu-icon">
+            <app-keenicon [name]="item.icon || 'default-icon'" class="fs-2"></app-keenicon>
+          </span>
+          <span class="menu-title">{{ item.title }}</span>
+          <span class="menu-arrow"></span>
+        </span>
+
+        <div class="menu-sub menu-sub-accordion">
+          <div *ngFor="let subItem of item.subMenu">
+            <div *ngIf="!subItem.subMenu || subItem.subMenu.length === 0" class="menu-item">
+              <a class="menu-link without-sub" [routerLink]="subItem.route" routerLinkActive="active">
+                <span class="menu-bullet">
+                  <span class="bullet bullet-dot"></span>
+                </span>
+                <span class="menu-title">{{ subItem.title }}</span>
+              </a>
+            </div>
+
+            <div *ngIf="subItem.subMenu && subItem.subMenu.length > 0" class="menu-item menu-accordion" data-kt-menu-trigger="click" routerLinkActive="here show">
+              <span class="menu-link">
+                <span class="menu-bullet">
+                  <span class="bullet bullet-dot"></span>
+                </span>
+                <span class="menu-title">{{ subItem.title }}</span>
+                <span class="menu-arrow"></span>
+              </span>
+
+              <div class="menu-sub menu-sub-accordion">
+                <div class="menu-item" *ngFor="let nestedSubItem of subItem.subMenu">
+                  <a class="menu-link without-sub" [routerLink]="nestedSubItem.route" routerLinkActive="active">
+                    <span class="menu-bullet">
+                      <span class="bullet bullet-dot"></span>
+                    </span>
+                    <span class="menu-title">{{ nestedSubItem.title }}</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

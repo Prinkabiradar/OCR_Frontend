@@ -1,0 +1,104 @@
+<div class="card mb-5 mb-xl-10">
+	<div
+	  class="card-header border-0 cursor-pointer"
+	  role="button"
+	  data-bs-toggle="collapse"
+	  data-bs-target="#kt_account_profile_details"
+	  aria-expanded="true"
+	  aria-controls="kt_account_profile_details"
+	>
+	  <div class="card-title m-0">
+		<h3 class="fw-bolder m-0">Roles</h3>
+	  </div>
+	</div>
+	<div id="kt_account_profile_details" class="collapse show">
+	  <form class="form" [formGroup]="rolesForm" (ngSubmit)="onSubmit()">
+		<div class="card-body border-top p-9">
+			 
+			<div class="row mb-6">
+			  <label class="col-lg-4 col-form-label required   fs-6">Role Code</label>
+			  <div class="col-lg-8 fv-row">
+				<input
+				  type="text"
+				  class="form-control form-control-solid form-control-sm"
+				  placeholder="Please Enter Role Code"
+				  formControlName="RoleCode"
+				/>
+				<!-- Error messages appear only after submit -->
+				<div *ngIf="isSubmitted ||  rolesForm.get('RoleCode')?.touched && rolesForm.get('RoleCode')?.invalid" class="text-danger">
+				  <div *ngIf="rolesForm.get('RoleCode')?.hasError('required')">Role Code is required</div>
+				  <div *ngIf="  rolesForm.get('RoleCode')?.hasError('maxLength')  "  >
+					Role Code cannot exceed 10 characters
+				  </div>
+				  <div *ngIf=" rolesForm.get('RoleCode')?.hasError('specialChars')  "  >
+					Role Code cannot contain special characters
+				  </div>
+				</div>
+			  </div>
+			</div>
+		  
+			 
+			<div class="row mb-6">
+			  <label class="col-lg-4 col-form-label required   fs-6">Role Name</label>
+			  <div class="col-lg-8 fv-row">
+				<input
+				  type="text"
+				  class="form-control form-control-solid form-control-sm"
+				  placeholder="Please Enter Role Name"
+				  formControlName="RoleName"
+				/>
+				<div *ngIf="isSubmitted ||  rolesForm.get('RoleName')?.touched && rolesForm.get('RoleName')?.invalid" class="text-danger">
+				  <div *ngIf="rolesForm.get('RoleName')?.hasError('required')">Roles Name is required</div>
+				  <div  *ngIf="  rolesForm.get('RoleName')?.hasError('maxLength') " >
+					Roles Name cannot exceed 50 characters
+				  </div>
+				  <div  *ngIf="  rolesForm.get('RoleName')?.hasError('specialChars')  " >
+					Roles Name cannot contain special characters
+				  </div>
+				</div>
+			  </div>
+			</div>
+		  
+			 
+			<div class="row mb-6">
+			  <label class="col-lg-4 col-form-label   fs-6">Role Description</label>
+			  <div class="col-lg-8 fv-row">
+				<textarea
+				class="form-control form-control-solid form-control-sm"
+				  placeholder="Please Enter Role Description"
+				  formControlName="RoleDescription"
+				></textarea>
+				<div *ngIf=" isSubmitted ||
+                (rolesForm.get('RoleDescription')?.touched && rolesForm.get('RoleDescription')?.invalid)  "
+              class="text-danger"
+            >
+              <div  *ngIf="  rolesForm  .get('RoleDescription') ?.hasError('maxLength')  "  >
+                Description cannot exceed 255 characters
+              </div>
+              <div  *ngIf="  rolesForm .get('RoleDescription')  ?.hasError('specialChars')  "  >
+                Description cannot contain special characters
+              </div>
+            </div>
+			  </div>
+			</div>
+		  	 
+		  
+		  <!-- Submit and Reset Buttons -->
+		  <div class="card-footer d-flex justify-content-end py-6 px-9">
+			<button type="button" [routerLink]="['/settings/roles-data']"class="btn btn-secondary">Cancel</button> &nbsp;&nbsp;&nbsp;
+			<!-- <button type="reset" class="btn btn-secondary">Reset</button> &nbsp;&nbsp;&nbsp; -->
+			<button type="submit" class="btn btn-primary"  [disabled]="!rolesForm.valid || isLoading">
+			  <ng-container *ngIf="!isLoading">Save Changes</ng-container>
+			  <ng-container *ngIf="isLoading">
+				<span class="indicator-progress" style="display: block;">
+				  Please wait...
+				  <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
+				</span>
+			  </ng-container>
+			</button>
+		  </div>
+        </div>
+	  </form>
+	</div>
+</div>
+

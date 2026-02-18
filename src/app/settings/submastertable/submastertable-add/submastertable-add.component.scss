@@ -1,0 +1,18 @@
+// Use ::ng-deep to apply styles to ng-select2 elements
+::ng-deep .select2-container .select2-selection {
+    background-color: #f0f0f0; // Light gray background color
+    border-color: #cccccc;     // Optional: Border color
+    color: #333333;            // Optional: Text color
+  }
+  
+  // Customize the hover state of dropdown options
+  ::ng-deep .select2-container .select2-results__option--highlighted {
+    background-color: #e0e0e0; // Slightly darker gray for hover
+    color: #000;               // Optional: Text color for hover
+  }
+  
+  // Customize the dropdown list background
+  ::ng-deep .select2-container .select2-results__options {
+    background-color: #f0f0f0; // Light gray color for dropdown items
+  }
+  

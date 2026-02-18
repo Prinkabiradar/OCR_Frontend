@@ -1,0 +1,62 @@
+<div class="card mb-5 mb-xl-10">
+	<div
+	  class="card-header border-0 cursor-pointer"
+	  role="button"
+	  data-bs-toggle="collapse"
+	  data-bs-target="#kt_account_profile_details"
+	  aria-expanded="true"
+	  aria-controls="kt_account_profile_details"
+	>
+	  <div class="card-title m-0">
+		<h3 class="fw-semibold m-0">Master </h3>
+	  </div>
+	</div>
+	<div id="kt_account_profile_details" class="collapse show">
+	  <form class="form" [formGroup]="mastertableForm" (ngSubmit)="onSubmit()">
+		<div class="card-body border-top p-9">
+			<!-- Department Code -->
+			<div class="row mb-6">
+			  <label class="col-lg-4 col-form-label required fs-6">Master Name</label>
+			  <div class="col-lg-8 fv-row">
+				<input
+				  type="text"
+				  class="form-control form-control-solid form-control-sm"
+				  placeholder="* Please Enter Master Name"
+				  formControlName="MasterName"
+				/>
+				<!-- Error messages appear only after submit -->
+				<div *ngIf="isSubmitted ||  mastertableForm.get('MasterName')?.touched && mastertableForm.get('MasterName')?.invalid" class="text-danger">
+				  <div *ngIf="mastertableForm.get('MasterName')?.hasError('required')">Master Name is required</div>
+				  <div  *ngIf="  mastertableForm.get('MasterName')?.hasError('maxLength') " >
+					Master Name cannot exceed 50 characters
+				  </div>
+				  <div  *ngIf="  mastertableForm.get('MasterName')?.hasError('specialChars')  " >
+					Master Name cannot contain special characters
+				  </div>
+				</div>
+			  </div>
+			</div>
+		  
+		 
+			 
+		   
+		  
+		  <!-- Submit and Reset Buttons -->
+		  <div class="card-footer d-flex justify-content-end py-6 px-9">
+			<button type="button"  [routerLink]="['/settings/mastertable-data']" class="btn btn-sm btn-secondary  my-1">Cancel</button> &nbsp;&nbsp;&nbsp;
+			<!-- <button type="reset" class="btn btn-secondary">Reset</button> &nbsp;&nbsp;&nbsp; -->
+			<button type="submit" class="btn btn-sm btn-primary my-1"  [disabled]="!mastertableForm.valid || isLoading">
+			  <ng-container *ngIf="!isLoading">Save Changes</ng-container>
+			  <ng-container *ngIf="isLoading">
+				<span class="indicator-progress" style="display: block;">
+				  Please wait...
+				  <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
+				</span>
+			  </ng-container>
+			</button>
+		  </div>
+		  </div>
+	  </form>
+	</div> 
+</div>
+

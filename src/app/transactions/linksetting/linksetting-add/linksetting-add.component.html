@@ -1,0 +1,179 @@
+<div class="card mb-5 mb-xl-10">
+    <div
+      class="card-header border-0 cursor-pointer"
+      role="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#kt_account_profile_details"
+      aria-expanded="true"
+      aria-controls="kt_account_profile_details"
+    >
+      <div class="card-title m-0">
+        <h3 class="fw-semibold m-0">Link Setting</h3>
+      </div>
+    </div>
+    <div id="kt_account_profile_details" class="collapse show">
+      <form class="form" [formGroup]="linkSettingForm" (ngSubmit)="onSubmit()">
+        <div class="card-body border-top p-9">
+  
+          <!-- Link Type Field - Radio Buttons -->
+          <!-- <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">Link Type</label>
+            <div class="col-lg-8 fv-row">
+              <div class="d-flex align-items-center mt-3">
+                <label class="form-check form-check-custom form-check-solid me-8">
+                  <input 
+                    class="form-check-input" 
+                    type="radio" 
+                    value="ITDECLARE" 
+                    formControlName="LinkType"
+                  />
+                  <span class="form-check-label fw-semibold text-gray-700 fs-6 ms-1">
+                    IT DECLARE
+                  </span>
+                </label>
+                
+                <label class="form-check form-check-custom form-check-solid me-8">
+                  <input 
+                    class="form-check-input" 
+                    type="radio" 
+                    value="ACTUALIT" 
+                    formControlName="LinkType"
+                  />
+                  <span class="form-check-label fw-semibold text-gray-700 fs-6 ms-1">
+                    ACTUAL IT
+                  </span>
+                </label>
+                <label class="form-check form-check-custom form-check-solid">
+                  <input 
+                    class="form-check-input" 
+                    type="radio" 
+                    value="GOALS" 
+                    formControlName="LinkType"
+                  />
+                  <span class="form-check-label fw-semibold text-gray-700 fs-6 ms-1">
+                    GOALS
+                  </span>
+                </label>
+              </div>
+              <div *ngIf="isSubmitted && linkSettingForm.get('LinkType')?.invalid" class="text-danger mt-2">
+                <div *ngIf="linkSettingForm.get('LinkType')?.hasError('required')">Link Type is required</div>
+              </div>
+            </div>
+          </div> -->
+          <div class="row mb-6">
+            <label for="selectLinkType" class="col-lg-4 form-label required">Link Type</label>
+            <div class="col-lg-4 fv-row">
+              <ng-select2
+                [data]="linkTypedata"
+                formControlName="LinkTypeId"
+                [options]="linkTypeoptions"
+                (valueChanged)="onLinkTypeChange($event)"
+                 
+              >
+              </ng-select2>
+              <div *ngIf="isSubmitted && linkSettingForm.get('LinkTypeId')?.invalid" class="text-danger mt-2">
+                <div *ngIf="linkSettingForm.get('LinkTypeId')?.hasError('required')">Link Type is required</div>
+              </div>
+            </div>
+          </div>
+          <!-- Open Link Date -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">Open Link Date</label>
+            <div class="col-lg-4 fv-row">
+              <div class="position-relative d-flex align-items-center">
+                <i
+                  class="ki-duotone ki-calendar-8 position-absolute ms-4 mb-1 fs-2"
+                  (click)="picker4.open()"
+                >
+                  <span class="path1"></span><span class="path2"></span>
+                  <span class="path3"></span> <span class="path4"></span>
+                  <span class="path5"></span><span class="path6"></span>
+                </i>
+                <input
+                  matInput
+                  [matDatepicker]="picker4"
+                  (click)="picker4.open()"
+                  readonly="readonly"
+                  class="form-control form-control-sm form-control-solid ps-12 flatpickr-input"
+                  name="date"
+                  placeholder="Pick a date"
+                  id="kt_datepicker_1"
+                  type="text"
+                  readonly="readonly"
+                  formControlName="OpenLinkDate"
+                  [min]="minDate"
+                  [max]="maxDate"
+                />
+              </div>
+              <mat-datepicker #picker4></mat-datepicker>
+              <div *ngIf="isSubmitted && linkSettingForm.get('OpenLinkDate')?.invalid" class="text-danger">
+                <div *ngIf="linkSettingForm.get('OpenLinkDate')?.hasError('required')">Open Link Date is required</div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Close Link Date -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">Close Link Date</label>
+            <div class="col-lg-4 fv-row">
+              <div class="position-relative d-flex align-items-center">
+                <i
+                  class="ki-duotone ki-calendar-8 position-absolute ms-4 mb-1 fs-2"
+                  (click)="picker5.open()"
+                >
+                  <span class="path1"></span><span class="path2"></span>
+                  <span class="path3"></span> <span class="path4"></span>
+                  <span class="path5"></span><span class="path6"></span>
+                </i>
+                <input
+                  matInput
+                  [matDatepicker]="picker5"
+                  (click)="picker5.open()"
+                  readonly="readonly"
+                  class="form-control form-control-sm form-control-solid ps-12 flatpickr-input"
+                  name="date"
+                  placeholder="Pick a date"
+                  id="kt_datepicker_2"
+                  type="text"
+                  readonly="readonly"
+                  formControlName="CloseLinkDate"
+                  [min]="minDate"
+                  [max]="maxDate"
+                />
+              </div>
+              <mat-datepicker #picker5></mat-datepicker>
+              <div *ngIf="isSubmitted && linkSettingForm.get('CloseLinkDate')?.invalid" class="text-danger">
+                <div *ngIf="linkSettingForm.get('CloseLinkDate')?.hasError('required')">Close Link Date is required</div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Card Footer with Buttons -->
+          <div class="card-footer d-flex justify-content-end py-6 px-9">
+            <button 
+              type="button" 
+              [routerLink]="['/transactions/linksetting-data']" 
+              class="btn btn-sm btn-secondary my-1"
+            >
+              Cancel
+            </button>
+            &nbsp;&nbsp;&nbsp;
+            <button 
+              type="submit" 
+              class="btn btn-sm btn-primary my-1" 
+              [disabled]="!linkSettingForm.valid || isLoading"
+            >
+              <!-- ✅ Added loading state handling -->
+              <ng-container *ngIf="!isLoading">Save Changes</ng-container>
+              <ng-container *ngIf="isLoading">
+                <span class="indicator-progress" style="display: block;">
+                  Please wait...
+                  <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
+                </span>
+              </ng-container>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>

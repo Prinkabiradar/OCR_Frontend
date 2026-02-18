@@ -1,0 +1,16 @@
+// Define colors
+$active-color: green;
+$inactive-color: red;
+
+td {
+  &.ps-0.text-center {
+    &.active {
+      color: $active-color;
+      font-weight: bold;
+    }
+    &.inactive {
+      color: $inactive-color;
+      font-weight: bold;
+    }
+  }
+}
