@@ -1,0 +1,55 @@
+.container,
+.edit-container {
+  max-width: 700px;
+  margin: 30px auto;
+  padding: 20px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+}
+
+.file-list {
+  margin: 10px 0;
+}
+
+.file-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+button {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #9ca3af;
+}
+
+.form-row {
+  margin-bottom: 12px;
+}
+
+.form-row label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.form-row input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.save-btn {
+  width: 100%;
+  margin-top: 15px;
+  background: #16a34a;
+}

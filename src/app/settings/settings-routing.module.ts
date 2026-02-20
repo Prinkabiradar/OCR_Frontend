@@ -11,6 +11,7 @@ import { RolesDataComponent } from './roles/roles-data/roles-data.component';
 
 
 import { SubmastertableDataComponent } from './submastertable/submastertable-data/submastertable-data.component';
+import { AddImageComponent } from './uploads/add-image/add-image.component';
 
 
 
@@ -67,6 +68,10 @@ const routes: Routes = [
   {
     path: 'admindashboard',
     component: AdmindashboardComponent,
+  },
+  {
+    path: 'add-image',
+    component: AddImageComponent,
   },
 
   { path: '', redirectTo: 'add-order', pathMatch: 'full' },

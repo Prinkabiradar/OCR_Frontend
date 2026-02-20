@@ -423,4 +423,19 @@ export class ServiceService {
       },
     );
   }
+  uploadOcrFiles(formData: FormData) {
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.post<any[]>(
+    environment.BaseUrl + 'api/Ocr/image',
+    formData,
+    { headers }
+  );
+}
+
 }

@@ -28,6 +28,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { RouterModule } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { HttpClientModule } from '@angular/common/http';
 
 export const MY_DATE_FORMATS = {
   display: {
@@ -49,6 +50,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { HighchartsChartModule } from 'highcharts-angular';
 
 import { AdmindashboardComponent } from './admindashboard/admindashboard.component';
+import { AddImageComponent } from './uploads/add-image/add-image.component';
 
 
 
@@ -78,6 +80,7 @@ import { AdmindashboardComponent } from './admindashboard/admindashboard.compone
 
 
     AdmindashboardComponent,
+        AddImageComponent,
 
   ],
 
