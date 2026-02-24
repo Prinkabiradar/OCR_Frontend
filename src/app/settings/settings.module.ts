@@ -51,6 +51,8 @@ import { HighchartsChartModule } from 'highcharts-angular';
 
 import { AdmindashboardComponent } from './admindashboard/admindashboard.component';
 import { AddImageComponent } from './uploads/add-image/add-image.component';
+import { AddDocumentTypeComponent } from './documentType/add-document-type/add-document-type.component';
+import { AddDocumentComponent } from './document/add-document/add-document.component';
 
 
 
@@ -81,6 +83,8 @@ import { AddImageComponent } from './uploads/add-image/add-image.component';
 
     AdmindashboardComponent,
         AddImageComponent,
+        AddDocumentTypeComponent,
+        AddDocumentComponent,
 
   ],
 

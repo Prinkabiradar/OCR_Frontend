@@ -12,6 +12,7 @@ import { RolesDataComponent } from './roles/roles-data/roles-data.component';
 
 import { SubmastertableDataComponent } from './submastertable/submastertable-data/submastertable-data.component';
 import { AddImageComponent } from './uploads/add-image/add-image.component';
+import { AddDocumentTypeComponent } from './documentType/add-document-type/add-document-type.component';
 
 
 
@@ -72,6 +73,10 @@ const routes: Routes = [
   {
     path: 'add-image',
     component: AddImageComponent,
+  },
+  {
+    path: 'add-documentType',
+    component: AddDocumentTypeComponent,
   },
 
   { path: '', redirectTo: 'add-order', pathMatch: 'full' },
