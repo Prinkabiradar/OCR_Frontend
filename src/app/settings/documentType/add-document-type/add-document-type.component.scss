@@ -1,89 +1,406 @@
+/* ============================================================
+   Shri Krishna Temple & Foundation — Document Type Form
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,400&family=Noto+Sans+Devanagari:wght@400;500&display=swap');
+
+/* ── Variables ── */
+$saffron:       #f97316;
+$saffron-dk:    #ea580c;
+$saffron-deep:  #c2410c;
+$gold:          #f59e0b;
+$gold-lt:       #fde68a;
+$gold-dk:       #b45309;
+$peacock:       #0e4f6b;
+$peacock-dk:    #072a3b;
+$cream:         #fef9ef;
+$cream-dk:      #fef3c7;
+$parchment:     #fffbeb;
+$brown:         #78350f;
+$brown-lt:      #92400e;
+$red-tika:      #dc2626;
+$green-tulsi:   #16a34a;
+$text-dark:     #1c0a00;
+$text-mid:      #44200a;
+$text-light:    #78350f;
+
+/* ============================================================
+   CONTAINER  —  full-page peacock-blue background
+   ============================================================ */
 .container {
   display: flex;
   justify-content: center;
-  padding: 40px;
-  background: #f5f7fb;
+  align-items: flex-start;
+  padding: 48px 20px;
   min-height: 100vh;
+  font-family: 'Crimson Pro', Georgia, serif;
+
+  /* Peacock-blue gradient bg */
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%,   #1a6b8a 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 0% 100%,  #0a3d50 0%, transparent 50%),
+    linear-gradient(160deg, #0e4f6b 0%, #072a3b 60%, #041922 100%);
+
+  /* Subtle grid overlay */
+  &::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(245, 158, 11, 0.04) 1px, transparent 1px);
+    background-size: 44px 44px;
+    pointer-events: none;
+  }
+
+  /* Large ॐ watermark */
+  &::after {
+    content: 'ॐ';
+    font-family: 'Noto Sans Devanagari', sans-serif;
+    position: fixed;
+    bottom: -60px;
+    right: -40px;
+    font-size: 340px;
+    color: rgba(245, 158, 11, 0.045);
+    pointer-events: none;
+    line-height: 1;
+    user-select: none;
+  }
 }
 
+/* ============================================================
+   CARD
+   ============================================================ */
 .card {
-  width: 420px;
-  background: #fff;
-  padding: 25px;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+  position: relative;
+  width: 460px;
+  background: linear-gradient(160deg, $cream 0%, $cream-dk 50%, $cream 100%);
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 1px rgba($gold, 0.25),
+    0 0 40px rgba($gold, 0.12),
+    0 24px 64px rgba(4, 25, 34, 0.55),
+    0 4px 16px rgba($saffron, 0.1);
+  overflow: hidden;
+  animation: cardReveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  /* Saffron-gold top bar */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 5px;
+    background: linear-gradient(
+      90deg,
+      $saffron-deep 0%,
+      $saffron     20%,
+      $gold        45%,
+      $gold-lt     50%,
+      $gold        55%,
+      $saffron     80%,
+      $saffron-deep 100%
+    );
+    box-shadow: 0 2px 14px rgba($saffron, 0.5);
+  }
+
+  /* Bottom bar */
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba($gold, 0.4),
+      transparent
+    );
+  }
+}
+
+@keyframes cardReveal {
+  from { opacity: 0; transform: translateY(28px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ============================================================
+   CARD HEADER
+   ============================================================ */
+.card-header {
+  padding: 32px 32px 20px;
+  text-align: center;
+  background: linear-gradient(to bottom, rgba($saffron, 0.06), transparent);
+  border-bottom: 1px solid rgba($brown, 0.12);
+  position: relative;
+}
+
+.om-symbol {
+  font-family: 'Noto Sans Devanagari', sans-serif;
+  font-size: 38px;
+  line-height: 1;
+  margin-bottom: 8px;
+  display: block;
+  background: linear-gradient(135deg, $gold-lt, $gold, $saffron);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 10px rgba($gold, 0.5));
+  animation: omGlow 3s ease-in-out infinite;
+}
+
+@keyframes omGlow {
+  0%, 100% { filter: drop-shadow(0 0 8px  rgba($gold, 0.4)); }
+  50%       { filter: drop-shadow(0 0 20px rgba($saffron, 0.8)); }
 }
 
 h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #333;
+  font-family: 'Cinzel', serif;
+  font-size: 21px;
+  font-weight: 700;
+  color: $brown;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 
+.card-subtitle {
+  font-family: 'Crimson Pro', serif;
+  font-size: 13px;
+  font-style: italic;
+  color: $text-light;
+  opacity: 0.75;
+  margin: 0;
+}
+
+/* Ornamental lotus divider */
+.header-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba($brown, 0.25), transparent);
+}
+
+.divider-icon {
+  font-size: 14px;
+  opacity: 0.7;
+}
+
+/* ============================================================
+   FORM  —  sits inside card
+   ============================================================ */
+form {
+  padding: 24px 32px 8px;
+}
+
+/* ── Form group ── */
 .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   display: flex;
   flex-direction: column;
+
+  label {
+    font-family: 'Cinzel', serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: $brown-lt;
+    margin-bottom: 8px;
+  }
+
+  input[type="text"] {
+    padding: 11px 14px;
+    background: rgba($cream-dk, 0.6);
+    border: 1.5px solid rgba($brown, 0.18);
+    border-radius: 4px;
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 15px;
+    color: $text-dark;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    box-shadow: inset 0 2px 4px rgba($brown, 0.05);
+
+    &::placeholder {
+      color: rgba($brown, 0.35);
+      font-style: italic;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $saffron;
+      background: rgba(255, 249, 235, 0.95);
+      box-shadow:
+        inset 0 2px 4px rgba($brown, 0.03),
+        0 0 0 3px rgba($saffron, 0.14),
+        0 0 16px rgba($saffron, 0.08);
+    }
+  }
 }
 
-.form-group input[type="text"] {
-  padding: 10px;
-  border: 1px solid #dcdcdc;
-  border-radius: 6px;
-  font-size: 14px;
+/* ── Required star ── */
+.req {
+  color: $red-tika;
+  font-size: 15px;
+  line-height: 1;
 }
 
-.form-group input:focus {
-  outline: none;
-  border-color: #4f46e5;
+/* ── Error message ── */
+.error {
+  color: $red-tika;
+  font-size: 12.5px;
+  font-style: italic;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: '⚠';
+    font-style: normal;
+    font-size: 11px;
+  }
 }
 
-.checkbox {
+/* ── Checkbox row ── */
+.form-group.checkbox {
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba($cream-dk, 0.5);
+  border: 1.5px solid rgba($brown, 0.12);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+
+  &:hover {
+    border-color: rgba($saffron, 0.3);
+    background: rgba($cream-dk, 0.8);
+  }
+
+  label {
+    font-family: 'Crimson Pro', serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: $text-mid;
+    letter-spacing: 0.01em;
+    text-transform: none;
+    margin-bottom: 0;
+    cursor: pointer;
+  }
+
+  input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    accent-color: $saffron;
+    cursor: pointer;
+  }
 }
 
-.req {
-  color: red;
-}
-
-.error {
-  color: #dc2626;
-  font-size: 12px;
-  margin-top: 4px;
-}
-
+/* ── Button group ── */
 .btn-group {
   display: flex;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 24px;
+  margin-bottom: 4px;
 }
 
+/* Save button */
 .save-btn {
   flex: 1;
-  padding: 10px;
-  background: #4f46e5;
-  color: white;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, $saffron, $saffron-dk, $saffron-deep);
+  color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   cursor: pointer;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 4px 14px rgba($saffron, 0.35),
+    0 1px 3px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: all 0.25s;
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.12), transparent);
+    pointer-events: none;
+  }
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #fb923c, $saffron, $saffron-dk);
+    box-shadow: 0 6px 22px rgba($saffron, 0.5), 0 1px 3px rgba(0,0,0,0.15);
+    transform: translateY(-2px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    background: linear-gradient(135deg, rgba($saffron, 0.4), rgba($saffron-deep, 0.4));
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
 }
 
-.save-btn:disabled {
-  background: #a5b4fc;
-  cursor: not-allowed;
-}
-
+/* Reset button */
 .reset-btn {
   flex: 1;
-  padding: 10px;
-  background: #e5e7eb;
-  border: none;
-  border-radius: 6px;
+  padding: 12px 20px;
+  background: rgba($cream-dk, 0.8);
+  color: $brown-lt;
+  border: 1.5px solid rgba($brown, 0.2);
+  border-radius: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgba($brown, 0.06);
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(254, 235, 170, 0.95);
+    border-color: rgba($saffron, 0.35);
+    color: $brown;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba($brown, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
 }
 
-.reset-btn:hover {
-  background: #d1d5db;
+/* ============================================================
+   CARD FOOTER
+   ============================================================ */
+.card-footer {
+  padding: 12px 32px 16px;
+  text-align: center;
+  border-top: 1px solid rgba($brown, 0.1);
+  background: rgba($brown, 0.025);
+
+  span {
+    font-family: 'Noto Sans Devanagari', sans-serif;
+    font-size: 13px;
+    color: $saffron;
+    opacity: 0.6;
+    letter-spacing: 0.05em;
+  }
 }
