@@ -1,36 +1,115 @@
 <div class="upload-box">
-
   <input type="file" multiple (change)="onFileSelect($event)">
 
   <div *ngFor="let f of selectedFiles; let i=index">
-    {{f.name}}
+    {{ f.name }}
     <button (click)="removeFile(i)">Remove</button>
   </div>
 
   <button (click)="uploadFiles()" [disabled]="uploading">
     {{ uploading ? 'Processing...' : 'Upload' }}
   </button>
-
 </div>
 
 <!-- ✅ OCR EDIT FORM -->
-
 <div *ngIf="showEditForm" [formGroup]="editForm">
+  <h3>Document Details</h3>
 
-  <h3>Edit OCR Result</h3>
+  <!-- ✅ DOCUMENT TYPE ROW -->
+  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+    <label style="min-width: 130px;"><strong>Document Type:</strong></label>
 
-  <div *ngFor="let r of ocrResults; let i=index">
+    <!-- Dropdown -->
+    <ng-select2
+      [data]="documentTypedata"
+      formControlName="documentTypeId"
+      [options]="documentTypeoptions"
+      style="width: 250px;">
+    </ng-select2>
 
-    <h4>{{r.fileName}}</h4>
+    <span style="color: #888;">OR</span>
 
-    <textarea
-      rows="8"
-      style="width:100%"
-      [formControlName]="'file_' + i">
-    </textarea>
+    <!-- Input for new type -->
+    <input type="text"
+           formControlName="documentType"
+           placeholder="Enter new document type"
+           class="form-control"
+           style="width: 250px;">
 
+    <!-- 
+      ✅ Save button disabled when:
+         1. Dropdown is selected (isDocumentTypeSaved = true)
+         2. Already saved successfully (isDocumentTypeSaved = true)
+         3. Input field is empty
+    -->
+    <button type="button"
+            class="btn btn-primary"
+            [disabled]="isDocumentTypeSaved || !editForm.get('documentType')?.value?.trim()"
+            (click)="saveDocumentType()">
+      {{ isDocumentTypeSaved ? '✅ Saved' : 'Save Type' }}
+    </button>
   </div>
 
-  <button (click)="saveCorrectedData()">Save Corrected</button>
+  <!-- ✅ DOCUMENT NAME ROW -->
+  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+    <label style="min-width: 130px;"><strong>Document Name:</strong></label>
 
+    <!-- Dropdown -->
+    <ng-select2
+      [data]="documentdata"
+      formControlName="documentId"
+      [options]="documentoptions"
+      style="width: 250px;">
+    </ng-select2>
+
+    <span style="color: #888;">OR</span>
+
+    <!-- Input for new name -->
+    <input type="text"
+           formControlName="documentName"
+           placeholder="Enter new document name"
+           class="form-control"
+           style="width: 250px;">
+
+    <!-- 
+      ✅ Save button disabled when:
+         1. Dropdown is selected (isDocumentSaved = true)
+         2. Already saved successfully (isDocumentSaved = true)
+         3. Input field is empty
+    -->
+    <button type="button"
+            class="btn btn-success"
+            [disabled]="isDocumentSaved || !editForm.get('documentName')?.value?.trim()"
+            (click)="saveDocument()">
+      {{ isDocumentSaved ? '✅ Saved' : 'Save Document' }}
+    </button>
+  </div>
+
+  <hr>
+  <h3>Edit OCR Result</h3>
+
+  <div formArrayName="pages">
+    <div class="col-lg-6 form-label  " *ngFor="let page of pages.controls; let i=index" [formGroupName]="i"
+         style="margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 6px;">
+
+      <h4>📄 {{ page.get('fileName')?.value }} — Page {{ page.get('pageNumber')?.value }}</h4>
+
+      <textarea rows="20" style="width: 100%;" formControlName="extractedText"></textarea>
+
+      <br>
+      <!-- ✅ Save Page button shows warning if document not saved yet -->
+      <button type="button"
+              class="btn btn-warning mt-2"
+              [title]="!documentId ? 'Save Document first' : 'Save this page'"
+              (click)="savePage(i)">
+        Save Page {{ page.get('pageNumber')?.value }}
+      </button>
+
+      <span *ngIf="!documentId"
+            style="margin-left: 10px; color: red; font-size: 13px;">
+        ⚠️ Save the document above first
+      </span>
+
+    </div>
+  </div>
 </div>

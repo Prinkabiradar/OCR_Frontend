@@ -35,10 +35,7 @@ export class ServiceService {
     Array<{ id: string; text: string }>
   >([]);
   dropdownData$ = this.dropdownDataSubject.asObservable();
-
-  dropdownBank() {
-    throw new Error('Method not implemented.');
-  }
+ 
 
   workLocationAdd(workLocation: any): Observable<any[]> {
     const lsValue = localStorage.getItem(this.authLocalStorageToken);
@@ -449,6 +446,49 @@ saveDocumentType(formData: FormData) {
   return this.http.post<any[]>(
     environment.BaseUrl + 'api/DocumentType/InsertUpdateDocumentType',
     formData,
+    { headers }
+  );
+}
+saveDocumentTypeJson(model: any) {
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken,
+    'Content-Type': 'application/json'
+  });
+
+  return this.http.post<any>(
+    environment.BaseUrl + 'api/DocumentType/InsertUpdateDocumentType',
+    model,
+    { headers }
+  );
+}
+saveDocument(model: any) {
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.post<any>(
+    environment.BaseUrl + 'api/Document/InsertUpdateDocument',
+    model,
+    { headers }
+  );
+}
+saveDocumentPage(model: any) {
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.post<any>(
+    environment.BaseUrl + 'api/DocumentPage/InsertUpdateDocumentPage',
+    model,
     { headers }
   );
 }
