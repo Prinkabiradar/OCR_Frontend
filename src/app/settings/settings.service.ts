@@ -492,4 +492,30 @@ saveDocumentPage(model: any) {
     { headers }
   );
 }
+getDocumentPagesByDocument(documentId: number): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  const params = new HttpParams()
+    .set('documentId', documentId.toString());
+
+  return this.http.get<any[]>(
+    environment.BaseUrl + 'api/DocumentPage/GetDocumentPages',
+    {
+      headers: headers,
+      params: params,
+    }
+  );
+}
+
 }

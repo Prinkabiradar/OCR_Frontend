@@ -1,1 +1,119 @@
-<p>ocr-data works!</p>
+<div class="ocr-container">
+
+  <!-- Sacred Header -->
+  <div class="sacred-header">
+    <div class="lotus-divider top">
+      <span class="lotus-symbol">☸</span>
+      <span class="line"></span>
+      <span class="om-symbol">ॐ</span>
+      <span class="line"></span>
+      <span class="lotus-symbol">☸</span>
+    </div>
+
+    <div class="header-content">
+      <div class="hk-logo">
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0a/ISKCON_logo.svg/200px-ISKCON_logo.svg.png"
+             alt="Hare Krishna" class="iskcon-logo" onerror="this.style.display='none'" />
+      </div>
+      <p class="foundation-name">Hare Krishna Foundation</p>
+      <h1 class="main-title">Sacred Scripture Archive</h1>
+      <p class="subtitle">Divine Texts Extracted by Grace</p>
+    </div>
+
+    <div class="lotus-divider bottom">
+      <span class="lotus-symbol">🪷</span>
+      <span class="line"></span>
+      <span class="maha-mantra">हरे कृष्ण हरे कृष्ण</span>
+      <span class="line"></span>
+      <span class="lotus-symbol">🪷</span>
+    </div>
+  </div>
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="refresh-btn" (click)="refresh()">
+      <span class="refresh-icon">↻</span>
+      Refresh Blessings
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-state">
+    <div class="mandala-spinner">
+      <div class="ring ring1"></div>
+      <div class="ring ring2"></div>
+      <div class="ring ring3"></div>
+      <span class="om-center">ॐ</span>
+    </div>
+    <p class="loading-text">Retrieving Sacred Texts...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage" class="error-state">
+    <span class="error-icon">⚠</span>
+    <p>{{ errorMessage }}</p>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && pageList.length === 0 && !errorMessage" class="empty-state">
+    <div class="empty-lotus">🪷</div>
+    <p>No sacred texts found at this time.</p>
+    <p class="empty-sub">Please try again or contact the foundation.</p>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-wrapper" *ngIf="!loading && pageList.length > 0">
+    <table class="ocr-table">
+      <thead>
+        <tr>
+          <th class="th-page">
+            <span class="th-inner">Page</span>
+          </th>
+          <th class="th-text">
+            <span class="th-inner">Extracted Sacred Text</span>
+          </th>
+          <th class="th-status">
+            <span class="th-inner">Status</span>
+          </th>
+          <th class="th-date">
+            <span class="th-inner">Date Recorded</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let item of pageList; let i = index" class="table-row" [class.row-alt]="i % 2 !== 0">
+          <td class="td-page">
+            <div class="page-badge">{{ item.PageNumber }}</div>
+          </td>
+          <td class="td-text">
+            <div class="text-content">{{ item.ExtractedText }}</div>
+          </td>
+          <td class="td-status">
+            <span class="status-badge" [ngClass]="'status-' + item.StatusId">
+              <span class="status-dot"></span>
+              {{ item.StatusId === 2 ? 'Blessed' : item.StatusId === 1 ? 'Pending' : 'Processing' }}
+            </span>
+          </td>
+          <td class="td-date">
+            <div class="date-display">
+              <span class="date-icon">☽</span>
+              {{ item.CreatedDate | date:'mediumDate' }}
+            </div>
+            <div class="time-display">{{ item.CreatedDate | date:'shortTime' }}</div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="table-footer">
+      <span class="record-count">{{ pageList.length }} Sacred Page{{ pageList.length !== 1 ? 's' : '' }} Retrieved</span>
+      <span class="footer-mantra">🪷 Radhe Radhe 🪷</span>
+    </div>
+  </div>
+
+  <!-- Bottom Divider -->
+  <div class="bottom-seal">
+    <span>ॐ नमो भगवते वासुदेवाय</span>
+  </div>
+
+</div>
