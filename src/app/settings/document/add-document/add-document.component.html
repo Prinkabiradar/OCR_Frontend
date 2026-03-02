@@ -1,1 +1,99 @@
-<p>add-document works!</p>
+<div class="container">
+  <div class="card">
+
+    <!-- Header -->
+    <div class="card-header">
+      <div class="om-symbol">ॐ</div>
+
+      <p class="card-subtitle">
+        SHRI KRISHNA TEMPLE & FOUNDATION
+      </p>
+
+      <h2 class="main-title">ADD DOCUMENT</h2>
+      <p class="tagline">
+        Register sacred document details in the foundation
+      </p>
+
+      <div class="header-divider">
+        <span class="divider-line"></span>
+        <span class="divider-icon">🪷</span>
+        <span class="divider-line"></span>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <form [formGroup]="documentForm">
+
+      <!-- Document Type -->
+      <div class="form-group">
+        <label>DOCUMENT TYPE <span class="req">*</span></label>
+        <ng-select2
+  class="full-width-select"
+  [data]="documentTypedata"
+  formControlName="documentTypeId"
+  [options]="documentTypeoptions">
+</ng-select2>
+        <div class="error"
+             *ngIf="f.documentTypeId.touched && f.documentTypeId.invalid">
+          Document type is required
+        </div>
+      </div>
+
+      <!-- Document Name -->
+      <div class="form-group">
+        <label>DOCUMENT NAME <span class="req">*</span></label>
+        <input
+          type="text"
+          formControlName="documentName"
+          placeholder="e.g. Trust Deed 2024"
+        />
+
+        <div class="error"
+             *ngIf="f.documentName.touched && f.documentName.invalid">
+          Document name is required
+        </div>
+      </div>
+
+      <!-- Total Pages -->
+      <!-- <div class="form-group">
+        <label>TOTAL PAGES <span class="req">*</span></label>
+        <input
+          type="number"
+          formControlName="totalPages"
+          placeholder="Enter total pages"
+        />
+
+        <div class="error"
+             *ngIf="f.totalPages.touched && f.totalPages.invalid">
+          Total pages must be greater than 0
+        </div>
+      </div> -->
+
+      <!-- Buttons -->
+      <div class="btn-group">
+        <button
+          type="button"
+          class="save-btn"
+          (click)="saveDocument()"
+          [disabled]="saving"
+        >
+          {{ saving ? 'Saving...' : 'Save Record' }}
+        </button>
+
+        <button
+          type="button"
+          class="reset-btn"
+          (click)="resetForm()"
+        >
+          Reset
+        </button>
+      </div>
+
+    </form>
+
+    <div class="card-footer">
+      <span>जय श्री कृष्ण 🙏</span>
+    </div>
+
+  </div>
+</div>

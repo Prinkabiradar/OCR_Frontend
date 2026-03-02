@@ -13,6 +13,8 @@ import { RolesDataComponent } from './roles/roles-data/roles-data.component';
 import { SubmastertableDataComponent } from './submastertable/submastertable-data/submastertable-data.component';
 import { AddImageComponent } from './uploads/add-image/add-image.component';
 import { AddDocumentTypeComponent } from './documentType/add-document-type/add-document-type.component';
+import { AddDocumentComponent } from './document/add-document/add-document.component';
+import { OcrDataComponent } from './uploads/ocr-data/ocr-data.component';
 
 
 
@@ -77,6 +79,14 @@ const routes: Routes = [
   {
     path: 'add-documentType',
     component: AddDocumentTypeComponent,
+  },
+  {
+    path: 'add-document',
+    component: AddDocumentComponent,
+  },
+  {
+    path: 'ocr-data',
+    component: OcrDataComponent,
   },
 
   { path: '', redirectTo: 'add-order', pathMatch: 'full' },

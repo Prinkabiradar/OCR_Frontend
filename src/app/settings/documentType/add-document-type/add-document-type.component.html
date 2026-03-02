@@ -1,37 +1,63 @@
 <div class="container">
   <div class="card">
 
+    <!-- HEADER -->
     <div class="card-header">
       <div class="om-symbol">ॐ</div>
-      <p class="card-subtitle">Shri Krishna Temple &amp; Foundation</p>
-      <br>
-      <h2>Category</h2>
+
+      <p class="card-subtitle">
+        SHRI KRISHNA TEMPLE & FOUNDATION
+      </p>
+
+      <div class="seva-title">
+        🌸 SEVA PRABANDHAN · सेवा प्रबंधन
+      </div>
+
+      <h2>ADD DOCUMENT TYPE</h2>
+
+      <p class="header-desc">
+        Register a sacred document classification for the foundation
+      </p>
+
       <div class="header-divider">
         <span class="divider-line"></span>
-        <span class="divider-icon">🪷</span>
+        <span class="divider-icon">🪔</span>
         <span class="divider-line"></span>
       </div>
     </div>
 
+    <!-- FORM -->
     <form [formGroup]="documentTypeForm">
 
-      <!-- Document Type Name -->
+      <!-- Document Type -->
       <div class="form-group">
-        <label>Category Name <span class="req">*</span></label>
+        <label>DOCUMENT TYPE NAME <span class="req">*</span></label>
+
         <input
           type="text"
           formControlName="documentTypeName"
-          placeholder="e.g. Poem, Letter, Novel"
+          placeholder="e.g. Donation Receipt, Trust Deed, Puja Schedule"
         />
-        <div class="error" *ngIf="f.documentTypeName.touched && f.documentTypeName.invalid">
+
+        <div class="error"
+             *ngIf="f.documentTypeName.touched && f.documentTypeName.invalid">
           Document type name is required
         </div>
       </div>
 
-      <!-- Is Active -->
-      <div class="form-group checkbox">
-        <input type="checkbox" formControlName="isActive" id="active">
-        <label for="active">Is Active</label>
+      <!-- Active Status -->
+      <div class="form-group status-box">
+        <div class="status-text">
+          <div class="status-title">ACTIVE STATUS</div>
+          <div class="status-sub">
+            Currently inactive — will not appear in records
+          </div>
+        </div>
+
+        <label class="switch">
+          <input type="checkbox" formControlName="isActive">
+          <span class="slider"></span>
+        </label>
       </div>
 
       <!-- Buttons -->
@@ -40,24 +66,23 @@
           type="button"
           class="save-btn"
           (click)="saveDocumentType()"
-          [disabled]="saving"
-        >
-          {{ saving ? 'Saving...' : 'Save' }}
+          [disabled]="saving">
+          {{ saving ? 'Saving...' : 'SAVE RECORD' }}
         </button>
 
         <button
           type="button"
           class="reset-btn"
-          (click)="resetForm()"
-        >
-          Reset
+          (click)="resetForm()">
+          RESET
         </button>
       </div>
 
     </form>
 
     <div class="card-footer">
-      <span>जय श्री कृष्ण 🙏</span>
+      <span>* Required fields</span>
+      <span class="footer-right">जय श्री कृष्ण 🌸</span>
     </div>
 
   </div>
