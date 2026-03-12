@@ -23,6 +23,7 @@ export class AddImageComponent {
   // ✅ Track which save buttons should be disabled
   isDocumentTypeSaved = false;
   isDocumentSaved = false;
+  savedPages: Set<number> = new Set();
 
   //SELECT2 document
   public documentoptions: Options;
@@ -58,43 +59,49 @@ export class AddImageComponent {
   }
 
   documentTyperopdown() {
-    this.service.dropdownAll(this.documentTypesearchTerm, '1', '1', '0').subscribe(
-      (response) => {
-        this.documentTypedata = response.map((item: any) => ({
-          id: item.id.toString(),
-          text: item.text,
-        }));
-        this.documentTypeoptions = {
-          data: this.documentTypedata,
-          width: '100%',
-          placeholder: 'Select Document Type',
-          allowClear: true,
-        };
-        this.cd.markForCheck();
-        this.cd.detectChanges();
-      },
-      (error) => console.error('Error fetching data', error)
-    );
+      this.service.dropdownAll(this.documentTypesearchTerm, '1', '3', '0').subscribe(
+        (response) => {
+          this.documentTypedata = [
+            { id: '', text: '' },  // ✅ Blank option forces placeholder
+            ...response.map((item: any) => ({
+              id: item.id.toString(),
+              text: item.text,
+            }))
+          ];
+          this.documentTypeoptions = {
+            data: this.documentTypedata,
+            width: '100%',
+            placeholder: 'Select Document Type',
+            allowClear: true,
+          };
+          this.cd.markForCheck();
+          this.cd.detectChanges();
+        },
+        (error) => console.error('Error fetching data', error)
+      );
   }
-
+    
   documentropdown() {
-    this.service.dropdownAll(this.documentsearchTerm, '1', '1', '0').subscribe(
-      (response) => {
-        this.documentdata = response.map((item: any) => ({
-          id: item.id.toString(),
-          text: item.text,
-        }));
-        this.documentoptions = {
-          data: this.documentdata,
-          width: '100%',
-          placeholder: 'Select Document Name',
-          allowClear: true,
-        };
-        this.cd.markForCheck();
-        this.cd.detectChanges();
-      },
-      (error) => console.error('Error fetching data', error)
-    );
+      this.service.dropdownAll(this.documentsearchTerm, '1', '1', '0').subscribe(
+        (response) => {
+          this.documentdata = [
+            { id: '', text: '' },  // ✅ Blank option forces placeholder
+            ...response.map((item: any) => ({
+              id: item.id.toString(),
+              text: item.text,
+            }))
+          ];
+          this.documentoptions = {
+            data: this.documentdata,
+            width: '100%',
+            placeholder: 'Select Document Name',
+            allowClear: true,
+          };
+          this.cd.markForCheck();
+          this.cd.detectChanges();
+        },
+        (error) => console.error('Error fetching data', error)
+      );
   }
 
   uploadFiles() {
@@ -148,17 +155,13 @@ export class AddImageComponent {
       pages: pagesArray
     });
 
-    // ✅ Document Type mutual exclusion
+    // ✅ Document Type — radio toggle
     this.editForm.get('documentTypeId')?.valueChanges.subscribe(value => {
-      const documentTypeCtrl = this.editForm.get('documentType');
       if (value) {
-        documentTypeCtrl?.setValue('', { emitEvent: false });
-        documentTypeCtrl?.disable({ emitEvent: false });
-        // ✅ Dropdown selected → Save button disabled (already exists, no API call needed)
+        this.editForm.get('documentType')?.setValue('', { emitEvent: false }); // ✅ Clear textbox
         this.isDocumentTypeSaved = true;
-        this.documentTypeId = +value; // store for later use
+        this.documentTypeId = +value;
       } else {
-        documentTypeCtrl?.enable({ emitEvent: false });
         this.isDocumentTypeSaved = false;
         this.documentTypeId = 0;
       }
@@ -166,28 +169,21 @@ export class AddImageComponent {
     });
 
     this.editForm.get('documentType')?.valueChanges.subscribe(value => {
-      const documentTypeIdCtrl = this.editForm.get('documentTypeId');
       if (value && value.trim() !== '') {
-        documentTypeIdCtrl?.setValue(null, { emitEvent: false });
-        documentTypeIdCtrl?.disable({ emitEvent: false });
-        this.isDocumentTypeSaved = false; // ✅ Allow save since user typed new value
-      } else {
-        documentTypeIdCtrl?.enable({ emitEvent: false });
+        this.editForm.get('documentTypeId')?.setValue(null, { emitEvent: false }); // ✅ Clear dropdown
+        this.isDocumentTypeSaved = false;
+        this.documentTypeId = 0;
       }
       this.cd.detectChanges();
     });
 
-    // ✅ Document Name mutual exclusion
+    // ✅ Document Name — radio toggle
     this.editForm.get('documentId')?.valueChanges.subscribe(value => {
-      const documentNameCtrl = this.editForm.get('documentName');
       if (value) {
-        documentNameCtrl?.setValue('', { emitEvent: false });
-        documentNameCtrl?.disable({ emitEvent: false });
-        // ✅ Dropdown selected → Save button disabled (document already exists)
+        this.editForm.get('documentName')?.setValue('', { emitEvent: false }); // ✅ Clear textbox
         this.isDocumentSaved = true;
-        this.documentId = +value; // store existing document id
+        this.documentId = +value;
       } else {
-        documentNameCtrl?.enable({ emitEvent: false });
         this.isDocumentSaved = false;
         this.documentId = 0;
       }
@@ -195,13 +191,10 @@ export class AddImageComponent {
     });
 
     this.editForm.get('documentName')?.valueChanges.subscribe(value => {
-      const documentIdCtrl = this.editForm.get('documentId');
       if (value && value.trim() !== '') {
-        documentIdCtrl?.setValue(null, { emitEvent: false });
-        documentIdCtrl?.disable({ emitEvent: false });
-        this.isDocumentSaved = false; // ✅ Allow save since user typed new name
-      } else {
-        documentIdCtrl?.enable({ emitEvent: false });
+        this.editForm.get('documentId')?.setValue(null, { emitEvent: false }); // ✅ Clear dropdown
+        this.isDocumentSaved = false;
+        this.documentId = 0;
       }
       this.cd.detectChanges();
     });
@@ -296,8 +289,79 @@ export class AddImageComponent {
     };
 
     this.service.saveDocumentPage(model).subscribe({
-      next: () => alert('✅ Page ' + page.pageNumber + ' saved successfully'),
+      next: () => {
+        this.savedPages.add(index); // ✅ Mark this page as saved
+        this.cd.detectChanges();
+        alert('✅ Page ' + page.pageNumber + ' saved successfully');
+      },
       error: err => console.error(err)
+    });
+  }
+  // saveAllRemainingPages() {
+  //   const unsavedIndexes = this.pages.controls
+  //     .map((_, i) => i)
+  //     .filter(i => !this.savedPages.has(i));
+  
+  //   if (unsavedIndexes.length === 0) {
+  //     alert('✅ All pages are already saved!');
+  //     return;
+  //   }
+  
+  //   if (!this.documentId || this.documentId === 0) {
+  //     alert('⚠️ Please save the Document first before saving pages.');
+  //     return;
+  //   }
+  
+  //   unsavedIndexes.forEach(i => this.savePage(i));
+  // }
+  async saveAllRemainingPages() {
+    if (!this.documentId || this.documentId === 0) {
+      alert('⚠️ Please save the Document first before saving pages.');
+      return;
+    }
+  
+    const unsavedIndexes = this.pages.controls
+      .map((_, i) => i)
+      .filter(i => !this.savedPages.has(i))
+      .sort((a, b) => a - b); // ✅ Ensure page order
+  
+    if (unsavedIndexes.length === 0) {
+      alert('✅ All pages are already saved!');
+      return;
+    }
+  
+    for (const i of unsavedIndexes) {  // ✅ Sequential, not parallel
+      await this.savePageAsync(i);
+    }
+  
+    alert('✅ All remaining pages saved successfully!');
+    this.cd.detectChanges();
+  }
+  
+  // ✅ Add this helper method — wraps savePage as a Promise
+  private savePageAsync(index: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const page = this.pages.at(index).value;
+      const model = {
+        DocumentPageId: 0,
+        DocumentId: this.documentId,
+        PageNumber: page.pageNumber,
+        ExtractedText: page.extractedText,
+        StatusId: 2,
+        CreatedBy: 1
+      };
+  
+      this.service.saveDocumentPage(model).subscribe({
+        next: () => {
+          this.savedPages.add(index); // ✅ Mark saved
+          this.cd.detectChanges();
+          resolve();
+        },
+        error: (err) => {
+          console.error(`Page ${page.pageNumber} failed`, err);
+          reject(err);
+        }
+      });
     });
   }
 }

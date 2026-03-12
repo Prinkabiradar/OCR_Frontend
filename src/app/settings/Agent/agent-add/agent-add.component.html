@@ -1,0 +1,238 @@
+<!-- ─── PAGE HEADER ─── -->
+<div class="mandir-header">
+  <div class="om-header">ॐ</div>
+  <div class="mandir-title">Shri Krishna Mandir</div>
+  <div class="mandir-subtitle">Document Voice Seva — Sacred Listening</div>
+</div>
+
+<!-- ─── VOICE SETTINGS CARD ─── -->
+<div class="seva-card">
+  <div class="card-arch"></div>
+  <div class="card-body">
+
+    <div class="section-title">Voice Yantra Settings</div>
+
+    <div class="settings-grid">
+
+      <!-- Voice Selector -->
+      <div class="settings-field wide">
+        <label class="field-label">🎙️ Voice</label>
+
+        <div *ngIf="detectedLang" class="lang-badge">
+          🌐 Auto Detected: {{ detectedLang }}
+        </div>
+
+        <div *ngIf="availableVoices.length === 0" class="loading-voices">
+          <span class="om-dot">ॐ</span> Loading voices…
+        </div>
+
+        <select class="mandir-select"
+                *ngIf="availableVoices.length > 0"
+                (change)="onVoiceChange($event)">
+
+          <optgroup label="🇮🇳 Indian Voices">
+            <ng-container *ngFor="let voice of indianVoices">
+              <option [value]="voice.name" [selected]="voice.name === selectedVoice?.name">
+                {{ voice.name }} ({{ voice.lang }})
+              </option>
+            </ng-container>
+          </optgroup>
+
+          <optgroup label="🌍 Other Voices">
+            <ng-container *ngFor="let voice of otherVoices">
+              <option [value]="voice.name" [selected]="voice.name === selectedVoice?.name">
+                {{ voice.name }} ({{ voice.lang }})
+              </option>
+            </ng-container>
+          </optgroup>
+
+        </select>
+      </div>
+
+      <!-- Speed -->
+      <div class="settings-field">
+        <label class="field-label">⚡ Speed — <span class="range-val">{{ speechRate }}</span></label>
+        <input type="range" class="mandir-range"
+               min="0.1" max="2.0" step="0.1"
+               [(ngModel)]="speechRate" />
+        <div class="range-labels">
+          <small>🐢 Slow</small><small>🚀 Fast</small>
+        </div>
+      </div>
+
+      <!-- Pitch -->
+      <div class="settings-field">
+        <label class="field-label">🎵 Pitch — <span class="range-val">{{ speechPitch }}</span></label>
+        <input type="range" class="mandir-range"
+               min="0.0" max="2.0" step="0.1"
+               [(ngModel)]="speechPitch" />
+        <div class="range-labels">
+          <small>🔉 Low</small><small>🔔 High</small>
+        </div>
+      </div>
+
+      <!-- Volume -->
+      <div class="settings-field">
+        <label class="field-label">🔊 Volume — <span class="range-val">{{ speechVolume }}</span></label>
+        <input type="range" class="mandir-range"
+               min="0.0" max="1.0" step="0.1"
+               [(ngModel)]="speechVolume" />
+        <div class="range-labels">
+          <small>🔇</small><small>🔊</small>
+        </div>
+      </div>
+
+      <!-- Preview -->
+      <div class="settings-field preview-field">
+        <label class="field-label">&nbsp;</label>
+        <button class="btn btn-preview"
+                [disabled]="availableVoices.length === 0"
+                (click)="previewVoice()">
+          🔊 Preview Voice
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── SEARCH CARD ─── -->
+<div class="seva-card">
+  <div class="card-arch"></div>
+  <div class="card-body">
+
+    <div class="section-title">Document Khoj — Search</div>
+
+    <div class="search-row">
+      <input type="text"
+             class="search-input"
+             [(ngModel)]="userQuestion"
+             [placeholder]="isListening ? '🎙️ Listening to your seva request…' : 'Type or speak… e.g. I want to listen Aarti'"
+             (keyup.enter)="askQuestion()" />
+
+      <button class="btn"
+              [class.btn-stop-listen]="isListening"
+              [class.btn-speak]="!isListening"
+              [disabled]="isLoading"
+              (click)="isListening ? stopListening() : startListening()">
+        {{ isListening ? '🔴 Stop' : '🎙️ Speak' }}
+      </button>
+
+      <button class="btn btn-search"
+              [disabled]="isLoading || !userQuestion.trim()"
+              (click)="askQuestion()">
+        🔍 Search
+      </button>
+    </div>
+
+    <!-- OM LOADER -->
+    <div class="om-loader-wrapper" *ngIf="isLoading">
+      <div class="om-loader-ring">
+        <span class="om-symbol">ॐ</span>
+      </div>
+      <div class="om-loader-text">Searching sacred documents, please wait…</div>
+    </div>
+
+    <!-- Not Found -->
+    <div class="not-found-box" *ngIf="notFound && !isLoading">
+      🪷 No document found. Please try a different name or speak again.
+    </div>
+
+  </div>
+</div>
+
+<!-- ─── RESULTS CARD ─── -->
+<div class="seva-card" *ngIf="pages.length > 0 && !isLoading">
+  <div class="card-arch"></div>
+  <div class="card-body">
+
+    <!-- Document Header -->
+    <div class="doc-header">
+      <div class="doc-title-block">
+        <div class="doc-name">📄 {{ documentName }}</div>
+        <span *ngIf="detectedLang" class="lang-badge">🌐 {{ detectedLang }}</span>
+      </div>
+      <div class="doc-actions">
+        <button class="btn btn-sm btn-outline-warning"
+                [disabled]="isSummarizing"
+                (click)="summarizeDocument()">
+          {{ isSummarizing ? '⏳ Summarizing...' : '📋 Summarize' }}
+        </button>
+        <button class="btn btn-read-all"
+                [disabled]="isSpeaking"
+                (click)="speakText(fullText)">
+          🔊 {{ isSpeaking ? 'Speaking…' : 'Read All' }}
+        </button>
+        <button class="btn btn-stop-speak"
+                [disabled]="!isSpeaking"
+                (click)="stopSpeaking()">
+          ⏹ Stop
+        </button>
+      </div>
+    </div>
+
+    <!-- Summary Loader -->
+    <div *ngIf="isSummarizing" class="text-center p-4">
+      <div class="om-wrapper mx-auto">
+        <div class="om-ring"></div>
+        <div class="om-ring-2"></div>
+        <div class="om-symbol">ॐ</div>
+      </div>
+      <div class="om-text mt-2">Generating Summary...</div>
+    </div>
+
+    <!-- Summary Panel -->
+    <div *ngIf="showSummary && !isSummarizing" class="card mb-4 border-warning">
+      <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+        <strong>📋 Document Summary</strong>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-dark" (click)="speakText(summary)">
+            🔊 Read Summary
+          </button>
+          <button class="btn btn-sm btn-outline-dark" (click)="showSummary = false">
+            ✖ Close
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <pre style="white-space: pre-wrap; font-size: 14px;">{{ summary }}</pre>
+      </div>
+    </div>
+
+    <div class="lotus-divider">🪷 &nbsp; 🪷 &nbsp; 🪷</div>
+
+    <!-- Pages -->
+    <div class="pages-list">
+      <div class="page-card" *ngFor="let page of pages">
+
+        <div class="page-header">
+          <div class="page-title">📜 Page {{ page.pageNumber }}</div>
+          <button class="btn btn-read-page" (click)="speakText(page.extractedText)">
+            🔊 Read Page
+          </button>
+        </div>
+
+        <pre class="page-text">{{ page.extractedText }}</pre>
+
+      </div>
+    </div>
+
+    <!-- ✅ Pagination — after pages, before footer -->
+    <div class="lotus-divider">🪷 &nbsp; 🪷 &nbsp; 🪷</div>
+
+    <app-pagination-data
+      [currentPage]="currentPage"
+      [totalPages]="totalPages"
+      [totalRecords]="totalRecords"
+      [pageSize]="itemsPerPage"
+      (pageChange)="onPageChange($event)"
+      (pageSizeChange)="onPageSizeChange($event)">
+    </app-pagination-data>
+
+  </div>
+</div>
+
+<!-- ─── FOOTER ─── -->
+<div class="mandir-footer">
+  🪷 &nbsp; Jai Shri Krishna &nbsp; 🪷 &nbsp; सेवा परमो धर्मः
+</div>

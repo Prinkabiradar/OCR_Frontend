@@ -23,12 +23,7 @@ import { ReportMenuComponent } from './report-menu/report-menu.component';
 
 @NgModule({
   declarations: [
-    
-    
-  
     ReportMenuComponent,
- 
-   
  
   ],
   imports: [

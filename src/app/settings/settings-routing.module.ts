@@ -13,6 +13,7 @@ import { RolesDataComponent } from './roles/roles-data/roles-data.component';
 import { SubmastertableDataComponent } from './submastertable/submastertable-data/submastertable-data.component';
 import { AddImageComponent } from './uploads/add-image/add-image.component';
 import { AddDocumentTypeComponent } from './documentType/add-document-type/add-document-type.component';
+import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
 
 
 
@@ -77,6 +78,10 @@ const routes: Routes = [
   {
     path: 'add-documentType',
     component: AddDocumentTypeComponent,
+  },
+  {
+    path: 'agent-add',
+    component: AgentAddComponent,
   },
 
   { path: '', redirectTo: 'add-order', pathMatch: 'full' },

@@ -41,16 +41,10 @@ export const MY_DATE_FORMATS = {
   },
 };
 @NgModule({
-  declarations: [
-     
-     
+  declarations: [  
     LinksettingAddComponent,
     LinksettingDataComponent,
-     
  
- 
- 
-   
   ],
   imports: [
  

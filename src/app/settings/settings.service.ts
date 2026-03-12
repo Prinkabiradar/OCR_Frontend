@@ -492,4 +492,62 @@ saveDocumentPage(model: any) {
     { headers }
   );
 }
+// askAgent(question: string): Observable<any> {
+//   const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+//   const headers = new HttpHeaders({
+//     Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+//   });
+
+//   return this.http.post<any>(
+//     environment.BaseUrl + 'api/Agent/ask',
+//     { question },
+//     { headers }
+//   );
+// }
+
+askAgent(
+  question: string,
+  startIndex: number,
+  pageSize: number,
+  searchBy: string,
+  searchCriteria: string
+): Observable<any> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  if (!lsValue) {
+    return new Observable<any>((observer) => {
+      observer.next(null);
+      observer.complete();
+    });
+  }
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken
+  });
+
+  const params = new HttpParams()
+    .set('startIndex',      startIndex.toString())
+    .set('pageSize',        pageSize.toString())
+    .set('searchBy',        searchBy)
+    .set('searchCriteria',  searchCriteria);
+
+  return this.http.get<any>(
+    environment.BaseUrl + 'api/Agent/AgentGET',
+    { headers, params }
+  );
+}
+
+summarizeDocument(documentName: string): Observable<any> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.post<any>(
+    environment.BaseUrl + 'api/Agent/summarize',
+    { question: documentName },
+    { headers }
+  );
+}
 }
