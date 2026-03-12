@@ -16,16 +16,27 @@
   <h3>Document Details</h3>
 
   <!-- ✅ DOCUMENT TYPE ROW -->
-  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
     <label style="min-width: 130px;"><strong>Document Type:</strong></label>
 
-    <!-- Dropdown -->
-    <ng-select2
-      [data]="documentTypedata"
-      formControlName="documentTypeId"
-      [options]="documentTypeoptions"
-      style="width: 250px;">
-    </ng-select2>
+    <!-- Dropdown + Clear button wrapper -->
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <ng-select2
+        [data]="documentTypedata"
+        formControlName="documentTypeId"
+        [options]="documentTypeoptions"
+        style="width: 250px;">
+      </ng-select2>
+
+      <!-- ✅ Clear button — only visible when a dropdown value is selected -->
+      <!-- <button type="button"
+              class="btn btn-outline-secondary btn-sm"
+              *ngIf="editForm.get('documentTypeId')?.value"
+              (click)="clearDocumentTypeDropdown()"
+              title="Clear selection">
+        ✕ Clear
+      </button> -->
+    </div>
 
     <span style="color: #888;">OR</span>
 
@@ -36,12 +47,6 @@
            class="form-control"
            style="width: 250px;">
 
-    <!-- 
-      ✅ Save button disabled when:
-         1. Dropdown is selected (isDocumentTypeSaved = true)
-         2. Already saved successfully (isDocumentTypeSaved = true)
-         3. Input field is empty
-    -->
     <button type="button"
             class="btn btn-primary"
             [disabled]="isDocumentTypeSaved || !editForm.get('documentType')?.value?.trim()"
@@ -51,16 +56,27 @@
   </div>
 
   <!-- ✅ DOCUMENT NAME ROW -->
-  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
+  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
     <label style="min-width: 130px;"><strong>Document Name:</strong></label>
 
-    <!-- Dropdown -->
-    <ng-select2
-      [data]="documentdata"
-      formControlName="documentId"
-      [options]="documentoptions"
-      style="width: 250px;">
-    </ng-select2>
+    <!-- Dropdown + Clear button wrapper -->
+    <div style="display: flex; align-items: center; gap: 6px;">
+      <ng-select2
+        [data]="documentdata"
+        formControlName="documentId"
+        [options]="documentoptions"
+        style="width: 250px;">
+      </ng-select2>
+
+      <!-- ✅ Clear button — only visible when a dropdown value is selected -->
+      <!-- <button type="button"
+              class="btn btn-outline-secondary btn-sm"
+              *ngIf="editForm.get('documentId')?.value"
+              (click)="clearDocumentDropdown()"
+              title="Clear selection">
+        ✕ Clear
+      </button> -->
+    </div>
 
     <span style="color: #888;">OR</span>
 
@@ -71,12 +87,6 @@
            class="form-control"
            style="width: 250px;">
 
-    <!-- 
-      ✅ Save button disabled when:
-         1. Dropdown is selected (isDocumentSaved = true)
-         2. Already saved successfully (isDocumentSaved = true)
-         3. Input field is empty
-    -->
     <button type="button"
             class="btn btn-success"
             [disabled]="isDocumentSaved || !editForm.get('documentName')?.value?.trim()"
@@ -88,16 +98,19 @@
   <hr>
   <h3>Edit OCR Result</h3>
 
-  <div formArrayName="pages">
-    <div class="col-lg-6 form-label  " *ngFor="let page of pages.controls; let i=index" [formGroupName]="i"
-         style="margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 6px;">
+  <!-- ✅ Pages shown two per row using CSS grid -->
+  <div formArrayName="pages"
+       style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+
+    <div *ngFor="let page of pages.controls; let i=index"
+         [formGroupName]="i"
+         style="border: 1px solid #ddd; padding: 15px; border-radius: 6px;">
 
       <h4>📄 {{ page.get('fileName')?.value }} — Page {{ page.get('pageNumber')?.value }}</h4>
 
       <textarea rows="20" style="width: 100%;" formControlName="extractedText"></textarea>
 
       <br>
-      <!-- ✅ Save Page button shows warning if document not saved yet -->
       <button type="button"
               class="btn btn-warning mt-2"
               [title]="!documentId ? 'Save Document first' : 'Save this page'"

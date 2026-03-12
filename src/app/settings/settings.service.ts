@@ -517,5 +517,52 @@ getDocumentPagesByDocument(documentId: number): Observable<any[]> {
     }
   );
 }
+getDocumentByDocumentName(documentId: number): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  const params = new HttpParams()
+    .set('documentId', documentId.toString());
+
+  return this.http.get<any[]>(
+    environment.BaseUrl + 'api/DocumentPage/GetDocumentPages',
+    {
+      headers: headers,
+      params: params,
+    }
+  );
+}
+
+getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: number = 10): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+  const params = new HttpParams()
+    .set('StartIndex', startIndex.toString())  
+    .set('PageSize', pageSize.toString())
+    .set('DocumentTypeId', documentTypeId.toString());
+ 
+  return this.http.get<any[]>(
+    environment.BaseUrl + 'api/DocumentPage/GetDocumentById',
+    { headers, params }
+  );
+}
 
 }

@@ -18,9 +18,8 @@ export class AddImageComponent {
   showEditForm = false;
 
   documentId: number = 0;
-  documentTypeId: number ;
+  documentTypeId: number;
 
-  // ✅ Track which save buttons should be disabled
   isDocumentTypeSaved = false;
   isDocumentSaved = false;
 
@@ -58,7 +57,7 @@ export class AddImageComponent {
   }
 
   documentTyperopdown() {
-    this.service.dropdownAll(this.documentTypesearchTerm, '1', '1', '0').subscribe(
+    this.service.dropdownAll(this.documentTypesearchTerm, '1', '3', '0').subscribe(
       (response) => {
         this.documentTypedata = response.map((item: any) => ({
           id: item.id.toString(),
@@ -148,60 +147,48 @@ export class AddImageComponent {
       pages: pagesArray
     });
 
-    // ✅ Document Type mutual exclusion
+    // ── Document Type mutual exclusion ──────────────────────────────────────
+    // Dropdown selected → clear the text input, mark as saved
     this.editForm.get('documentTypeId')?.valueChanges.subscribe(value => {
-      const documentTypeCtrl = this.editForm.get('documentType');
       if (value) {
-        documentTypeCtrl?.setValue('', { emitEvent: false });
-        documentTypeCtrl?.disable({ emitEvent: false });
-        // ✅ Dropdown selected → Save button disabled (already exists, no API call needed)
+        this.editForm.get('documentType')?.setValue('', { emitEvent: false });
         this.isDocumentTypeSaved = true;
-        this.documentTypeId = +value; // store for later use
+        this.documentTypeId = +value;
       } else {
-        documentTypeCtrl?.enable({ emitEvent: false });
         this.isDocumentTypeSaved = false;
         this.documentTypeId = 0;
       }
       this.cd.detectChanges();
     });
 
+    // Text input typed → clear the dropdown, allow save
     this.editForm.get('documentType')?.valueChanges.subscribe(value => {
-      const documentTypeIdCtrl = this.editForm.get('documentTypeId');
       if (value && value.trim() !== '') {
-        documentTypeIdCtrl?.setValue(null, { emitEvent: false });
-        documentTypeIdCtrl?.disable({ emitEvent: false });
-        this.isDocumentTypeSaved = false; // ✅ Allow save since user typed new value
-      } else {
-        documentTypeIdCtrl?.enable({ emitEvent: false });
+        this.editForm.get('documentTypeId')?.setValue(null, { emitEvent: false });
+        this.isDocumentTypeSaved = false;
       }
       this.cd.detectChanges();
     });
 
-    // ✅ Document Name mutual exclusion
+    // ── Document Name mutual exclusion ──────────────────────────────────────
+    // Dropdown selected → clear the text input, mark as saved
     this.editForm.get('documentId')?.valueChanges.subscribe(value => {
-      const documentNameCtrl = this.editForm.get('documentName');
       if (value) {
-        documentNameCtrl?.setValue('', { emitEvent: false });
-        documentNameCtrl?.disable({ emitEvent: false });
-        // ✅ Dropdown selected → Save button disabled (document already exists)
+        this.editForm.get('documentName')?.setValue('', { emitEvent: false });
         this.isDocumentSaved = true;
-        this.documentId = +value; // store existing document id
+        this.documentId = +value;
       } else {
-        documentNameCtrl?.enable({ emitEvent: false });
         this.isDocumentSaved = false;
         this.documentId = 0;
       }
       this.cd.detectChanges();
     });
 
+    // Text input typed → clear the dropdown, allow save
     this.editForm.get('documentName')?.valueChanges.subscribe(value => {
-      const documentIdCtrl = this.editForm.get('documentId');
       if (value && value.trim() !== '') {
-        documentIdCtrl?.setValue(null, { emitEvent: false });
-        documentIdCtrl?.disable({ emitEvent: false });
-        this.isDocumentSaved = false; // ✅ Allow save since user typed new name
-      } else {
-        documentIdCtrl?.enable({ emitEvent: false });
+        this.editForm.get('documentId')?.setValue(null, { emitEvent: false });
+        this.isDocumentSaved = false;
       }
       this.cd.detectChanges();
     });
@@ -213,9 +200,36 @@ export class AddImageComponent {
     return this.editForm.get('pages') as FormArray<FormGroup>;
   }
 
-  // ✅ SEPARATE: Save Document Type only
+  // ✅ NEW: Clear Document Type dropdown → re-enables the text input
+  clearDocumentTypeDropdown() {
+    const documentTypeIdCtrl = this.editForm.get('documentTypeId');
+    const documentTypeCtrl = this.editForm.get('documentType');
+
+    documentTypeIdCtrl?.setValue(null);
+    documentTypeIdCtrl?.enable({ emitEvent: false });
+    documentTypeCtrl?.enable({ emitEvent: false });
+
+    this.isDocumentTypeSaved = false;
+    this.documentTypeId = 0;
+    this.cd.detectChanges();
+  }
+
+  // ✅ NEW: Clear Document dropdown → re-enables the text input
+  clearDocumentDropdown() {
+    const documentIdCtrl = this.editForm.get('documentId');
+    const documentNameCtrl = this.editForm.get('documentName');
+
+    documentIdCtrl?.setValue(null);
+    documentIdCtrl?.enable({ emitEvent: false });
+    documentNameCtrl?.enable({ emitEvent: false });
+
+    this.isDocumentSaved = false;
+    this.documentId = 0;
+    this.cd.detectChanges();
+  }
+
   saveDocumentType() {
-    const formValue = this.editForm.getRawValue(); // getRawValue includes disabled controls
+    const formValue = this.editForm.getRawValue();
 
     if (!formValue.documentType || formValue.documentType.trim() === '') {
       alert('Please enter a new Document Type name.');
@@ -237,7 +251,7 @@ export class AddImageComponent {
           return;
         }
         this.documentTypeId = newTypeId;
-        this.isDocumentTypeSaved = true;  
+        this.isDocumentTypeSaved = true;
         alert('Document Type saved successfully. ID = ' + newTypeId);
         this.cd.detectChanges();
       },
@@ -245,14 +259,13 @@ export class AddImageComponent {
     });
   }
 
-  // ✅ SEPARATE: Save Document only (requires documentTypeId to be set)
   saveDocument() {
     if (!this.documentTypeId || this.documentTypeId === 0) {
       alert('Please save or select a Document Type first.');
       return;
     }
 
-    const formValue = this.editForm.getRawValue(); // getRawValue includes disabled controls
+    const formValue = this.editForm.getRawValue();
 
     if (!formValue.documentName || formValue.documentName.trim() === '') {
       alert('Please enter a Document Name.');
@@ -270,7 +283,7 @@ export class AddImageComponent {
     this.service.saveDocument(model).subscribe({
       next: (res: any) => {
         this.documentId = res.documentId || res.DocumentId;
-        this.isDocumentSaved = true; // ✅ Disable save button after success
+        this.isDocumentSaved = true;
         alert('Document saved successfully. ID = ' + this.documentId);
         this.cd.detectChanges();
       },
@@ -278,7 +291,6 @@ export class AddImageComponent {
     });
   }
 
-  // ✅ Save Single Page
   savePage(index: number) {
     if (!this.documentId || this.documentId === 0) {
       alert('⚠️ Please save the Document first before saving pages.');
