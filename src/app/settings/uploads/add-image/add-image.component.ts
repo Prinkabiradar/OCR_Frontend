@@ -18,9 +18,8 @@ export class AddImageComponent {
   showEditForm = false;
 
   documentId: number = 0;
-  documentTypeId: number ;
+  documentTypeId: number;
 
-  // ✅ Track which save buttons should be disabled
   isDocumentTypeSaved = false;
   isDocumentSaved = false;
   savedPages: Set<number> = new Set();
@@ -161,6 +160,7 @@ export class AddImageComponent {
         this.editForm.get('documentType')?.setValue('', { emitEvent: false }); // ✅ Clear textbox
         this.isDocumentTypeSaved = true;
         this.documentTypeId = +value;
+        this.documentTypeId = +value;
       } else {
         this.isDocumentTypeSaved = false;
         this.documentTypeId = 0;
@@ -168,6 +168,7 @@ export class AddImageComponent {
       this.cd.detectChanges();
     });
 
+    // Text input typed → clear the dropdown, allow save
     this.editForm.get('documentType')?.valueChanges.subscribe(value => {
       if (value && value.trim() !== '') {
         this.editForm.get('documentTypeId')?.setValue(null, { emitEvent: false }); // ✅ Clear dropdown
@@ -183,6 +184,7 @@ export class AddImageComponent {
         this.editForm.get('documentName')?.setValue('', { emitEvent: false }); // ✅ Clear textbox
         this.isDocumentSaved = true;
         this.documentId = +value;
+        this.documentId = +value;
       } else {
         this.isDocumentSaved = false;
         this.documentId = 0;
@@ -190,6 +192,7 @@ export class AddImageComponent {
       this.cd.detectChanges();
     });
 
+    // Text input typed → clear the dropdown, allow save
     this.editForm.get('documentName')?.valueChanges.subscribe(value => {
       if (value && value.trim() !== '') {
         this.editForm.get('documentId')?.setValue(null, { emitEvent: false }); // ✅ Clear dropdown
@@ -206,9 +209,36 @@ export class AddImageComponent {
     return this.editForm.get('pages') as FormArray<FormGroup>;
   }
 
-  // ✅ SEPARATE: Save Document Type only
+  // ✅ NEW: Clear Document Type dropdown → re-enables the text input
+  clearDocumentTypeDropdown() {
+    const documentTypeIdCtrl = this.editForm.get('documentTypeId');
+    const documentTypeCtrl = this.editForm.get('documentType');
+
+    documentTypeIdCtrl?.setValue(null);
+    documentTypeIdCtrl?.enable({ emitEvent: false });
+    documentTypeCtrl?.enable({ emitEvent: false });
+
+    this.isDocumentTypeSaved = false;
+    this.documentTypeId = 0;
+    this.cd.detectChanges();
+  }
+
+  // ✅ NEW: Clear Document dropdown → re-enables the text input
+  clearDocumentDropdown() {
+    const documentIdCtrl = this.editForm.get('documentId');
+    const documentNameCtrl = this.editForm.get('documentName');
+
+    documentIdCtrl?.setValue(null);
+    documentIdCtrl?.enable({ emitEvent: false });
+    documentNameCtrl?.enable({ emitEvent: false });
+
+    this.isDocumentSaved = false;
+    this.documentId = 0;
+    this.cd.detectChanges();
+  }
+
   saveDocumentType() {
-    const formValue = this.editForm.getRawValue(); // getRawValue includes disabled controls
+    const formValue = this.editForm.getRawValue();
 
     if (!formValue.documentType || formValue.documentType.trim() === '') {
       alert('Please enter a new Document Type name.');
@@ -230,7 +260,7 @@ export class AddImageComponent {
           return;
         }
         this.documentTypeId = newTypeId;
-        this.isDocumentTypeSaved = true;  
+        this.isDocumentTypeSaved = true;
         alert('Document Type saved successfully. ID = ' + newTypeId);
         this.cd.detectChanges();
       },
@@ -238,14 +268,13 @@ export class AddImageComponent {
     });
   }
 
-  // ✅ SEPARATE: Save Document only (requires documentTypeId to be set)
   saveDocument() {
     if (!this.documentTypeId || this.documentTypeId === 0) {
       alert('Please save or select a Document Type first.');
       return;
     }
 
-    const formValue = this.editForm.getRawValue(); // getRawValue includes disabled controls
+    const formValue = this.editForm.getRawValue();
 
     if (!formValue.documentName || formValue.documentName.trim() === '') {
       alert('Please enter a Document Name.');
@@ -263,7 +292,7 @@ export class AddImageComponent {
     this.service.saveDocument(model).subscribe({
       next: (res: any) => {
         this.documentId = res.documentId || res.DocumentId;
-        this.isDocumentSaved = true; // ✅ Disable save button after success
+        this.isDocumentSaved = true;
         alert('Document saved successfully. ID = ' + this.documentId);
         this.cd.detectChanges();
       },
@@ -271,7 +300,6 @@ export class AddImageComponent {
     });
   }
 
-  // ✅ Save Single Page
   savePage(index: number) {
     if (!this.documentId || this.documentId === 0) {
       alert('⚠️ Please save the Document first before saving pages.');
