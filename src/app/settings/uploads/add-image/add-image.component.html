@@ -1,5 +1,47 @@
-<div class="upload-box">
-  <input type="file" multiple (change)="onFileSelect($event)">
+<!-- ─── PAGE HEADER ─── -->
+<div class="mandir-header">
+  <div class="om-header">ॐ</div>
+  <div class="mandir-title">Shri Krishna Mandir</div>
+  <div class="mandir-subtitle">Document Seva — Sacred Records Management</div>
+</div>
+
+<!-- ─── UPLOAD CARD ─── -->
+<div class="seva-card">
+  <div class="card-arch"></div>
+  <div class="card-body">
+
+    <div class="section-title">Document Arpan</div>
+
+    <!-- Upload Zone -->
+    <div class="upload-zone">
+      <input type="file" multiple [disabled]="uploading" (change)="onFileSelect($event)">
+      <span class="upload-icon">📜</span>
+      <div class="upload-label">Select Sacred Documents</div>
+      <div class="upload-hint">Click or drag files here — PDF, JPG, PNG accepted</div>
+    </div>
+
+    <!-- File List -->
+    <div class="file-list" *ngIf="selectedFiles.length > 0">
+      <div class="file-row" *ngFor="let f of selectedFiles; let i = index">
+        <span class="file-name">{{ f.name }}</span>
+        <button class="btn btn-remove" [disabled]="uploading" (click)="removeFile(i)">
+          ✕ Remove
+        </button>
+      </div>
+    </div>
+
+    <!-- Upload Button -->
+    <button class="btn btn-upload" [disabled]="uploading || selectedFiles.length === 0" (click)="uploadFiles()">
+      🙏 &nbsp; {{ uploading ? 'Processing Seva...' : 'Upload Documents' }}
+    </button>
+
+    <!-- OM LOADER -->
+    <div class="om-loader-wrapper" *ngIf="uploading">
+      <div class="om-loader-ring">
+        <span class="om-symbol">ॐ</span>
+      </div>
+      <div class="om-loader-text">Processing your sacred documents, please wait…</div>
+    </div>
 
   </div>
 </div>
@@ -13,19 +55,18 @@
 
     <div class="form-section">
 
-  <!-- ✅ DOCUMENT TYPE ROW -->
-  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-    <label style="min-width: 130px;"><strong>Document Type:</strong></label>
+      <!-- ── Document Type Row ── -->
+      <div class="field-row">
+        <div class="field-label">Document Type</div>
 
-    <!-- Dropdown -->
-    <ng-select2
-      [data]="documentTypedata"
-      formControlName="documentTypeId"
-      [options]="documentTypeoptions"
-      style="width: 250px;">
-    </ng-select2>
+        <ng-select2
+          [data]="documentTypedata"
+          formControlName="documentTypeId"
+          [options]="documentTypeoptions"
+          class="mandir-select">
+        </ng-select2>
 
-    <span style="color: #888;">OR</span>
+        <span class="or-badge">or</span>
 
         <input
           type="text"
@@ -35,33 +76,27 @@
           [class.disabled-input]="editForm.get('documentType')?.disabled"
           [attr.title]="editForm.get('documentType')?.disabled ? 'Clear dropdown to type here' : null">
 
-    <!-- 
-      ✅ Save button disabled when:
-         1. Dropdown is selected (isDocumentTypeSaved = true)
-         2. Already saved successfully (isDocumentTypeSaved = true)
-         3. Input field is empty
-    -->
-    <button type="button"
-            class="btn btn-primary"
-            [disabled]="isDocumentTypeSaved || !editForm.get('documentType')?.value?.trim()"
-            (click)="saveDocumentType()">
-      {{ isDocumentTypeSaved ? '✅ Saved' : 'Save Type' }}
-    </button>
-  </div>
+        <button
+          type="button"
+          class="btn btn-save-type"
+          [disabled]="isDocumentTypeSaved || !editForm.get('documentType')?.value?.trim()"
+          (click)="saveDocumentType()">
+          {{ isDocumentTypeSaved ? '✅ Saved' : '💾 Save Type' }}
+        </button>
+      </div>
 
-  <!-- ✅ DOCUMENT NAME ROW -->
-  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 12px;">
-    <label style="min-width: 130px;"><strong>Document Name:</strong></label>
+      <!-- ── Document Name Row ── -->
+      <div class="field-row">
+        <div class="field-label">Document Name</div>
 
-    <!-- Dropdown -->
-    <ng-select2
-      [data]="documentdata"
-      formControlName="documentId"
-      [options]="documentoptions"
-      style="width: 250px;">
-    </ng-select2>
+        <ng-select2
+          [data]="documentdata"
+          formControlName="documentId"
+          [options]="documentoptions"
+          class="mandir-select">
+        </ng-select2>
 
-    <span style="color: #888;">OR</span>
+        <span class="or-badge">or</span>
 
         <input
           type="text"
@@ -71,19 +106,14 @@
           [class.disabled-input]="editForm.get('documentName')?.disabled"
           [attr.title]="editForm.get('documentName')?.disabled ? 'Clear dropdown to type here' : null">
 
-    <!-- 
-      ✅ Save button disabled when:
-         1. Dropdown is selected (isDocumentSaved = true)
-         2. Already saved successfully (isDocumentSaved = true)
-         3. Input field is empty
-    -->
-    <button type="button"
-            class="btn btn-success"
-            [disabled]="isDocumentSaved || !editForm.get('documentName')?.value?.trim()"
-            (click)="saveDocument()">
-      {{ isDocumentSaved ? '✅ Saved' : 'Save Document' }}
-    </button>
-  </div>
+        <button
+          type="button"
+          class="btn btn-save-doc"
+          [disabled]="isDocumentSaved || !editForm.get('documentName')?.value?.trim()"
+          (click)="saveDocument()">
+          {{ isDocumentSaved ? '✅ Saved' : '💾 Save Document' }}
+        </button>
+      </div>
 
     </div>
 
@@ -91,9 +121,12 @@
 
     <div class="section-title">OCR Seva — Edit Pages</div>
 
-  <div formArrayName="pages">
-    <div class="col-lg-6 form-label  " *ngFor="let page of pages.controls; let i=index" [formGroupName]="i"
-         style="margin-bottom: 30px; border: 1px solid #ddd; padding: 15px; border-radius: 6px;">
+    <!-- ── Pages Grid ── -->
+    <div class="pages-grid" formArrayName="pages">
+      <div
+        class="page-card"
+        *ngFor="let page of pages.controls; let i = index"
+        [formGroupName]="i">
 
         <div class="page-title">
           📄 {{ page.get('fileName')?.value }} — Page {{ page.get('pageNumber')?.value }}
@@ -105,14 +138,14 @@
           formControlName="extractedText">
         </textarea>
 
-      <br>
-      <!-- ✅ Save Page button shows warning if document not saved yet -->
-      <button type="button"
-              class="btn btn-warning mt-2"
-              [title]="!documentId ? 'Save Document first' : 'Save this page'"
-              (click)="savePage(i)">
-        Save Page {{ page.get('pageNumber')?.value }}
-      </button>
+        <button
+          type="button"
+          class="btn btn-save-page"
+          [disabled]="!documentId || savedPages.has(i)"
+          [title]="!documentId ? 'Save Document first' : savedPages.has(i) ? 'Already saved' : 'Save this page'"
+          (click)="savePage(i)">
+          {{ savedPages.has(i) ? '✅ Saved' : 'Save Page ' + page.get('pageNumber')?.value }}
+        </button>
 
         <div class="warn-text" *ngIf="!documentId">
           ⚠️ Save the document above first

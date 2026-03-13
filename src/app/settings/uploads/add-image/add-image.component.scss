@@ -97,7 +97,7 @@
 //  SEVA CARD
 // ─────────────────────────────────────────────
 .seva-card {
-  max-width: 1000px;
+  max-width: 1200px;
   margin: 0 auto 28px;
   background: #fff;
   border-radius: 16px;
@@ -381,16 +381,19 @@
 // Save Page — gold
 .btn-save-page {
   margin-top: 10px;
+  margin-left: auto;   /* pushes button to right */
+  display: block;
   background: linear-gradient(135deg, var(--gold), var(--saffron-lt));
-  color: white;
+  color: rgb(24, 136, 211);
   font-size: 9px;
   padding: 8px 14px;
-  width: 100%;
+  //width: 50%;
+  width: auto;   
   box-shadow: 0 2px 8px rgba(201, 146, 42, 0.25);
 
   &:disabled {
     // Already saved state — shows green
-    background: linear-gradient(135deg, #16803A, #22c55e);
+    background: linear-gradient(135deg, #bacdc0, #bdccc3);
     cursor: default;
     box-shadow: none;
   }
@@ -566,7 +569,7 @@
 // ─────────────────────────────────────────────
 .pages-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr ;   //1fr
   gap: 16px;
   margin-bottom: 16px;
 }

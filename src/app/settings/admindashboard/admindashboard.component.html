@@ -1,149 +1,235 @@
-<!-- Full Page Loader -->
-<div class="full-page-loader" *ngIf="isLoading">
-  <div class="loader-backdrop"></div>
-  <div class="loader-content">
-    <div class="spinner"></div>
-    <div class="loader-text">Loading Dashboard Data...</div>
+<!-- ─── KRISHNA MANDIR DASHBOARD ─── -->
+<div class="dashboard-wrapper">
+
+  <!-- Floating particles -->
+  <div class="particles">
+    <span class="particle" *ngFor="let p of particles" [style.left]="p.left" [style.animationDelay]="p.delay" [style.animationDuration]="p.duration">🪷</span>
   </div>
-</div>
 
-<!-- Dashboard Content with Blur Effect -->
-<div [class.blur-background]="isLoading">
-  <section class="dashboard-container">
-    <!-- Top Stats Cards Row 1 -->
-    <div class="stats-grid">
-      <div class="modern-stat-card">
-        <div class="card-icon calendar-icon">
-          <i class="fas fa-calendar-day fa-3x"></i>
-        </div>
-        <div class="card-content">
-          <div class="card-value">{{ todayDate }}</div>
-          <div class="card-label">Today's Date</div>
-        </div>
+  <!-- ─── TOP HEADER ─── -->
+  <div class="dash-header">
+    <div class="header-left">
+      <div class="om-pulse">ॐ</div>
+      <div class="header-text">
+        <h1 class="mandir-name">Shri Krishna Mandir</h1>
+        <p class="mandir-sub">Document Seva Dashboard — Sacred Knowledge Management</p>
       </div>
-      
-      <div class="modern-stat-card">
-        <div class="card-icon goods-icon">
-          <i class="fas fa-boxes"></i>
-        </div>
-        <div class="card-content">
-          <div class="card-value">{{ goodsCount }}</div>
-          <div class="card-label">Total Goods</div>
-        </div>
+    </div>
+    <div class="header-right">
+      <div class="live-clock">{{ currentTime }}</div>
+      <div class="date-display">{{ currentDate }}</div>
+      <div class="greeting-badge">🙏 Jai Shri Krishna</div>
+    </div>
+  </div>
+
+  <!-- ─── STAT CARDS ─── -->
+  <div class="stats-grid">
+
+    <div class="stat-card card-saffron">
+      <div class="stat-icon">📄</div>
+      <div class="stat-body">
+        <div class="stat-number">1,248</div>
+        <div class="stat-label">Total Documents</div>
+        <div class="stat-trend">↑ 24 this month</div>
       </div>
-      
-      <div class="modern-stat-card">
-        <div class="card-icon services-icon">
-          <i class="fas fa-cogs"></i>
-        </div>
-        <div class="card-content">
-          <div class="card-value">{{ servicesCount }}</div>
-          <div class="card-label">Total Services</div>
-        </div>
-      </div>
-      
-      <div class="modern-stat-card">
-        <div class="card-icon vendor-icon">
-          <i class="fas fa-truck"></i>
-        </div>
-        <div class="card-content">
-          <div class="card-value">{{ vendorCount }}</div>
-          <div class="card-label">Vendors</div>
-        </div>
-      </div>
-      
-      <div class="modern-stat-card">
-        <div class="card-icon customer-icon">
-          <i class="fas fa-users"></i>
-        </div>
-        <div class="card-content">
-          <div class="card-value">{{ customerCount }}</div>
-          <div class="card-label">Customers</div>
-        </div>
-      </div>
-      
-      <div class="modern-stat-card">
-        <div class="card-icon vendor-customer-icon">
-          <i class="fas fa-handshake"></i>
-        </div>
-        <div class="card-content">
-          <div class="card-value">{{ vendorCustomerCount }}</div>
-          <div class="card-label">Vendor Customers</div>
-        </div>
-      </div>
-      
+      <div class="stat-deco">दस्तावेज़</div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="charts-section" *ngIf="monthWiseData.length > 0">
-      <div class="charts-grid">
-        <!-- Bar Chart -->
-        <div class="chart-container">
-          <div class="chart-wrapper">
-            <div #chartContainer class="highcharts-container"></div>
-          </div>
-        </div>
-
-        <!-- Pie Chart -->
-        <!-- <div class="chart-container">
-          <div class="chart-wrapper pie-chart-wrapper">
-            <div #pieChartContainer class="highcharts-container"></div>
-          </div>
-        </div> -->
+    <div class="stat-card card-green">
+      <div class="stat-icon">📜</div>
+      <div class="stat-body">
+        <div class="stat-number">8,743</div>
+        <div class="stat-label">Pages Scanned</div>
+        <div class="stat-trend">↑ 312 this week</div>
       </div>
-      <div class="charts-grid">
-        
-        <!-- Pie Chart -->
-        <div class="chart-container">
-          <div class="chart-wrapper pie-chart-wrapper">
-            <div #pieChartContainer class="highcharts-container"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Summary Table -->
-      <!-- <div class="summary-table-container">
-        <h3>Monthly Summary Details</h3>
-        <div class="table-wrapper">
-          <table class="summary-table">
-            <thead>
-              <tr>
-                <th>Month</th>
-                <th>Invoice Total</th>
-                <th>Purchase Total</th>
-                <th>Net Difference</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let month of monthWiseData">
-                <td>{{ month.MonthName }}</td>
-                <td class="amount positive">₹{{ month.InvoiceTotal | number:'1.2-2' }}</td>
-                <td class="amount negative">₹{{ month.PurchaseTotal | number:'1.2-2' }}</td>
-                <td class="amount" 
-                    [class.positive]="month.InvoiceTotal - month.PurchaseTotal > 0"
-                    [class.negative]="month.InvoiceTotal - month.PurchaseTotal < 0">
-                  ₹{{ (month.InvoiceTotal - month.PurchaseTotal) | number:'1.2-2' }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div> -->
+      <div class="stat-deco">पृष्ठ</div>
     </div>
 
-    <!-- No Data Message -->
-    <div class="no-data-message" *ngIf="!isLoading && monthWiseData.length === 0">
-      <i class="fas fa-chart-line fa-3x"></i>
-      <h3>No Monthly Data Available</h3>
-      <p>Monthly summary data will appear here once available.</p>
+    <div class="stat-card card-blue">
+      <div class="stat-icon">🎙️</div>
+      <div class="stat-body">
+        <div class="stat-number">3,562</div>
+        <div class="stat-label">Voice Requests</div>
+        <div class="stat-trend">↑ 87 today</div>
+      </div>
+      <div class="stat-deco">आवाज़</div>
     </div>
 
-    <!-- Dashboard Actions -->
-    <!-- <div class="dashboard-actions">
-      <button class="refresh-btn" (click)="loadDashboardData()" [disabled]="isLoading">
-        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
-        Refresh Data
-      </button>
-    </div> -->
-  </section>
+    <div class="stat-card card-purple">
+      <div class="stat-icon">🤖</div>
+      <div class="stat-body">
+        <div class="stat-number">892</div>
+        <div class="stat-label">AI Summaries</div>
+        <div class="stat-trend">↑ 15 today</div>
+      </div>
+      <div class="stat-deco">सारांश</div>
+    </div>
+
+    <div class="stat-card card-gold">
+      <div class="stat-icon">📂</div>
+      <div class="stat-body">
+        <div class="stat-number">47</div>
+        <div class="stat-label">Document Types</div>
+        <div class="stat-trend">3 added recently</div>
+      </div>
+      <div class="stat-deco">प्रकार</div>
+    </div>
+
+    <div class="stat-card card-rose">
+      <div class="stat-icon">🌐</div>
+      <div class="stat-body">
+        <div class="stat-number">9</div>
+        <div class="stat-label">Languages Supported</div>
+        <div class="stat-trend">Hindi, Tamil, Telugu…</div>
+      </div>
+      <div class="stat-deco">भाषा</div>
+    </div>
+
+  </div>
+
+  <!-- ─── MIDDLE ROW ─── -->
+  <div class="middle-row">
+
+    <!-- Recent Documents -->
+    <div class="seva-panel panel-wide">
+      <div class="panel-header">
+        <div class="panel-title">📋 Recent Documents</div>
+        <span class="panel-badge">Last 7 days</span>
+      </div>
+      <div class="doc-list">
+        <div class="doc-item" *ngFor="let doc of recentDocs">
+          <div class="doc-icon">{{ doc.icon }}</div>
+          <div class="doc-info">
+            <div class="doc-name">{{ doc.name }}</div>
+            <div class="doc-meta">{{ doc.type }} &nbsp;·&nbsp; {{ doc.pages }} pages &nbsp;·&nbsp; {{ doc.date }}</div>
+          </div>
+          <div class="doc-lang-badge">{{ doc.lang }}</div>
+          <div class="doc-status" [class]="doc.statusClass">{{ doc.status }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Document Type Breakdown -->
+    <div class="seva-panel">
+      <div class="panel-header">
+        <div class="panel-title">📊 Document Types</div>
+      </div>
+      <div class="donut-chart-wrapper">
+        <svg viewBox="0 0 200 200" class="donut-svg">
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#f0e6d3" stroke-width="28"/>
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#ff6600" stroke-width="28"
+                  stroke-dasharray="132 307" stroke-dashoffset="0" class="donut-seg"/>
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#2e7d32" stroke-width="28"
+                  stroke-dasharray="88 351" stroke-dashoffset="-132" class="donut-seg"/>
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#1565c0" stroke-width="28"
+                  stroke-dasharray="66 373" stroke-dashoffset="-220" class="donut-seg"/>
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#6a1b9a" stroke-width="28"
+                  stroke-dasharray="44 395" stroke-dashoffset="-286" class="donut-seg"/>
+          <circle cx="100" cy="100" r="70" fill="none" stroke="#f9a825" stroke-width="28"
+                  stroke-dasharray="22 417" stroke-dashoffset="-330" class="donut-seg"/>
+          <text x="100" y="96" text-anchor="middle" class="donut-center-num">47</text>
+          <text x="100" y="114" text-anchor="middle" class="donut-center-label">Types</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="legend-item"><span class="legend-dot" style="background:#ff6600"></span>Aarti & Prayers (30%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#2e7d32"></span>Scriptures (20%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#1565c0"></span>Letters (15%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#6a1b9a"></span>Records (10%)</div>
+          <div class="legend-item"><span class="legend-dot" style="background:#f9a825"></span>Others (5%)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── BOTTOM ROW ─── -->
+  <div class="bottom-row">
+
+    <!-- Monthly Upload Activity -->
+    <div class="seva-panel">
+      <div class="panel-header">
+        <div class="panel-title">📈 Monthly Upload Activity</div>
+        <span class="panel-badge">2025–2026</span>
+      </div>
+      <div class="bar-chart">
+        <div class="bar-group" *ngFor="let b of monthlyData">
+          <div class="bar-fill" [style.height]="b.height" [style.background]="b.color" [title]="b.count + ' docs'"></div>
+          <div class="bar-label">{{ b.month }}</div>
+          <div class="bar-count">{{ b.count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Voice Agent Activity -->
+    <div class="seva-panel">
+      <div class="panel-header">
+        <div class="panel-title">🎙️ Voice Agent — Top Searched</div>
+        <span class="panel-badge">All time</span>
+      </div>
+      <div class="voice-list">
+        <div class="voice-item" *ngFor="let v of topSearched; let i = index">
+          <div class="voice-rank">{{ i + 1 }}</div>
+          <div class="voice-name">{{ v.name }}</div>
+          <div class="voice-bar-wrap">
+            <div class="voice-bar" [style.width]="v.width" [style.background]="v.color"></div>
+          </div>
+          <div class="voice-count">{{ v.count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="seva-panel panel-actions">
+      <div class="panel-header">
+        <div class="panel-title">⚡ Quick Seva Actions</div>
+      </div>
+      <div class="action-grid">
+        <button class="action-btn btn-upload" routerLink="/settings/add-image">
+          <span class="action-icon">📤</span>
+          <span class="action-label">Upload Document</span>
+        </button>
+        <button class="action-btn btn-agent" routerLink="/settings/agent-add">
+          <span class="action-icon">🎙️</span>
+          <span class="action-label">Voice Agent</span>
+        </button>
+        <button class="action-btn btn-search">
+          <span class="action-icon">🔍</span>
+          <span class="action-label">Search Docs</span>
+        </button>
+        <button class="action-btn btn-summary">
+          <span class="action-icon">📋</span>
+          <span class="action-label">AI Summary</span>
+        </button>
+        <button class="action-btn btn-roles" routerLink="/settings/roles-data">
+          <span class="action-icon">👥</span>
+          <span class="action-label">Manage Roles</span>
+        </button>
+        <button class="action-btn btn-report">
+          <span class="action-icon">📊</span>
+          <span class="action-label">Reports</span>
+        </button>
+      </div>
+
+      <!-- Today's Seva Summary -->
+      <div class="today-seva">
+        <div class="today-title">🌅 Today's Seva — {{ currentDate }}</div>
+        <div class="today-stats">
+          <div class="today-stat"><span class="ts-num">12</span><span class="ts-lbl">Uploads</span></div>
+          <div class="today-divider"></div>
+          <div class="today-stat"><span class="ts-num">87</span><span class="ts-lbl">Voice Req.</span></div>
+          <div class="today-divider"></div>
+          <div class="today-stat"><span class="ts-num">15</span><span class="ts-lbl">Summaries</span></div>
+          <div class="today-divider"></div>
+          <div class="today-stat"><span class="ts-num">4</span><span class="ts-lbl">New Types</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── FOOTER ─── -->
+  <div class="dash-footer">
+    🪷 &nbsp; Jai Shri Krishna &nbsp; 🪷 &nbsp; सेवा परमो धर्मः &nbsp; 🪷
+  </div>
+
 </div>

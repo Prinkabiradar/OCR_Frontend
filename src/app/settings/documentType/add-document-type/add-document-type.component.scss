@@ -1,23 +1,111 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Crimson+Pro:wght@300;400;500&family=Noto+Sans+Devanagari:wght@400;500&display=swap');
 
+:host {
+  --saffron:    #E8620A;
+  --saffron-lt: #F5A623;
+  --gold:       #C9922A;
+  --gold-lt:    #F0C96A;
+  --gold-pale:  #FDF3DC;
+  --peacock:    #1A4F6E;
+  --peacock-lt: #2A7F9E;
+  --cream:      #FFF8EC;
+  --cream-dk:   #F5EDD6;
+  --brown:      #5C2D0A;
+  --red:        #9B1C1C;
+  --green:      #16803A;
+  --green-lt:   #22c55e;
+  --text:       #3B1F08;
+  --muted:      #8B6B4A;
+  --border:     #D4A85A;
+  --shadow:     rgba(90, 40, 0, 0.18);
+
+  display: block;
+  min-height: 100vh;
+  padding: 0 16px 40px;
+  font-family: 'Cormorant Garamond', serif;
+  color: var(--text);
+  background-color: var(--cream);
+  background-image:
+    radial-gradient(ellipse at 20% 0%,   rgba(232, 98, 10, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 100%, rgba(26, 79, 110, 0.08) 0%, transparent 55%),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23C9922A' fill-opacity='0.04'%3E%3Cpath d='M30 0 L32 8 L40 8 L34 13 L36 21 L30 16 L24 21 L26 13 L20 8 L28 8Z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+// ─────────────────────────────────────────────
+//  PAGE HEADER
+// ─────────────────────────────────────────────
+.mandir-header {
+  text-align: center;
+  padding: 40px 20px 24px;
+  position: relative;
+
+  &::before {
+    content: '';
+    display: block;
+    width: 180px;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), var(--saffron), var(--gold), transparent);
+    margin: 0 auto 20px;
+    border-radius: 2px;
+  }
+
+  &::after {
+    content: '✦  ✦  ✦';
+    display: block;
+    color: var(--gold);
+    font-size: 14px;
+    margin-top: 16px;
+    letter-spacing: 8px;
+    opacity: 0.7;
+  }
+}
+
+.om-header {
+  font-size: 48px;
+  line-height: 1;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, var(--saffron), var(--gold-lt), var(--saffron));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 2px 6px rgba(232, 98, 10, 0.3));
+}
+
+.mandir-title {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--brown);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.mandir-subtitle {
+  font-size: 15px;
+  color: var(--muted);
+  font-style: italic;
+  letter-spacing: 1px;
+}
+
+
 /* ================= CONTAINER ================= */
 .container {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 48px 20px;
+  padding: 20px 20px;
   min-height: 100vh;
   font-family: 'Crimson Pro', serif;
 
-  background:
-    radial-gradient(ellipse 70% 50% at 50% 0%, #1a6b8a 0%, transparent 55%),
-    radial-gradient(ellipse 50% 40% at 0% 100%, #0a3d50 0%, transparent 50%),
-    linear-gradient(160deg, #0e4f6b 0%, #072a3b 60%, #041922 100%);
+  // background:
+  //   radial-gradient(ellipse 70% 50% at 50% 0%, #1a6b8a 0%, transparent 55%),
+  //   radial-gradient(ellipse 50% 40% at 0% 100%, #0a3d50 0%, transparent 50%),
+  //   linear-gradient(160deg, #0e4f6b 0%, #072a3b 60%, #041922 100%);
 }
 
 /* ================= CARD ================= */
 .card {
-  width: 460px;
+  width: 1000px;
   background: linear-gradient(160deg, #fef9ef 0%, #fef3c7 50%, #fef9ef 100%);
   border-radius: 8px;
   box-shadow:
@@ -223,6 +311,7 @@ form {
 
 /* ================= FOOTER ================= */
 .card-footer {
+  margin-top: 50px;
   display: flex;
   justify-content: space-between;
   padding: 12px 32px 16px;

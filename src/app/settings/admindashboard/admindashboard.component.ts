@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
 import { FormBuilder } from '@angular/forms';
 import { DataService } from '../DataService';
 import { ServiceService } from '../settings.service';
@@ -6,330 +6,75 @@ import { Router } from '@angular/router';
 import { BehaviorSubject, Observable } from 'rxjs';
 import * as Highcharts from 'highcharts';
 
-interface MonthWiseSummary {
-  MonthName: string;
-  InvoiceTotal: number;
-  PurchaseTotal: number;
-}
-
-interface DashboardData {
-  GoodsCount: number;
-  ServicesCount: number;
-  VendorCount: number;
-  CustomerCount: number;
-  VendorCustomerCount: number;
-  MonthWiseSummary: string; // JSON string that needs to be parsed
-}
+ 
 
 @Component({
   selector: 'app-admindashboard',
   templateUrl: './admindashboard.component.html',
   styleUrl: './admindashboard.component.scss'
 })
-export class AdmindashboardComponent implements OnInit, AfterViewInit {
-  @ViewChild('chartContainer', { static: false }) chartContainer!: ElementRef;
-  @ViewChild('pieChartContainer', { static: false }) pieChartContainer!: ElementRef;
-  
-  currentMonth: string = '';
-  todayDate: string = '';
-  isLoading: boolean = false;
-  
-  // Dashboard data properties
-  goodsCount: number = 0;
-  servicesCount: number = 0;
-  vendorCount: number = 0;
-  customerCount: number = 0;
-  vendorCustomerCount: number = 0;
-  
-  // Chart data
-  monthWiseData: MonthWiseSummary[] = [];
-  barChart: Highcharts.Chart | null = null;
-  pieChart: Highcharts.Chart | null = null;
-  
-  productList$: Observable<any[]>;
-  private productListSubject: BehaviorSubject<any[]> = new BehaviorSubject<any[]>([]);
-  isLoading$: Observable<boolean>;
-  private isLoadingSubject = new BehaviorSubject<boolean>(false);
-
-  constructor(
-    private _service: ServiceService,
-    private fb: FormBuilder,
-    private cdr: ChangeDetectorRef,
-    private router: Router,
-    private dataService: DataService
-  ) {
-    this.productList$ = this.productListSubject.asObservable();
-    this.isLoading$ = this.isLoadingSubject.asObservable();
-  }
-
+export class AdmindashboardComponent implements OnInit, OnDestroy {
+  currentTime = '';
+  currentDate = '';
+  private clockInterval: any;
+ 
+  // ✅ Floating lotus particles
+  particles = Array.from({ length: 10 }, (_, i) => ({
+    left:     `${Math.random() * 100}%`,
+    delay:    `${Math.random() * 8}s`,
+    duration: `${8 + Math.random() * 6}s`
+  }));
+ 
+  // ✅ Recent Documents
+  recentDocs = [
+    { icon: '📿', name: 'Shri Krishna Aarti',        type: 'Aarti & Prayer', pages: 3,  date: '12 Mar 2026', lang: 'Hindi',   status: 'Scanned',    statusClass: 'status-done'    },
+    { icon: '📖', name: 'Bhagavad Gita Chapter 2',   type: 'Scripture',      pages: 12, date: '11 Mar 2026', lang: 'Sanskrit', status: 'Scanned',    statusClass: 'status-done'    },
+    { icon: '📜', name: 'Mandir Trust Letter 2026',   type: 'Letter',         pages: 2,  date: '10 Mar 2026', lang: 'Marathi',  status: 'Processing', statusClass: 'status-pending' },
+    { icon: '📋', name: 'Donation Register Jan 2026', type: 'Record',         pages: 8,  date: '09 Mar 2026', lang: 'Hindi',   status: 'Scanned',    statusClass: 'status-done'    },
+    { icon: '📿', name: 'Hanuman Chalisa',            type: 'Aarti & Prayer', pages: 4,  date: '08 Mar 2026', lang: 'Hindi',   status: 'Scanned',    statusClass: 'status-done'    },
+    { icon: '📖', name: 'Vishnu Sahasranama',         type: 'Scripture',      pages: 6,  date: '07 Mar 2026', lang: 'Telugu',  status: 'Summarized', statusClass: 'status-summary' },
+  ];
+ 
+  // ✅ Monthly upload data
+  monthlyData = [
+    { month: 'Apr', count: 42,  height: '42%',  color: '#ff6600' },
+    { month: 'May', count: 58,  height: '58%',  color: '#ff6600' },
+    { month: 'Jun', count: 35,  height: '35%',  color: '#ff6600' },
+    { month: 'Jul', count: 74,  height: '74%',  color: '#ff6600' },
+    { month: 'Aug', count: 91,  height: '91%',  color: '#f9a825' },
+    { month: 'Sep', count: 67,  height: '67%',  color: '#ff6600' },
+    { month: 'Oct', count: 83,  height: '83%',  color: '#ff6600' },
+    { month: 'Nov', count: 110, height: '100%', color: '#2e7d32' },
+    { month: 'Dec', count: 95,  height: '95%',  color: '#ff6600' },
+    { month: 'Jan', count: 78,  height: '78%',  color: '#ff6600' },
+    { month: 'Feb', count: 88,  height: '88%',  color: '#ff6600' },
+    { month: 'Mar', count: 64,  height: '64%',  color: '#1565c0' },
+  ];
+ 
+  // ✅ Top voice searched documents
+  topSearched = [
+    { name: 'Shri Krishna Aarti',      count: 412, width: '100%', color: '#ff6600' },
+    { name: 'Bhagavad Gita Ch. 1',     count: 338, width: '82%',  color: '#f9a825' },
+    { name: 'Hanuman Chalisa',          count: 289, width: '70%',  color: '#2e7d32' },
+    { name: 'Vishnu Sahasranama',       count: 201, width: '49%',  color: '#1565c0' },
+    { name: 'Mandir Trust Letter 2026', count: 154, width: '37%',  color: '#6a1b9a' },
+    { name: 'Donation Register',        count: 98,  width: '24%',  color: '#c62828' },
+  ];
+ 
+  constructor(private router: Router) {}
+ 
   ngOnInit(): void {
-    this.getCurrentMonthAndDate();
-    this.loadDashboardData();
+    this.updateClock();
+    this.clockInterval = setInterval(() => this.updateClock(), 1000);
   }
-
-  ngAfterViewInit(): void {
-    // Charts will be created after data is loaded
-  }
-
-  getCurrentMonthAndDate() {
-    const now = new Date();
-    this.currentMonth = now.toLocaleString('en-US', { month: 'long' });
-    this.todayDate = now.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }); 
-  }
-
-  loadDashboardData() {
-    this.isLoading = true;
-    this.isLoadingSubject.next(true);
-    
-    const LocationId = 0;
-    this._service.dashboardDataGet(LocationId).subscribe({
-      next: (response: DashboardData[]) => {
-        if (response && response.length > 0) {
-          const data = response[0];
-          this.goodsCount = data.GoodsCount;
-          this.servicesCount = data.ServicesCount;
-          this.vendorCount = data.VendorCount;
-          this.customerCount = data.CustomerCount;
-          this.vendorCustomerCount = data.VendorCustomerCount;
-          
-          // Parse MonthWiseSummary JSON string
-          if (data.MonthWiseSummary) {
-            try {
-              this.monthWiseData = JSON.parse(data.MonthWiseSummary);
-              // Create charts after data is loaded
-              setTimeout(() => {
-                this.createBarChart();
-                this.createPieChart();
-              }, 100);
-            } catch (error) {
-              console.error('Error parsing MonthWiseSummary:', error);
-              this.monthWiseData = [];
-            }
-          }
-        }
-        this.productListSubject.next(response);
-        this.isLoading = false;
-        this.isLoadingSubject.next(false);
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Error loading dashboard data:', error);
-        this.isLoading = false;
-        this.isLoadingSubject.next(false);
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  createBarChart(): void {
-    if (!this.chartContainer || !this.monthWiseData.length) {
-      return;
-    }
-
-    // Destroy existing chart
-    if (this.barChart) {
-      this.barChart.destroy();
-    }
-
-    const categories = this.monthWiseData.map(item => item.MonthName);
-    const invoiceData = this.monthWiseData.map(item => item.InvoiceTotal);
-    const purchaseData = this.monthWiseData.map(item => item.PurchaseTotal);
-
-    const options: Highcharts.Options = {
-      chart: {
-        type: 'column',
-        backgroundColor: 'transparent'
-      },
-      title: {
-        text: 'Monthly Invoice vs Purchase Summary',
-        style: {
-          color: '#2d3748',
-          fontWeight: '600',
-          fontSize: '18px'
-        }
-      },
-      subtitle: {
-        text: 'Compare invoice and purchase totals by month',
-        style: {
-          color: '#718096',
-          fontSize: '14px'
-        }
-      },
-      xAxis: {
-        categories: categories,
-        crosshair: true,
-        labels: {
-          style: {
-            color: '#4a5568'
-          }
-        }
-      },
-      yAxis: {
-        min: 0,
-        title: {
-          text: 'Amount (₹)',
-          style: {
-            color: '#4a5568'
-          }
-        },
-        labels: {
-          formatter: function() {
-            return '₹' + Highcharts.numberFormat(this.value as number, 0, '.', ',');
-          },
-          style: {
-            color: '#4a5568'
-          }
-        }
-      },
-      tooltip: {
-        headerFormat: '<span style="font-size:10px">{point.key}</span><table>',
-        pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td>' +
-                    '<td style="padding:0"><b>₹{point.y:,.0f}</b></td></tr>',
-        footerFormat: '</table>',
-        shared: true,
-        useHTML: true
-      },
-      plotOptions: {
-        column: {
-          pointPadding: 0.2,
-          borderWidth: 0,
-          borderRadius: 5
-        }
-      },
-      series: [{
-        type: 'column',
-        name: 'Invoice Total',
-        data: invoiceData,
-        color: '#4facfe'
-      }, {
-        type: 'column',
-        name: 'Purchase Total',
-        data: purchaseData,
-        color: '#f093fb'
-      }],
-      credits: {
-        enabled: false
-      },
-      legend: {
-        itemStyle: {
-          color: '#4a5568'
-        }
-      }
-    };
-
-    this.barChart = Highcharts.chart(this.chartContainer.nativeElement, options);
-  }
-
-  createPieChart(): void {
-    if (!this.pieChartContainer || !this.monthWiseData.length) {
-      return;
-    }
-
-    // Destroy existing chart
-    if (this.pieChart) {
-      this.pieChart.destroy();
-    }
-
-    // Calculate totals for pie chart
-    const totalInvoice = this.monthWiseData.reduce((sum, item) => sum + item.InvoiceTotal, 0);
-    const totalPurchase = this.monthWiseData.reduce((sum, item) => sum + item.PurchaseTotal, 0);
-
-    const options: Highcharts.Options = {
-      chart: {
-        type: 'pie',
-        backgroundColor: 'transparent'
-      },
-      title: {
-        text: 'Financial Distribution',
-        style: {
-          color: '#2d3748',
-          fontWeight: '600',
-          fontSize: '18px'
-        }
-      },
-      subtitle: {
-        text: 'Overall invoice vs purchase distribution',
-        style: {
-          color: '#718096',
-          fontSize: '14px'
-        }
-      },
-      tooltip: {
-        pointFormat: '<b>₹{point.y:,.0f}</b> ({point.percentage:.1f}%)'
-      },
-      accessibility: {
-        point: {
-          valueSuffix: '%'
-        }
-      },
-      plotOptions: {
-        pie: {
-          allowPointSelect: true,
-          cursor: 'pointer',
-          dataLabels: {
-            enabled: true,
-            format: '<b>{point.name}</b>: {point.percentage:.1f} %',
-            style: {
-              color: '#4a5568'
-            }
-          },
-          showInLegend: true
-        }
-      },
-      series: [{
-        type: 'pie',
-        name: 'Amount',
-        data: [
-          {
-            name: 'Invoice Total',
-            y: totalInvoice,
-            color: '#4facfe'
-          },
-          {
-            name: 'Purchase Total',
-            y: totalPurchase,
-            color: '#f093fb'
-          }
-        ]
-      }],
-      credits: {
-        enabled: false
-      },
-      legend: {
-        itemStyle: {
-          color: '#4a5568'
-        }
-      }
-    };
-
-    this.pieChart = Highcharts.chart(this.pieChartContainer.nativeElement, options);
-  }
-
-  // Method to handle window resize
-  onWindowResize(): void {
-    if (this.barChart) {
-      this.barChart.reflow();
-    }
-    if (this.pieChart) {
-      this.pieChart.reflow();
-    }
-  }
-
-  // Legacy method - keeping for backward compatibility
-  ProductGET() {
-    this.loadDashboardData();
-  }
-
+ 
   ngOnDestroy(): void {
-    if (this.barChart) {
-      this.barChart.destroy();
-    }
-    if (this.pieChart) {
-      this.pieChart.destroy();
-    }
+    clearInterval(this.clockInterval);
+  }
+ 
+  updateClock() {
+    const now = new Date();
+    this.currentTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    this.currentDate = now.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
 }
