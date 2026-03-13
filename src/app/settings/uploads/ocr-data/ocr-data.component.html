@@ -44,7 +44,6 @@
   ════════════════════════════════════════ -->
   <ng-container *ngIf="selectedTypeId">
 
-    <!-- Loading -->
     <div *ngIf="loadingDocs" class="loading-state">
       <div class="mandala-spinner">
         <div class="ring ring1"></div>
@@ -55,138 +54,62 @@
       <p class="loading-text">Retrieving Documents...</p>
     </div>
 
-    <!-- Error -->
     <div *ngIf="docsError && !loadingDocs" class="error-state">
       <span class="error-icon">⚠</span>
       <p>{{ docsError }}</p>
     </div>
 
-    <!-- Empty -->
     <div *ngIf="!loadingDocs && !docsError && documentList.length === 0" class="empty-state">
       <div class="empty-lotus">🪷</div>
       <p>No documents found for this type.</p>
     </div>
 
-    <!-- Document Table -->
     <div class="table-wrapper" *ngIf="!loadingDocs && documentList.length > 0">
       <table class="ocr-table">
         <thead>
           <tr>
             <th><span class="th-inner">#</span></th>
             <th><span class="th-inner">Document Name</span></th>
+            <th><span class="th-inner">View</span></th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let doc of documentList; let i = index"
               class="table-row"
-              [class.row-alt]="i % 2 !== 0"
-              [class.row-selected]="selectedDocumentId === doc.documentId">
+              [class.row-alt]="i % 2 !== 0">
             <td class="td-page">
-              <!-- global row number: page 2 starts at 11, page 3 at 21 etc. -->
-              <div class="page-badge">{{ (currentPage - 1) * pageSize + i + 1 }}</div>
+              <div class="page-badge">{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</div>
             </td>
             <td class="td-text">
-              <button class="doc-name-btn" (click)="onDocumentClick(doc)">
-                📄 {{ doc.documentName }}
+              📄 {{ doc.documentName }}
+            </td>
+            <td>
+              <!-- Click View button → opens modal with OCR pages -->
+              <button class="btn btn-sm btn-flex btn-light-primary fw-bold"
+                      (click)="onDocumentClick(doc)"
+                      [disabled]="loadingPages">
+                {{ loadingPages ? 'Loading...' : 'View Pages' }}
               </button>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <!-- ── Pagination Bar ── -->
+      <!-- Document List Pagination -->
       <div class="pagination-bar">
-        <button class="page-btn" (click)="goToPrevious()" [disabled]="!hasPrevious">
+        <button class="page-btn" (click)="goToDocPrevious()" [disabled]="!docHasPrevious">
           ← Previous
         </button>
-        <span class="page-info">Page {{ currentPage }}</span>
-        <button class="page-btn" (click)="goToNext()" [disabled]="!hasNext">
+        <span class="page-info">Page {{ docCurrentPage }}</span>
+        <button class="page-btn" (click)="goToDocNext()" [disabled]="!docHasNext">
           Next →
         </button>
       </div>
 
       <div class="table-footer">
         <span class="record-count">
-          Showing {{ (currentPage - 1) * pageSize + 1 }}–{{ (currentPage - 1) * pageSize + documentList.length }} documents
+          Showing {{ (docCurrentPage - 1) * docPageSize + 1 }}–{{ (docCurrentPage - 1) * docPageSize + documentList.length }}
         </span>
-        <span class="footer-mantra">🪷 Radhe Radhe 🪷</span>
-      </div>
-    </div>
-
-  </ng-container>
-
-  <!-- ════════════════════════════════════════
-       STEP 3 — OCR Pages Table
-  ════════════════════════════════════════ -->
-  <ng-container *ngIf="selectedDocumentId">
-
-    <div class="action-bar">
-      <span class="selected-doc-label">☸ {{ selectedDocumentName }}</span>
-      <button class="refresh-btn" (click)="refresh()">
-        <span class="refresh-icon">↻</span> Refresh
-      </button>
-      <button class="close-btn" (click)="clearPages()">✕ Close</button>
-    </div>
-
-    <div *ngIf="loadingPages" class="loading-state">
-      <div class="mandala-spinner">
-        <div class="ring ring1"></div>
-        <div class="ring ring2"></div>
-        <div class="ring ring3"></div>
-        <span class="om-center">ॐ</span>
-      </div>
-      <p class="loading-text">Retrieving Sacred Texts...</p>
-    </div>
-
-    <div *ngIf="errorMessage && !loadingPages" class="error-state">
-      <span class="error-icon">⚠</span>
-      <p>{{ errorMessage }}</p>
-    </div>
-
-    <div *ngIf="!loadingPages && pageList.length === 0 && !errorMessage" class="empty-state">
-      <div class="empty-lotus">🪷</div>
-      <p>No sacred texts found at this time.</p>
-      <p class="empty-sub">Please try again or contact the foundation.</p>
-    </div>
-
-    <div class="table-wrapper" *ngIf="!loadingPages && pageList.length > 0">
-      <table class="ocr-table">
-        <thead>
-          <tr>
-            <th class="th-page"><span class="th-inner">Page</span></th>
-            <th class="th-text"><span class="th-inner">Extracted Sacred Text</span></th>
-            <th class="th-status"><span class="th-inner">Status</span></th>
-            <th class="th-date"><span class="th-inner">Date Recorded</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of pageList; let i = index"
-              class="table-row"
-              [class.row-alt]="i % 2 !== 0">
-            <td class="td-page">
-              <div class="page-badge">{{ item.PageNumber }}</div>
-            </td>
-            <td class="td-text">
-              <div class="text-content">{{ item.ExtractedText }}</div>
-            </td>
-            <td class="td-status">
-              <span class="status-badge" [ngClass]="'status-' + item.StatusId">
-                <span class="status-dot"></span>
-                {{ item.StatusId === 2 ? 'Blessed' : item.StatusId === 1 ? 'Pending' : 'Processing' }}
-              </span>
-            </td>
-            <td class="td-date">
-              <div class="date-display">
-                <span class="date-icon">☽</span>
-                {{ item.CreatedDate | date:'mediumDate' }}
-              </div>
-              <div class="time-display">{{ item.CreatedDate | date:'shortTime' }}</div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div class="table-footer">
-        <span class="record-count">{{ pageList.length }} Sacred Page{{ pageList.length !== 1 ? 's' : '' }} Retrieved</span>
         <span class="footer-mantra">🪷 Radhe Radhe 🪷</span>
       </div>
     </div>
@@ -199,3 +122,8 @@
   </div>
 
 </div>
+
+<!-- ════════════════════════════════════════
+     OCR Pages Modal (same pattern as purchase-view-component)
+════════════════════════════════════════ -->
+<app-ocr-page-modal #ocrModal [modalConfig]="modalConfig"></app-ocr-page-modal>

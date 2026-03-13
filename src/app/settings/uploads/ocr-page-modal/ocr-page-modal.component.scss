@@ -1,0 +1,408 @@
+/* ocr-page-modal.component.scss */
+
+// ── Google Fonts ─────────────────────────────────────────────
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+// ── Variables ────────────────────────────────────────────────
+$ocr-deep:       #1A1040;
+$ocr-mid:        #2D1F6E;
+$ocr-gold:       #E8C46A;
+$ocr-gold-dim:   #C9922A;
+$ocr-amber:      #E87722;
+$ocr-parchment:  #FDF6E8;
+$ocr-parchment2: #F5EDD4;
+$ocr-brown:      #8C6432;
+$ocr-dark-brown: #5C3D1A;
+$ocr-green:      #2e7d32;
+$ocr-green-bg:   #e8f5e9;
+$ocr-dirty-bg:   #fff8ee;
+$ocr-radius:     14px;
+$ocr-shadow:     0 4px 24px rgba(26, 16, 64, 0.13);
+
+// ── Animations ───────────────────────────────────────────────
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// ── Header ───────────────────────────────────────────────────
+.ocr-header {
+  background: linear-gradient(135deg, $ocr-deep, $ocr-mid);
+  border-bottom: 2px solid $ocr-gold-dim;
+  padding: 18px 28px;
+}
+
+.ocr-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ocr-header-glyph {
+  font-size: 1.4rem;
+  color: $ocr-gold;
+  animation: spin-slow 12s linear infinite;
+}
+
+.ocr-modal-title {
+  color: $ocr-gold;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 2.5px;
+  font-size: 1.1rem;
+  margin: 0;
+  font-weight: 600;
+}
+
+// ── Body ─────────────────────────────────────────────────────
+.ocr-body {
+  background: $ocr-parchment;
+  padding: 28px 32px;
+  min-height: 200px;
+}
+
+// ── State screens ────────────────────────────────────────────
+.ocr-state-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 14px;
+}
+
+.ocr-state-text {
+  font-family: 'Cinzel', serif;
+  color: $ocr-brown;
+  letter-spacing: 1px;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.ocr-empty-icon {
+  font-size: 3rem;
+}
+
+.ocr-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(201, 146, 42, 0.25);
+  border-top-color: $ocr-gold-dim;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+// ── Cards wrapper ────────────────────────────────────────────
+.ocr-cards-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+// ── Card ─────────────────────────────────────────────────────
+.ocr-card {
+  background: #fff;
+  border: 1.5px solid rgba(201, 146, 42, 0.28);
+  border-radius: $ocr-radius;
+  box-shadow: $ocr-shadow;
+  padding: 22px 26px 18px;
+  transition: border-color 0.3s, background 0.35s, box-shadow 0.3s;
+
+  &--dirty {
+    background: $ocr-dirty-bg;
+    border-color: $ocr-amber;
+    box-shadow: 0 4px 24px rgba(232, 119, 34, 0.12);
+  }
+
+  &--saved {
+    background: $ocr-green-bg;
+    border-color: $ocr-green;
+  }
+}
+
+// ── Card top bar ─────────────────────────────────────────────
+.ocr-card-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.ocr-page-pill {
+  background: linear-gradient(135deg, $ocr-amber, $ocr-gold-dim);
+  color: #fff;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 5px 14px;
+  border-radius: 20px;
+}
+
+.ocr-date {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  color: $ocr-dark-brown;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ocr-date-icon {
+  color: $ocr-gold-dim;
+}
+
+.ocr-date-time {
+  font-family: 'EB Garamond', serif;
+  font-style: italic;
+  color: $ocr-brown;
+  font-size: 0.82rem;
+}
+
+// ── Field label ──────────────────────────────────────────────
+.ocr-field-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  letter-spacing: 2px;
+  color: $ocr-brown;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+// ── Textarea ─────────────────────────────────────────────────
+.ocr-textarea {
+  width: 100%;
+  font-family: 'EB Garamond', serif;
+  font-size: 0.97rem;
+  line-height: 1.72;
+  border: 1.5px solid rgba(201, 146, 42, 0.3);
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: transparent;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  color: #2a1a08;
+
+  &:focus {
+    border-color: $ocr-gold-dim !important;
+    box-shadow: 0 0 0 3px rgba(201, 146, 42, 0.2);
+    outline: none;
+  }
+}
+
+// Dirty / edited state — sourced from original SCSS
+.edited-textarea {
+  border-color: $ocr-amber !important;
+  background: #fffbf2 !important;
+  box-shadow: 0 0 0 2px rgba(232, 119, 34, 0.15);
+}
+
+// ── Feedback ─────────────────────────────────────────────────
+.ocr-feedback {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.78rem;
+  font-style: italic;
+  margin-top: 5px;
+
+  &--unsaved { color: $ocr-amber; }
+  &--saved   { color: $ocr-green; font-weight: 600; }
+}
+
+// ── Card footer ──────────────────────────────────────────────
+.ocr-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(201, 146, 42, 0.2);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+// ── Status block ─────────────────────────────────────────────
+.ocr-status-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ocr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.68rem;
+  letter-spacing: 1px;
+  padding: 5px 14px;
+  border-radius: 20px;
+}
+
+.ocr-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.ocr-status-next {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.8rem;
+  color: $ocr-brown;
+  font-style: italic;
+}
+
+// ── Badge variants — original + extended ─────────────────────
+.badge-processing {
+  background: rgba(120, 120, 120, 0.15);
+  color: #666;
+  border: 1px solid rgba(120, 120, 120, 0.3);
+}
+
+.badge-pending {
+  background: rgba(232, 119, 34, 0.12);
+  color: #C9530A;
+  border: 1px solid rgba(232, 119, 34, 0.35);
+}
+
+.badge-partially-verified {
+  background: rgba(106, 27, 154, 0.1);
+  color: #6a1b9a;
+  border: 1px solid rgba(106, 27, 154, 0.25);
+}
+
+.badge-blessed {
+  background: rgba(46, 125, 50, 0.12);
+  color: #1b5e20;
+  border: 1px solid rgba(46, 125, 50, 0.3);
+}
+
+.badge-verified {
+  background: rgba(26, 16, 64, 0.12);
+  color: $ocr-mid;
+  border: 1px solid rgba(45, 31, 110, 0.35);
+}
+
+// ── Save button ──────────────────────────────────────────────
+.ocr-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  background: linear-gradient(135deg, $ocr-amber, $ocr-gold-dim);
+  color: #fff;
+  border: none;
+  border-radius: 24px;
+  padding: 9px 22px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap;
+  font-weight: 700;
+
+  &:hover:not(:disabled) {
+    opacity: 0.88;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.ocr-btn-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.ocr-btn-spinner {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+// ── Modal footer ─────────────────────────────────────────────
+.ocr-footer {
+  background: $ocr-parchment2;
+  border-top: 1px solid rgba(201, 146, 42, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ocr-page-info {
+  font-family: 'EB Garamond', serif;
+  color: $ocr-gold-dim;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.ocr-pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ocr-nav-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 1px;
+  background: #fff;
+  color: $ocr-mid;
+  border: 1.5px solid rgba(45, 31, 110, 0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: $ocr-parchment2;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.ocr-current-page {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  color: $ocr-dark-brown;
+  min-width: 24px;
+  text-align: center;
+}
+
+.ocr-close-btn {
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 1.5px;
+  background: transparent;
+  color: #c62828;
+  border: 1.5px solid #c62828;
+  border-radius: 20px;
+  padding: 6px 18px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: #c62828;
+    color: #fff;
+  }
+}

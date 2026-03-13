@@ -1,6 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
 import { ServiceService } from '../../settings.service';
 import { Options } from 'select2';
+import { ModalConfig } from 'src/app/_metronic/partials';
+import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+import { OcrPageModalComponent } from '../ocr-page-modal/ocr-page-modal.component';
 
 @Component({
   selector: 'app-ocr-data',
@@ -19,16 +22,19 @@ export class OcrDataComponent implements OnInit {
   documentList: any[] = [];
   loadingDocs = false;
   docsError = '';
+  docCurrentPage: number = 1;
+  docPageSize: number = 10;
 
-  currentPage: number = 1;
-  pageSize: number = 2;
-
-  // ── STEP 3: OCR Pages ──────────────────────────────────────
-  selectedDocumentId: number | null = null;
-  selectedDocumentName = '';
-  pageList: any[] = [];
+  // ── Modal ──────────────────────────────────────────────────
+  @ViewChild('ocrModal') modalComponent!: OcrPageModalComponent;
+  private modalRef: NgbModalRef;
   loadingPages = false;
-  errorMessage = '';
+
+  modalConfig: ModalConfig = {
+    modalTitle: 'Sacred Pages',
+    dismissButtonLabel: 'Close',
+    closeButtonLabel: 'Close',
+  };
 
   constructor(
     private service: ServiceService,
@@ -60,34 +66,29 @@ export class OcrDataComponent implements OnInit {
       });
   }
 
-  // STEP 2 — dropdown changed → reset to page 1 and load
+  // STEP 2 — dropdown changed → reset and load doc list page 1
   onTypeChange(event: any): void {
     const typeId = event ? Number(event) : null;
 
-    this.selectedTypeId       = typeId;
-    this.documentList         = [];
-    this.docsError            = '';
-    this.selectedDocumentId   = null;
-    this.selectedDocumentName = '';
-    this.pageList             = [];
-    this.errorMessage         = '';
-    this.currentPage          = 1;
+    this.selectedTypeId  = typeId;
+    this.documentList    = [];
+    this.docsError       = '';
+    this.docCurrentPage  = 1;
 
     if (!typeId) return;
-
     this.loadDocuments();
   }
 
-  // fetch documents — StartIndex is 1-based: page 1 → StartIndex=1, page 2 → StartIndex=11
+  // fetch document list — 0-based offset
   loadDocuments(): void {
     if (!this.selectedTypeId) return;
 
     this.loadingDocs = true;
     this.docsError = '';
 
-    const startIndex = (this.currentPage - 1) * this.pageSize + 1;  // 1-based
+    const startIndex = (this.docCurrentPage - 1) * this.docPageSize;
 
-    this.service.getDocumentsByTypeId(this.selectedTypeId, startIndex, this.pageSize).subscribe({
+    this.service.getDocumentsByTypeId(this.selectedTypeId, startIndex, this.docPageSize).subscribe({
       next: (res: any) => {
         const raw: any[] = Array.isArray(res) ? res : (res?.data ?? res?.Data ?? []);
         this.documentList = raw.map((d: any) => ({
@@ -106,82 +107,26 @@ export class OcrDataComponent implements OnInit {
     });
   }
 
-  // Previous / Next
-  get hasPrevious(): boolean {
-    return this.currentPage > 1;
-  }
+  // Doc list pagination
+  get docHasPrevious(): boolean { return this.docCurrentPage > 1; }
+  get docHasNext(): boolean { return this.documentList.length === this.docPageSize; }
 
-  get hasNext(): boolean {
-    return this.documentList.length === this.pageSize;
-  }
-
-  goToPrevious(): void {
-    if (!this.hasPrevious) return;
-    this.currentPage--;
-    this.selectedDocumentId   = null;
-    this.selectedDocumentName = '';
-    this.pageList             = [];
+  goToDocPrevious(): void {
+    if (!this.docHasPrevious) return;
+    this.docCurrentPage--;
     this.loadDocuments();
   }
 
-  goToNext(): void {
-    if (!this.hasNext) return;
-    this.currentPage++;
-    this.selectedDocumentId   = null;
-    this.selectedDocumentName = '';
-    this.pageList             = [];
+  goToDocNext(): void {
+    if (!this.docHasNext) return;
+    this.docCurrentPage++;
     this.loadDocuments();
   }
 
-  // STEP 3 — click document name → fetch OCR pages
-  onDocumentClick(doc: any): void {
-    this.selectedDocumentId   = doc.documentId;
-    this.selectedDocumentName = doc.documentName;
-    this.pageList             = [];
-    this.errorMessage         = '';
-    this.getPages();
-  }
-
-  getPages(): void {
-    if (!this.selectedDocumentId) return;
-
-    this.loadingPages = true;
-    this.errorMessage = '';
-
-    this.service.getDocumentByDocumentName(this.selectedDocumentId).subscribe({
-      next: (res) => {
-        this.pageList = (res || []).map((x: any) => ({
-          DocumentPageId: x.documentpageid,
-          DocumentId:     x.documentid,
-          PageNumber:     x.pagenumber,
-          ExtractedText:  x.extractedtext,
-          StatusId:       x.statusid,
-          CreatedBy:      x.createdby,
-          CreatedDate:    x.createddate,
-          UpdatedBy:      x.updatedby,
-          UpdatedDate:    x.updateddate
-        }));
-        this.loadingPages = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error(err);
-        this.errorMessage = 'Failed to load OCR data';
-        this.loadingPages = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  refresh(): void {
-    this.getPages();
-  }
-
-  clearPages(): void {
-    this.selectedDocumentId   = null;
-    this.selectedDocumentName = '';
-    this.pageList             = [];
-    this.errorMessage         = '';
-    this.cdr.detectChanges();
+  // STEP 3 — click View → pass documentId to modal and open it
+  async onDocumentClick(doc: any): Promise<void> {
+    this.modalComponent.documentId   = doc.documentId;   // modal fetches its own pages
+    this.modalComponent.documentName = doc.documentName;
+    await this.modalComponent.open();
   }
 }

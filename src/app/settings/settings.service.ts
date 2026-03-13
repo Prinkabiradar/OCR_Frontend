@@ -517,29 +517,22 @@ getDocumentPagesByDocument(documentId: number): Observable<any[]> {
     }
   );
 }
-getDocumentByDocumentName(documentId: number): Observable<any[]> {
+getDocumentByDocumentName(documentId: number, startIndex: number = 0, pageSize: number = 2): Observable<any[]> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
-
   if (!lsValue) {
-    return new Observable<any[]>((observer) => {
-      observer.next([]);
-      observer.complete();
-    });
+    return new Observable<any[]>((observer) => { observer.next([]); observer.complete(); });
   }
-
   const headers = new HttpHeaders({
     Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
   });
-
   const params = new HttpParams()
-    .set('documentId', documentId.toString());
-
+    .set('DocumentId', documentId.toString())
+    .set('StartIndex', startIndex.toString())   // 0-based: page1=0, page2=10, page3=20
+    .set('PageSize', pageSize.toString());
+ 
   return this.http.get<any[]>(
     environment.BaseUrl + 'api/DocumentPage/GetDocumentPages',
-    {
-      headers: headers,
-      params: params,
-    }
+    { headers, params }
   );
 }
 

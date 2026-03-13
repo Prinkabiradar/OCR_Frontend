@@ -54,6 +54,7 @@ import { AddImageComponent } from './uploads/add-image/add-image.component';
 import { AddDocumentTypeComponent } from './documentType/add-document-type/add-document-type.component';
 import { AddDocumentComponent } from './document/add-document/add-document.component';
 import { OcrDataComponent } from './uploads/ocr-data/ocr-data.component';
+import { OcrPageModalComponent } from './uploads/ocr-page-modal/ocr-page-modal.component';
 import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
 
 
@@ -88,7 +89,9 @@ import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
         AddDocumentTypeComponent,
         AddDocumentComponent,
         OcrDataComponent,
+        OcrPageModalComponent,
         AgentAddComponent,
+        
 
   ],
 
