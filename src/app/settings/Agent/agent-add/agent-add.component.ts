@@ -104,7 +104,7 @@ export class AgentAddComponent implements OnInit {
 
         if (!this.notFound) {
           this.autoSelectVoice(response.fullText);
-          setTimeout(() => this.speakText(response.fullText), 300);
+         // setTimeout(() => this.speakText(response.fullText), 300);
         }
         this.cd.detectChanges();
       },
