@@ -12,17 +12,14 @@ export class OcrPageModalComponent {
 
   @Input() modalConfig: any;
 
-  // set by parent before open()
   documentName: string = '';
   documentId: number | null = null;
 
-  // pagination state
   pageList: any[] = [];
   currentPage: number = 1;
   pageSize: number = 1;
   loading: boolean = false;
 
-  // edit state
   editedTexts:    { [id: number]: string }  = {};
   savingRows:     { [id: number]: boolean } = {};
   savedRows:      { [id: number]: boolean } = {};
@@ -39,8 +36,6 @@ export class OcrPageModalComponent {
     private service: ServiceService,
     private cdr: ChangeDetectorRef
   ) {}
-
-  // ── Open ────────────────────────────────────────────────────
 
   open(): Promise<boolean> {
     this.currentPage    = 1;
@@ -60,13 +55,10 @@ export class OcrPageModalComponent {
       this.modalRef.result.then(resolve, resolve);
     });
   }
-
-  // ── Load Pages ───────────────────────────────────────────────
-
   loadPages(): void {
     if (!this.documentId) return;
     this.loading = true;
-    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const startIndex = (this.currentPage) * this.pageSize;
 
     this.service.getDocumentByDocumentName(this.documentId, startIndex, this.pageSize).subscribe({
       next: (res) => {
@@ -82,7 +74,6 @@ export class OcrPageModalComponent {
           UpdatedDate:    x.updateddate
         }));
 
-        // Seed editedTexts only for rows not yet edited
         this.pageList.forEach(item => {
           if (this.editedTexts[item.DocumentPageId] === undefined) {
             this.editedTexts[item.DocumentPageId] = item.ExtractedText;
@@ -100,8 +91,6 @@ export class OcrPageModalComponent {
     });
   }
 
-  // ── Edit Helpers ─────────────────────────────────────────────
-
   isDirty(item: any): boolean {
     return this.editedTexts[item.DocumentPageId] !== item.ExtractedText;
   }
@@ -116,8 +105,6 @@ export class OcrPageModalComponent {
   get hasDirtyRows(): boolean {
     return this.pageList.some(item => this.isDirty(item));
   }
-
-  // ── Status Helpers ───────────────────────────────────────────
 
   getStatusLabel(statusId: number): string {
     switch (statusId) {
@@ -138,20 +125,16 @@ export class OcrPageModalComponent {
     }
   }
 
-  // ── Build payload — matches your DocumentPageRequest C# model ─
-
   private buildPayload(item: any): any {
     return {
       documentPageId: item.DocumentPageId,
       documentId:     item.DocumentId,
       pageNumber:     item.PageNumber,
       extractedText:  this.editedTexts[item.DocumentPageId],
-      statusId:       item.StatusId + 1,  // each reviewer increments by 1
+      statusId:       item.StatusId + 1,  
       createdBy:      item.CreatedBy
     };
   }
-
-  // ── Save Single Row ──────────────────────────────────────────
 
   saveRow(item: any): void {
     if (this.savingRows[item.DocumentPageId]) return;
@@ -180,16 +163,11 @@ export class OcrPageModalComponent {
       }
     });
   }
-
-  // ── Save All Dirty Rows ──────────────────────────────────────
-
   saveAll(): void {
     if (this.savingAll) return;
     if (!this.pageList.length) return;
 
     this.savingAll = true;
-
-    // Save ALL rows on the page (not just dirty ones)
     const requests = this.pageList.map(item =>
       this.service.saveDocumentPage(this.buildPayload(item))
     );
@@ -222,9 +200,6 @@ export class OcrPageModalComponent {
       }
     });
   }
-
-  // ── Pagination ───────────────────────────────────────────────
-
   get hasPrevious(): boolean { return this.currentPage > 1; }
   get hasNext(): boolean     { return this.pageList.length === this.pageSize; }
 

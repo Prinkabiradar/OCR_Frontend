@@ -71,6 +71,8 @@
             <th><span class="th-inner">#</span></th>
             <th><span class="th-inner">Document Name</span></th>
             <th><span class="th-inner">View</span></th>
+            <th style="width: 15%">Status</th>
+            <th style="width: 10%">User</th>
           </tr>
         </thead>
         <tbody>
@@ -91,6 +93,23 @@
                 {{ loadingPages ? 'Loading...' : 'View Pages' }}
               </button>
             </td>
+
+            <!-- Status -->
+        <td>
+          <span class="ocr-status-badge" [ngClass]="getStatusClass(doc.statusId)">
+            {{ getStatusLabel(doc.statusId) }}
+          </span>
+
+          <div *ngIf="isDirty(doc)" class="ocr-status-next">
+            → {{ getStatusLabel(doc.statusId + 1) }}
+          </div>
+        </td>
+
+        <!-- Username -->
+        <td>
+          👤 {{ doc.userName }}
+        </td>
+
           </tr>
         </tbody>
       </table>

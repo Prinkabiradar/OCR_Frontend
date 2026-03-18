@@ -1,9 +1,5 @@
-/* ocr-page-modal.component.scss */
-
-// ── Google Fonts ─────────────────────────────────────────────
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
 
-// ── Variables ────────────────────────────────────────────────
 $ocr-deep:       #1A1040;
 $ocr-mid:        #2D1F6E;
 $ocr-gold:       #E8C46A;
@@ -404,5 +400,26 @@ $ocr-shadow:     0 4px 24px rgba(26, 16, 64, 0.13);
   &:hover {
     background: #c62828;
     color: #fff;
+  }
+}
+// ── Square Modal Override ─────────────────────────────────────
+:host ::ng-deep .ocr-square-modal {
+  .modal-dialog {
+    max-width: 90vw;
+    width: 90vw;
+    height: 90vh;
+    margin: 5vh auto;
+  }
+
+  .modal-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .modal-body.ocr-body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
   }
 }
