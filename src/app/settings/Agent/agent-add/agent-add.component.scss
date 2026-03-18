@@ -30,7 +30,7 @@
   display: block;
   min-height: 100vh;
   padding: 0 16px 40px;
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Poppins', sans-serif;
   color: var(--text);
   background-color: var(--cream);
   background-image:
@@ -80,7 +80,7 @@
 }
 
 .mandir-title {
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 22px;
   font-weight: 700;
   color: var(--brown);
@@ -124,7 +124,7 @@
 }
 
 .section-title {
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 13px;
   font-weight: 700;
   color: var(--saffron);
@@ -172,7 +172,7 @@
 }
 
 .field-label {
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 11px;
   font-weight: 700;
   color: var(--brown);
@@ -181,7 +181,7 @@
 }
 
 .range-val {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Poppins', sans-serif;
   font-weight: 600;
   color: var(--saffron);
 }
@@ -195,7 +195,7 @@
   border: 1.5px solid var(--border);
   border-radius: 8px;
   background: white;
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 15px;
   color: var(--text);
   outline: none;
@@ -209,14 +209,14 @@
   }
 
   optgroup {
-    font-family: 'Cinzel Decorative', cursive;
+    font-family: 'Poppins', sans-serif;
     font-size: 11px;
     color: var(--brown);
     background: var(--cream-dk);
   }
 
   option {
-    font-family: 'Cormorant Garamond', serif;
+    font-family: 'Poppins', sans-serif;
     font-size: 14px;
     background: white;
     color: var(--text);
@@ -251,7 +251,7 @@
   background: linear-gradient(135deg, var(--peacock), var(--peacock-lt));
   color: white;
   font-size: 11px;
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Poppins', sans-serif;
   letter-spacing: 0.5px;
   padding: 3px 10px;
   border-radius: 20px;
@@ -311,7 +311,7 @@
   padding: 9px 18px;
   border: none;
   border-radius: 8px;
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 11px;
   letter-spacing: 1px;
   cursor: pointer;
@@ -457,7 +457,7 @@
   border: 1.5px solid var(--border);
   border-radius: 10px;
   background: white;
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 16px;
   color: var(--text);
   outline: none;
@@ -567,7 +567,7 @@
 }
 
 .doc-name {
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 16px;
   color: var(--brown);
   letter-spacing: 1px;
@@ -629,14 +629,14 @@
 }
 
 .page-title {
-  font-family: 'Cinzel Decorative', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 12px;
   color: var(--brown);
   letter-spacing: 0.5px;
 }
 
 .page-text {
-  font-family: 'Cormorant Garamond', serif;
+  font-family: 'Poppins', sans-serif;
   font-size: 15px;
   color: var(--text);
   white-space: pre-wrap;
