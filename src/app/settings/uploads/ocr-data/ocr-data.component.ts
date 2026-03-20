@@ -4,6 +4,7 @@ import { Options } from 'select2';
 import { ModalConfig } from 'src/app/_metronic/partials';
 import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { OcrPageModalComponent } from '../ocr-page-modal/ocr-page-modal.component';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-ocr-data',
@@ -16,7 +17,7 @@ export class OcrDataComponent implements OnInit {
   public documentTypeoptions: Options = {};
   public documentTypedata: Array<{ id: string; text: string }> = [];
   documentTypesearchTerm: string = '';
-  selectedTypeId: number | null = null;
+  selectedTypeId: number | null = 0;
 
   editedTexts:    { [id: number]: string }  = {};
   savingRows:     { [id: number]: boolean } = {};
@@ -45,6 +46,7 @@ export class OcrDataComponent implements OnInit {
     closeButtonLabel: 'Close',
   };
 
+  private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
   constructor(
     private service: ServiceService,
     private cdr: ChangeDetectorRef
@@ -52,6 +54,7 @@ export class OcrDataComponent implements OnInit {
 
   ngOnInit(): void {
     this.documentTypeDropdown();
+    this.loadDocuments();
   }
 
   // STEP 1 — load document types into dropdown
@@ -77,16 +80,14 @@ export class OcrDataComponent implements OnInit {
 
   // STEP 2 — dropdown changed → reset and load doc list page 1
   onTypeChange(event: any): void {
-    const typeId = event ? Number(event) : null;
+  this.selectedTypeId = event ? Number(event) : 0;
 
-    this.selectedTypeId  = typeId;
-    this.documentList    = [];
-    this.docsError       = '';
-    this.docCurrentPage  = 1;
+  this.documentList = [];
+  this.docsError = '';
+  this.docCurrentPage = 1;
 
-    if (!typeId) return;
-    this.loadDocuments();
-  }
+  this.loadDocuments();
+}
 
   isDirty(item: any): boolean {
     return this.editedTexts[item.DocumentPageId] !== item.ExtractedText;
@@ -122,22 +123,31 @@ export class OcrDataComponent implements OnInit {
 
   // fetch document list — 0-based offset
   loadDocuments(): void {
-    if (!this.selectedTypeId) return;
+    //if (!this.selectedTypeId) return;
 
     this.loadingDocs = true;
     this.docsError = '';
 
     const startIndex = (this.docCurrentPage - 1) * this.docPageSize;
 
+const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    const userId = userData?.id ?? 0;
+     this.roleId = userData?.roleId ?? 0;
     
-    this.service.getDocumentsByTypeId(this.selectedTypeId, startIndex, this.docPageSize, this.roleId).subscribe({
+    this.service.getDocumentsByTypeId(this.selectedTypeId?? 0, startIndex, this.docPageSize, this.roleId).subscribe({
       next: (res: any) => {
         const raw: any[] = Array.isArray(res) ? res : (res?.data ?? res?.Data ?? []);
         this.documentList = raw.map((d: any) => ({
           documentId:   d.documentid   ?? d.documentId   ?? d.DocumentId,
           documentName: d.documentname ?? d.documentName ?? d.DocumentName,
           statusId:     d.statusid     ?? d.statusId     ?? d.StatusId,
-          userName:     d.user_name    ?? d.userName    ?? d.UserName
+          createdByName: d.createdby_name ?? d.createdByName ?? d.CreatedByName,
+          updatedByName: d.updatedby_name ?? d.updatedByName ?? d.UpdatedByName,
+          updatedDate:  d.updateddate  ?? d.updateddate   ?? d.UpdatedDate,
+          createdDate:  d.createddate  ?? d.createdDate   ?? d.CreatedDate,
+          approvedByName: d.approvedby_name ?? d.approvedByName ?? d.ApprovedByName,
+          approvedDate: d.approveddate ?? d.approveddate ?? d.ApprovedDate,
         }));
         this.loadingDocs = false;
         this.cdr.detectChanges();

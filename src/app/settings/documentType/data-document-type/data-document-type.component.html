@@ -1,0 +1,118 @@
+<div class="card">
+
+  <!-- 🔍 Search Section -->
+  <div class="card-header">
+    <div class="card-title d-flex align-items-center gap-4 flex-wrap">
+      <!-- <div class="d-flex align-items-center position-relative my-1">
+        <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
+          <span class="path1"></span><span class="path2"></span>
+        </i>
+        <input
+          type="text"
+          [(ngModel)]="searchBy"
+          class="form-control form-control-solid w-250px ps-12"
+          placeholder="Search By (Column Name)"
+        />
+      </div> -->
+
+      <div class="d-flex align-items-center position-relative my-1">
+        <input
+          type="text"
+          [(ngModel)]="searchCriteria"
+          class="form-control form-control-solid w-250px"
+          placeholder="Search Value"
+        />
+      </div>
+    </div>
+
+    <div class="card-toolbar">
+      <button class="btn btn-sm btn-primary my-1" (click)="search()">
+        Search
+      </button>
+    </div>
+  </div>
+
+  <div class="card-body p-0">
+
+    <!-- ⏳ Loading -->
+    <div *ngIf="isLoading" class="d-flex justify-content-center py-10">
+      <span class="spinner-border text-primary" role="status"></span>
+    </div>
+
+    <!-- 📊 Table -->
+    <div class="table-responsive" *ngIf="!isLoading">
+      <table class="table align-middle table-row-bordered table-row-solid gy-4">
+        <thead class="text-start fw-bold fs-7 text-uppercase gs-0">
+          <tr>
+            <ng-container *ngIf="(documents$ | async) as tabledata">
+              <ng-container *ngIf="tabledata.length > 0">
+                <th *ngFor="let col of tabledata[0] | keyvalue">{{ col.key }}</th>
+              </ng-container>
+            </ng-container>
+          </tr>
+        </thead>
+
+        <tbody class="fw-semibold text-gray-600" *ngIf="documents$ | async as tabledata">
+          <tr *ngIf="tabledata.length === 0">
+            <td colspan="100" class="text-center text-warning py-8">
+              No Data Found
+            </td>
+          </tr>
+          <tr *ngFor="let item of tabledata">
+            <td *ngFor="let col of item | keyvalue">
+              {{ col.value }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ⏮ Pagination -->
+  <div class="card-footer d-flex align-items-center">
+    <div class="d-flex align-items-center flex-stack flex-wrap gap-3">
+
+      <!-- Page Size -->
+      <div class="d-flex align-items-center gap-2">
+        <span class="text-muted fs-7 fw-semibold">Showing</span>
+        <select class="form-select form-select-sm w-auto" (change)="onPageSizeChange($event)" [value]="itemsPerPage">
+          <option [value]="10">10</option>
+          <option [value]="25">25</option>
+          <option [value]="50">50</option>
+          <option [value]="100">100</option>
+        </select>
+        <span class="text-muted fs-7 fw-semibold">entries</span>
+      </div>
+
+      <!-- Page Controls -->
+      <div class="d-flex justify-content-center">
+        <nav>
+          <ul class="pagination">
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <button class="page-link" (click)="onPageChange(1)" [disabled]="currentPage === 1">First</button>
+            </li>
+            <li class="page-item" [class.disabled]="currentPage === 1">
+              <button class="page-link" (click)="onPageChange(currentPage - 1)" [disabled]="currentPage === 1">Previous</button>
+            </li>
+            <li class="page-item active">
+              <span class="page-link">{{ currentPage }} / {{ totalPages }}</span>
+            </li>
+            <li class="page-item" [class.disabled]="currentPage === totalPages">
+              <button class="page-link" (click)="onPageChange(currentPage + 1)" [disabled]="currentPage === totalPages">Next</button>
+            </li>
+            <li class="page-item" [class.disabled]="currentPage === totalPages">
+              <button class="page-link" (click)="onPageChange(totalPages)" [disabled]="currentPage === totalPages">Last</button>
+            </li>
+          </ul>
+        </nav>
+      </div>
+
+      <!-- Total Records -->
+      <div class="d-flex justify-content-end">
+        <span class="text-muted fs-7 fw-semibold">Total Records: {{ totalRecords }}</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>

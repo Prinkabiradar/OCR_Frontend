@@ -56,6 +56,8 @@ import { AddDocumentComponent } from './document/add-document/add-document.compo
 import { OcrDataComponent } from './uploads/ocr-data/ocr-data.component';
 import { OcrPageModalComponent } from './uploads/ocr-page-modal/ocr-page-modal.component';
 import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
+import { DataDocumentComponent } from './document/data-document/data-document.component';
+import { DataDocumentTypeComponent } from './documentType/data-document-type/data-document-type.component';
 
 
 
@@ -91,6 +93,8 @@ import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
         OcrDataComponent,
         OcrPageModalComponent,
         AgentAddComponent,
+        DataDocumentComponent,
+        DataDocumentTypeComponent,
         
 
   ],

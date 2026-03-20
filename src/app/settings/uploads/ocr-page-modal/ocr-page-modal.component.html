@@ -1,19 +1,20 @@
 <ng-template #ocrPageModal let-modal>
-
   <!-- Modal Header -->
   <div class="modal-header ocr-header">
     <div class="ocr-header-inner">
       <span class="ocr-header-glyph">☸</span>
       <h4 class="ocr-modal-title">{{ documentName }}</h4>
     </div>
-    <button type="button" class="btn-close btn-close-white" aria-label="Close"
-      (click)="modal.dismiss('Cross click')">
-    </button>
+    <button
+      type="button"
+      class="btn-close btn-close-white"
+      aria-label="Close"
+      (click)="modal.dismiss('Cross click')"
+    ></button>
   </div>
 
   <!-- Modal Body -->
   <div class="modal-body ocr-body">
-
     <!-- Loading -->
     <div *ngIf="loading" class="ocr-state-center">
       <div class="ocr-spinner"></div>
@@ -31,16 +32,20 @@
       <div
         *ngFor="let item of pageList; let i = index"
         class="ocr-card"
-        [class.ocr-card--saved]="savedRows[item.DocumentPageId] && !isDirty(item)"
-        [class.ocr-card--dirty]="isDirty(item)">
-
+        [class.ocr-card--saved]="
+          savedRows[item.DocumentPageId] && !isDirty(item)
+        "
+        [class.ocr-card--dirty]="isDirty(item)"
+      >
         <!-- Card Top Bar -->
         <div class="ocr-card-topbar">
           <span class="ocr-page-pill">Page {{ item.PageNumber }}</span>
           <span class="ocr-date">
             <span class="ocr-date-icon">☽</span>
-            {{ item.CreatedDate | date:'mediumDate' }}
-            <span class="ocr-date-time">{{ item.CreatedDate | date:'shortTime' }}</span>
+            {{ item.CreatedDate | date: "mediumDate" }}
+            <span class="ocr-date-time">{{
+              item.CreatedDate | date: "shortTime"
+            }}</span>
           </span>
         </div>
 
@@ -53,23 +58,29 @@
           [class.edited-textarea]="isDirty(item)"
           [value]="editedTexts[item.DocumentPageId]"
           (input)="onTextChange(item, $any($event.target).value)"
-          rows="7">
+          rows="7"
+        >
         </textarea>
 
         <!-- Inline feedback -->
         <div class="ocr-feedback ocr-feedback--unsaved" *ngIf="isDirty(item)">
           ✎ Unsaved changes
         </div>
-        <div class="ocr-feedback ocr-feedback--saved" *ngIf="savedRows[item.DocumentPageId] && !isDirty(item)">
+        <div
+          class="ocr-feedback ocr-feedback--saved"
+          *ngIf="savedRows[item.DocumentPageId] && !isDirty(item)"
+        >
           ✓ Saved successfully
         </div>
 
         <!-- Card Footer: Status + Action -->
         <div class="ocr-card-footer">
-
           <!-- Status -->
           <div class="ocr-status-block">
-            <span class="ocr-status-badge" [ngClass]="getStatusClass(item.StatusId)">
+            <span
+              class="ocr-status-badge"
+              [ngClass]="getStatusClass(item.StatusId)"
+            >
               <span class="ocr-status-dot"></span>
               {{ getStatusLabel(item.StatusId) }}
             </span>
@@ -82,33 +93,34 @@
           <button
             class="ocr-save-btn"
             (click)="saveRow(item)"
-            [disabled]="savingRows[item.DocumentPageId]">
-            <span *ngIf="!savingRows[item.DocumentPageId]">
-              <svg class="ocr-btn-icon" viewBox="0 0 16 16" fill="currentColor">
-                <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4.5L10.5 1H2zm8 0v3.5H14L10 1zM5 9h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1zm0 2h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1z"/>
-              </svg>
-              Save Record
-            </span>
+            [disabled]="savingRows[item.DocumentPageId]"
+          >
+            <span *ngIf="!savingRows[item.DocumentPageId]"> Save </span>
+
             <span *ngIf="savingRows[item.DocumentPageId]">
-              <span class="ocr-btn-spinner"></span>
-              Saving…
+              <span class="spinner"></span>
+              Saving...
             </span>
           </button>
-
         </div>
       </div>
     </div>
-
   </div>
 
   <!-- Modal Footer — pagination + close -->
   <div class="modal-footer ocr-footer">
     <span class="ocr-page-info">
-      🪷 Page {{ currentPage }} &nbsp;|&nbsp; {{ pageList.length }} record{{ pageList.length !== 1 ? 's' : '' }}
+      🪷 Page {{ currentPage }} &nbsp;|&nbsp; {{ pageList.length }} record{{
+        pageList.length !== 1 ? "s" : ""
+      }}
     </span>
 
     <div class="ocr-pagination">
-      <button class="ocr-nav-btn" (click)="goToPrevious()" [disabled]="!hasPrevious">
+      <button
+        class="ocr-nav-btn"
+        (click)="goToPrevious()"
+        [disabled]="!hasPrevious"
+      >
         ← Previous
       </button>
       <span class="ocr-current-page">{{ currentPage }}</span>
@@ -117,9 +129,12 @@
       </button>
     </div>
 
-    <button type="button" class="ocr-close-btn" (click)="modal.dismiss('Cross click')">
+    <button
+      type="button"
+      class="ocr-close-btn"
+      (click)="modal.dismiss('Cross click')"
+    >
       Close
     </button>
   </div>
-
 </ng-template>

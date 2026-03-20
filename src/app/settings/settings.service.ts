@@ -617,4 +617,75 @@ summarizeDocument(documentName: string): Observable<any> {
     { headers }
   );
 }
+
+getDocumentType(
+  startIndex: number,
+  pageSize: number,
+  searchBy: string,
+  searchCriteria: string
+): Observable<any[]> {
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  const params = new HttpParams()
+    .set('StartIndex', startIndex.toString())
+    .set('PageSize', pageSize.toString())
+    .set('SearchBy', searchBy || '')
+    .set('SearchCriteria', searchCriteria || '');
+
+  return this.http.get<any[]>(
+    environment.BaseUrl + 'api/DocumentType/GetDocumentType',
+    {
+      headers: headers,
+      params: params,
+    }
+  );
+}
+
+getDocuments(
+  startIndex: number,
+  pageSize: number,
+  searchBy: string,
+  searchCriteria: string
+): Observable<any[]> {
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  const params = new HttpParams()
+    .set('StartIndex', startIndex.toString())
+    .set('PageSize', pageSize.toString())
+    .set('SearchBy', searchBy || '')
+    .set('SearchCriteria', searchCriteria || '');
+
+  return this.http.get<any[]>(
+    environment.BaseUrl + 'api/Document/GetDocuments',
+    {
+      headers: headers,
+      params: params,
+    }
+  );
+}
+
 }

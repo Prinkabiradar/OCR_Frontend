@@ -16,6 +16,8 @@ import { AddDocumentTypeComponent } from './documentType/add-document-type/add-d
 import { AddDocumentComponent } from './document/add-document/add-document.component';
 import { OcrDataComponent } from './uploads/ocr-data/ocr-data.component';
 import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
+import { DataDocumentComponent } from './document/data-document/data-document.component';
+import { DataDocumentTypeComponent } from './documentType/data-document-type/data-document-type.component';
 
 
 
@@ -92,6 +94,15 @@ const routes: Routes = [
   {
     path: 'agent-add',
     component: AgentAddComponent,
+  },
+  {
+    path: 'data-document',
+    component: DataDocumentComponent,
+  },
+
+  {
+    path: 'data-documentType',
+    component: DataDocumentTypeComponent,
   },
 
   { path: '', redirectTo: 'add-order', pathMatch: 'full' },
