@@ -18,12 +18,14 @@ export class AddImageComponent {
   showEditForm = false;
 
   documentId: number = 0;
-  documentTypeId: number=0 ;
+  documentTypeId: number = 0;
 
- 
   isDocumentTypeSaved = false;
   isDocumentSaved = false;
   savedPages: Set<number> = new Set();
+
+  // ── Pagination
+  currentPageIndex = 0;
 
   //SELECT2 document
   public documentoptions: Options;
@@ -59,49 +61,49 @@ export class AddImageComponent {
   }
 
   documentTyperopdown() {
-      this.service.dropdownAll(this.documentTypesearchTerm, '1', '3', '0').subscribe(
-        (response) => {
-          this.documentTypedata = [
-            { id: '', text: '' },  
-            ...response.map((item: any) => ({
-              id: item.id.toString(),
-              text: item.text,
-            }))
-          ];
-          this.documentTypeoptions = {
-            data: this.documentTypedata,
-            width: '100%',
-            placeholder: 'Select Document Type',
-            allowClear: true,
-          };
-          this.cd.markForCheck();
-          this.cd.detectChanges();
-        },
-        (error) => console.error('Error fetching data', error)
-      );
+    this.service.dropdownAll(this.documentTypesearchTerm, '1', '3', '0').subscribe(
+      (response) => {
+        this.documentTypedata = [
+          { id: '', text: '' },
+          ...response.map((item: any) => ({
+            id: item.id.toString(),
+            text: item.text,
+          }))
+        ];
+        this.documentTypeoptions = {
+          data: this.documentTypedata,
+          width: '100%',
+          placeholder: 'Select Document Type',
+          allowClear: true,
+        };
+        this.cd.markForCheck();
+        this.cd.detectChanges();
+      },
+      (error) => console.error('Error fetching data', error)
+    );
   }
-    
+
   documentropdown() {
-      this.service.dropdownAll(this.documentsearchTerm, '1', '1',this.documentTypeId?.toString() || '0').subscribe(
-        (response) => {
-          this.documentdata = [
-            { id: '', text: '' },  
-            ...response.map((item: any) => ({
-              id: item.id.toString(),
-              text: item.text,
-            }))
-          ];
-          this.documentoptions = {
-            data: this.documentdata,
-            width: '100%',
-            placeholder: 'Select Document Name',
-            allowClear: true,
-          };
-          this.cd.markForCheck();
-          this.cd.detectChanges();
-        },
-        (error) => console.error('Error fetching data', error)
-      );
+    this.service.dropdownAll(this.documentsearchTerm, '1', '1', this.documentTypeId?.toString() || '0').subscribe(
+      (response) => {
+        this.documentdata = [
+          { id: '', text: '' },
+          ...response.map((item: any) => ({
+            id: item.id.toString(),
+            text: item.text,
+          }))
+        ];
+        this.documentoptions = {
+          data: this.documentdata,
+          width: '100%',
+          placeholder: 'Select Document Name',
+          allowClear: true,
+        };
+        this.cd.markForCheck();
+        this.cd.detectChanges();
+      },
+      (error) => console.error('Error fetching data', error)
+    );
   }
 
   uploadFiles() {
@@ -126,6 +128,7 @@ export class AddImageComponent {
 
         this.ocrResults = parsed;
         this.buildEditableForm(parsed);
+        this.currentPageIndex = 0; // ── Reset to first page on new upload
         this.uploading = false;
         this.cd.detectChanges();
       },
@@ -155,10 +158,9 @@ export class AddImageComponent {
       pages: pagesArray
     });
 
- 
     this.editForm.get('documentTypeId')?.valueChanges.subscribe(value => {
       if (value) {
-        this.editForm.get('documentType')?.setValue('', { emitEvent: false });  
+        this.editForm.get('documentType')?.setValue('', { emitEvent: false });
         this.isDocumentTypeSaved = true;
         this.documentTypeId = +value;
         this.documentropdown();
@@ -171,17 +173,16 @@ export class AddImageComponent {
 
     this.editForm.get('documentType')?.valueChanges.subscribe(value => {
       if (value && value.trim() !== '') {
-        this.editForm.get('documentTypeId')?.setValue(null, { emitEvent: false });  
+        this.editForm.get('documentTypeId')?.setValue(null, { emitEvent: false });
         this.isDocumentTypeSaved = false;
         this.documentTypeId = 0;
       }
       this.cd.detectChanges();
     });
 
-    
     this.editForm.get('documentId')?.valueChanges.subscribe(value => {
       if (value) {
-        this.editForm.get('documentName')?.setValue('', { emitEvent: false });   
+        this.editForm.get('documentName')?.setValue('', { emitEvent: false });
         this.isDocumentSaved = true;
         this.documentId = +value;
       } else {
@@ -193,7 +194,7 @@ export class AddImageComponent {
 
     this.editForm.get('documentName')?.valueChanges.subscribe(value => {
       if (value && value.trim() !== '') {
-        this.editForm.get('documentId')?.setValue(null, { emitEvent: false });  
+        this.editForm.get('documentId')?.setValue(null, { emitEvent: false });
         this.isDocumentSaved = false;
         this.documentId = 0;
       }
@@ -207,9 +208,62 @@ export class AddImageComponent {
     return this.editForm.get('pages') as FormArray<FormGroup>;
   }
 
- 
+  // ─────────────────────────────────────────────
+  //  PAGINATION
+  // ─────────────────────────────────────────────
+
+  /** Navigate to a specific page index */
+  goToPage(index: number): void {
+    if (index < 0 || index >= this.pages.controls.length) return;
+    this.currentPageIndex = index;
+    this.cd.detectChanges();
+  }
+
+  /**
+   * Returns true if the numbered page button for index [i] should be shown.
+   * Always shows: first, last, current, current-1, current+1.
+   * Hides the rest when total > 7.
+   */
+  shouldShowPageButton(i: number): boolean {
+    const total = this.pages.controls.length;
+    if (total <= 7) return true;
+
+    const cur = this.currentPageIndex;
+    return (
+      i === 0 ||
+      i === total - 1 ||
+      i === cur ||
+      i === cur - 1 ||
+      i === cur + 1
+    );
+  }
+
+  /**
+   * Returns true if an ellipsis (…) should appear BEFORE rendering page button [i].
+   * Covers the gap between page 1 and the left edge of the current window,
+   * and between the right edge of the window and the last page.
+   */
+  shouldShowEllipsisBefore(i: number): boolean {
+    const total = this.pages.controls.length;
+    if (total <= 7) return false;
+
+    const cur = this.currentPageIndex;
+
+    // Gap between "1" and the start of the window around current
+    if (i === Math.max(1, cur - 1) && cur > 2) return true;
+
+    // Gap between end of window and last page
+    if (i === total - 1 && cur < total - 3) return true;
+
+    return false;
+  }
+
+  // ─────────────────────────────────────────────
+  //  SAVE ACTIONS
+  // ─────────────────────────────────────────────
+
   saveDocumentType() {
-    const formValue = this.editForm.getRawValue();  
+    const formValue = this.editForm.getRawValue();
 
     if (!formValue.documentType || formValue.documentType.trim() === '') {
       alert('Please enter a new Document Type name.');
@@ -231,7 +285,7 @@ export class AddImageComponent {
           return;
         }
         this.documentTypeId = newTypeId;
-        this.isDocumentTypeSaved = true;  
+        this.isDocumentTypeSaved = true;
         alert('Document Type saved successfully. ID = ' + newTypeId);
         this.cd.detectChanges();
       },
@@ -239,14 +293,13 @@ export class AddImageComponent {
     });
   }
 
-  
   saveDocument() {
     if (!this.documentTypeId || this.documentTypeId === 0) {
       alert('Please save or select a Document Type first.');
       return;
     }
 
-    const formValue = this.editForm.getRawValue();  
+    const formValue = this.editForm.getRawValue();
 
     if (!formValue.documentName || formValue.documentName.trim() === '') {
       alert('Please enter a Document Name.');
@@ -264,7 +317,7 @@ export class AddImageComponent {
     this.service.saveDocument(model).subscribe({
       next: (res: any) => {
         this.documentId = res.documentId || res.DocumentId;
-        this.isDocumentSaved = true;  
+        this.isDocumentSaved = true;
         alert('Document saved successfully. ID = ' + this.documentId);
         this.cd.detectChanges();
       },
@@ -272,7 +325,6 @@ export class AddImageComponent {
     });
   }
 
- 
   savePage(index: number) {
     if (!this.documentId || this.documentId === 0) {
       alert('⚠️ Please save the Document first before saving pages.');
@@ -291,55 +343,46 @@ export class AddImageComponent {
 
     this.service.saveDocumentPage(model).subscribe({
       next: () => {
-        this.savedPages.add(index); 
+        this.savedPages.add(index);
         this.cd.detectChanges();
-        alert('  Page ' + page.pageNumber + ' saved successfully');
+        alert('Page ' + page.pageNumber + ' saved successfully');
+
+        // ── Auto-advance to next unsaved page after saving
+        const next = this.pages.controls.findIndex(
+          (_, idx) => idx > index && !this.savedPages.has(idx)
+        );
+        if (next !== -1) {
+          this.goToPage(next);
+        }
       },
       error: err => console.error(err)
     });
   }
-  // saveAllRemainingPages() {
-  //   const unsavedIndexes = this.pages.controls
-  //     .map((_, i) => i)
-  //     .filter(i => !this.savedPages.has(i));
-  
-  //   if (unsavedIndexes.length === 0) {
-  //     alert('✅ All pages are already saved!');
-  //     return;
-  //   }
-  
-  //   if (!this.documentId || this.documentId === 0) {
-  //     alert('⚠️ Please save the Document first before saving pages.');
-  //     return;
-  //   }
-  
-  //   unsavedIndexes.forEach(i => this.savePage(i));
-  // }
+
   async saveAllRemainingPages() {
     if (!this.documentId || this.documentId === 0) {
       alert('⚠️ Please save the Document first before saving pages.');
       return;
     }
-  
+
     const unsavedIndexes = this.pages.controls
       .map((_, i) => i)
       .filter(i => !this.savedPages.has(i))
-      .sort((a, b) => a - b);  
-  
+      .sort((a, b) => a - b);
+
     if (unsavedIndexes.length === 0) {
       alert('All pages are already saved!');
       return;
     }
-  
-    for (const i of unsavedIndexes) {   
+
+    for (const i of unsavedIndexes) {
       await this.savePageAsync(i);
     }
-  
+
     alert('All remaining pages saved successfully!');
     this.cd.detectChanges();
   }
-  
-  
+
   private savePageAsync(index: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const page = this.pages.at(index).value;
@@ -351,10 +394,10 @@ export class AddImageComponent {
         StatusId: 2,
         CreatedBy: 1
       };
-  
+
       this.service.saveDocumentPage(model).subscribe({
         next: () => {
-          this.savedPages.add(index);  
+          this.savedPages.add(index);
           this.cd.detectChanges();
           resolve();
         },
