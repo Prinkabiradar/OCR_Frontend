@@ -616,4 +616,14 @@ summarizeDocument(documentName: string): Observable<any> {
     { headers }
   );
 }
+// In settings.service.ts — add alongside summarizeDocument()
+saveSummary(documentName: string, summaryText: string, summaryId: number, userId: number,roleId:number): Observable<any> {
+  return this.http.post(environment.BaseUrl + 'api/Agent/save-summary', {
+    summaryId:    summaryId,
+    documentName: documentName,
+    summaryText:  summaryText,
+    userId:       userId ,
+    roleId:roleId        
+  });
+}
 }

@@ -16,8 +16,15 @@ export class AgentAddComponent implements OnInit {
   totalRecords : number = 0;
   itemsPerPage          = 5;
   searchQuery  : string = '';
+  selectedPageIndex: number = 0;
 
   pages: any[] = [];
+
+  summaryId        : number    = 0; 
+  summaryFromCache = false;
+  summaryUpdatedAt: Date | null = null;
+  isSavingSummary  = false;
+  summaryDirty     = false; 
 
   // ✅ Pages list — exactly like roleList$
   pageList$: Observable<any[]>;
@@ -78,7 +85,7 @@ export class AgentAddComponent implements OnInit {
     const startIndex     = this.currentPage;
     const pageSize       = this.itemsPerPage;
     const searchBy       = this.searchQuery ? '1' : '0';
-    const searchCriteria = this.userQuestion;  // ✅ document name/question
+    const searchCriteria = this.userQuestion;  
 
     this.isLoading = true;
     this.notFound  = false;
@@ -95,16 +102,16 @@ export class AgentAddComponent implements OnInit {
         this.isLoading    = false;
         this.documentName = response.documentName;
         this.fullText     = response.fullText;
-        this.totalPages   = response.totalPages;    // ✅ like response[0].TotalPages
-        this.totalRecords = response.totalCount;    // ✅ like response[0].TotalRecords
+        this.totalPages   = response.totalPages;
+        this.totalRecords = response.totalCount;
         this.notFound     = response.pages.length === 0;
         this.pages        = response.pages;
-
-        this.pageListSubject.next(response.pages);  // ✅ like rolesListSubject.next()
-
+        this.selectedPageIndex = 0;   
+      
+        this.pageListSubject.next(response.pages);
+      
         if (!this.notFound) {
           this.autoSelectVoice(response.fullText);
-         // setTimeout(() => this.speakText(response.fullText), 300);
         }
         this.cd.detectChanges();
       },
@@ -141,26 +148,119 @@ export class AgentAddComponent implements OnInit {
     this.currentPage = 1;
     this.AgentGET();
   }
-
+  get currentDocPage(): any {
+    return this.pages[this.selectedPageIndex] ?? null;
+  }
+  
+  get totalDocPagesInCurrentBatch(): number {
+    return this.pages.length;
+  }
+  get absolutePageNumber(): number {
+    return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
+  }
+  prevDocPage() {
+    if (this.selectedPageIndex > 0) {
+      this.selectedPageIndex--;
+    } else if (this.currentPage > 1) {
+      // reached start of batch — fetch previous batch, go to last item
+      this.currentPage--;
+      this.AgentGET();
+      // after load, jump to last item in that batch
+      setTimeout(() => {
+        this.selectedPageIndex = this.pages.length - 1;
+        this.cd.detectChanges();
+      }, 500);
+    }
+    this.cd.detectChanges();
+  }
+  
+  nextDocPage() {
+    if (this.selectedPageIndex < this.pages.length - 1) {
+      this.selectedPageIndex++;
+    } else if (this.currentPage < this.totalPages) {
+      // reached end of batch — fetch next batch automatically
+      this.currentPage++;
+      this.selectedPageIndex = 0;
+      this.AgentGET();
+    }
+    this.cd.detectChanges();
+  }
   // ✅ Summary
+  // summarizeDocument() {
+  //   if (!this.documentName) return;
+  //   this.isSummarizing = true;
+  //   this.summary       = '';
+  //   this.showSummary   = false;
+  //   this.cd.detectChanges();
+
+  //   this.service.summarizeDocument(this.documentName).subscribe({
+  //     next: (res: any) => {
+  //       this.summary       = res.summary;
+  //       this.isSummarizing = false;
+  //       this.showSummary   = true;
+  //       this.cd.detectChanges();
+  //     },
+  //     error: () => { this.isSummarizing = false; this.cd.detectChanges(); }
+  //   });
+  // }
+ 
   summarizeDocument() {
     if (!this.documentName) return;
     this.isSummarizing = true;
     this.summary       = '';
     this.showSummary   = false;
+    this.summaryDirty  = false;
+    this.summaryId     = 0; 
     this.cd.detectChanges();
-
+  
+        const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    //const userId =
+    const roleId = userData?.roleId ?? 0;
+    const userId =  userData?.id ?? 0;
+  
     this.service.summarizeDocument(this.documentName).subscribe({
       next: (res: any) => {
-        this.summary       = res.summary;
-        this.isSummarizing = false;
-        this.showSummary   = true;
+        this.summary          = res.summary.summary;
+        this.summaryId        = res.summary.summaryId ?? 0;
+        this.summaryFromCache = res.summary.fromCache;   // false = Gemini, true = DB
+        this.summaryUpdatedAt = res.summary.updatedAt ? new Date(res.summary.updatedAt) : null;
+        this.isSummarizing    = false;
+        this.showSummary      = true;
+        this.summaryDirty     = false;
         this.cd.detectChanges();
       },
       error: () => { this.isSummarizing = false; this.cd.detectChanges(); }
     });
   }
 
+  saveSummary() {
+    if (!this.documentName || !this.summary.trim()) return;
+    this.isSavingSummary = true;
+    this.cd.detectChanges();
+    const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    const userId = userData?.id ?? 0;
+    const roleId = userData?.roleId ?? 0;
+  
+   // const userId = this.getUserId();   // ← get from token
+  
+    this.service.saveSummary(this.documentName, this.summary, this.summaryId, userId,roleId).subscribe({
+      next: (res: any) => {
+        this.summaryId        = res.summaryId ?? this.summaryId;
+        this.summaryFromCache = true;
+        this.summaryUpdatedAt = res.updatedAt ? new Date(res.updatedAt) : null;
+        this.isSavingSummary  = false;
+        this.summaryDirty     = false;
+        this.cd.detectChanges();
+      },
+      error: () => { this.isSavingSummary = false; this.cd.detectChanges(); }
+    });
+  }
+  
+  onSummaryEdit() {
+    this.summaryDirty = true;
+  }
   // ✅ Voice recognition
   setupSpeechRecognition() {
     const SR = (window as any).SpeechRecognition

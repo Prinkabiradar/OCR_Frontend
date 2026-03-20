@@ -1,169 +1,186 @@
-<!-- ─── PAGE HEADER ─── -->
-<div class="mandir-header">
-  <div class="om-header">ॐ</div>
-  <div class="mandir-title">Shri Krishna Mandir</div>
-  <div class="mandir-subtitle">Document Voice Seva — Sacred Listening</div>
+<!-- ─── PAGE TITLE BAR ─── -->
+<div class="page-title-bar">
+  <div class="page-title-bar__inner">
+    <div class="page-title-bar__heading">
+      <span class="page-title-bar__om">ॐ</span>
+      <div>
+        <h1 class="page-title-bar__h1">Document Voice Seva</h1>
+        <p class="page-title-bar__sub">Sacred Listening — Shri Krishna Mandir</p>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- ─── VOICE SETTINGS CARD ─── -->
-<div class="seva-card">
-  <div class="card-arch"></div>
-  <div class="card-body">
+<!-- ─── CONTENT WRAPPER ─── -->
+<div class="seva-content">
 
-    <div class="section-title">Voice Yantra Settings</div>
+  <!-- ════════════════════════════════════════════
+       CARD 1 — Voice Yantra Settings
+  ════════════════════════════════════════════ -->
+  <div class="seva-card">
+    <div class="seva-card__header">
+      <span class="seva-card__header-dot seva-card__header-dot--peacock"></span>
+      <h2 class="seva-card__title">Voice Yantra Settings</h2>
+      <span class="seva-card__subtitle">Configure voice, speed, pitch and volume</span>
+    </div>
 
-    <div class="settings-grid">
+    <div class="seva-card__body">
+      <div class="settings-grid">
 
-      <!-- Voice Selector -->
-      <div class="settings-field wide">
-        <label class="field-label">🎙️ Voice</label>
+        <!-- Voice Selector -->
+        <div class="settings-field settings-field--wide">
+          <label class="form-label">🎙️ Voice</label>
 
-        <div *ngIf="detectedLang" class="lang-badge">
-          🌐 Auto Detected: {{ detectedLang }}
+          <div *ngIf="detectedLang" class="lang-badge">
+            🌐 Auto Detected: {{ detectedLang }}
+          </div>
+
+          <div *ngIf="availableVoices.length === 0" class="loading-voices">
+            <span class="loading-voices__om">ॐ</span> Loading voices…
+          </div>
+
+          <select class="form-control form-control--select"
+                  *ngIf="availableVoices.length > 0"
+                  (change)="onVoiceChange($event)">
+            <optgroup label="🇮🇳 Indian Voices">
+              <ng-container *ngFor="let voice of indianVoices">
+                <option [value]="voice.name" [selected]="voice.name === selectedVoice?.name">
+                  {{ voice.name }} ({{ voice.lang }})
+                </option>
+              </ng-container>
+            </optgroup>
+            <optgroup label="🌍 Other Voices">
+              <ng-container *ngFor="let voice of otherVoices">
+                <option [value]="voice.name" [selected]="voice.name === selectedVoice?.name">
+                  {{ voice.name }} ({{ voice.lang }})
+                </option>
+              </ng-container>
+            </optgroup>
+          </select>
         </div>
 
-        <div *ngIf="availableVoices.length === 0" class="loading-voices">
-          <span class="om-dot">ॐ</span> Loading voices…
+        <!-- Speed -->
+        <div class="settings-field">
+          <label class="form-label">⚡ Speed — <span class="range-val">{{ speechRate }}</span></label>
+          <input type="range" class="range-slider"
+                 min="0.1" max="2.0" step="0.1"
+                 [(ngModel)]="speechRate" />
+          <div class="range-labels">
+            <small>🐢 Slow</small><small>🚀 Fast</small>
+          </div>
         </div>
 
-        <select class="mandir-select"
-                *ngIf="availableVoices.length > 0"
-                (change)="onVoiceChange($event)">
+        <!-- Pitch -->
+        <div class="settings-field">
+          <label class="form-label">🎵 Pitch — <span class="range-val">{{ speechPitch }}</span></label>
+          <input type="range" class="range-slider"
+                 min="0.0" max="2.0" step="0.1"
+                 [(ngModel)]="speechPitch" />
+          <div class="range-labels">
+            <small>🔉 Low</small><small>🔔 High</small>
+          </div>
+        </div>
 
-          <optgroup label="🇮🇳 Indian Voices">
-            <ng-container *ngFor="let voice of indianVoices">
-              <option [value]="voice.name" [selected]="voice.name === selectedVoice?.name">
-                {{ voice.name }} ({{ voice.lang }})
-              </option>
-            </ng-container>
-          </optgroup>
+        <!-- Volume -->
+        <div class="settings-field">
+          <label class="form-label">🔊 Volume — <span class="range-val">{{ speechVolume }}</span></label>
+          <input type="range" class="range-slider"
+                 min="0.0" max="1.0" step="0.1"
+                 [(ngModel)]="speechVolume" />
+          <div class="range-labels">
+            <small>🔇</small><small>🔊</small>
+          </div>
+        </div>
 
-          <optgroup label="🌍 Other Voices">
-            <ng-container *ngFor="let voice of otherVoices">
-              <option [value]="voice.name" [selected]="voice.name === selectedVoice?.name">
-                {{ voice.name }} ({{ voice.lang }})
-              </option>
-            </ng-container>
-          </optgroup>
+        <!-- Preview -->
+        <div class="settings-field settings-field--preview">
+          <label class="form-label">&nbsp;</label>
+          <button class="btn btn--outline-peacock"
+                  [disabled]="availableVoices.length === 0"
+                  (click)="previewVoice()">
+            🔊 Preview Voice
+          </button>
+        </div>
 
-        </select>
       </div>
+    </div>
+  </div>
 
-      <!-- Speed -->
-      <div class="settings-field">
-        <label class="field-label">⚡ Speed — <span class="range-val">{{ speechRate }}</span></label>
-        <input type="range" class="mandir-range"
-               min="0.1" max="2.0" step="0.1"
-               [(ngModel)]="speechRate" />
-        <div class="range-labels">
-          <small>🐢 Slow</small><small>🚀 Fast</small>
-        </div>
-      </div>
+  <!-- ════════════════════════════════════════════
+       CARD 2 — Search
+  ════════════════════════════════════════════ -->
+  <div class="seva-card">
+    <div class="seva-card__header">
+      <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
+      <h2 class="seva-card__title">Document Khoj</h2>
+      <span class="seva-card__subtitle">Search sacred documents by name or voice</span>
+    </div>
 
-      <!-- Pitch -->
-      <div class="settings-field">
-        <label class="field-label">🎵 Pitch — <span class="range-val">{{ speechPitch }}</span></label>
-        <input type="range" class="mandir-range"
-               min="0.0" max="2.0" step="0.1"
-               [(ngModel)]="speechPitch" />
-        <div class="range-labels">
-          <small>🔉 Low</small><small>🔔 High</small>
-        </div>
-      </div>
+    <div class="seva-card__body">
 
-      <!-- Volume -->
-      <div class="settings-field">
-        <label class="field-label">🔊 Volume — <span class="range-val">{{ speechVolume }}</span></label>
-        <input type="range" class="mandir-range"
-               min="0.0" max="1.0" step="0.1"
-               [(ngModel)]="speechVolume" />
-        <div class="range-labels">
-          <small>🔇</small><small>🔊</small>
-        </div>
-      </div>
+      <!-- Search Row -->
+      <div class="search-row">
+        <input type="text"
+               class="form-control search-row__input"
+               [(ngModel)]="userQuestion"
+               [placeholder]="isListening ? '🎙️ Listening to your seva request…' : 'Type or speak… e.g. I want to listen Aarti'"
+               (keyup.enter)="askQuestion()" />
 
-      <!-- Preview -->
-      <div class="settings-field preview-field">
-        <label class="field-label">&nbsp;</label>
-        <button class="btn btn-preview"
-                [disabled]="availableVoices.length === 0"
-                (click)="previewVoice()">
-          🔊 Preview Voice
+        <button class="btn"
+                [class.btn--danger]="isListening"
+                [class.btn--ghost]="!isListening"
+                [disabled]="isLoading"
+                (click)="isListening ? stopListening() : startListening()">
+          {{ isListening ? '🔴 Stop' : '🎙️ Speak' }}
+        </button>
+
+        <button class="btn btn--primary"
+                [disabled]="isLoading || !userQuestion.trim()"
+                (click)="askQuestion()">
+          🔍 Search
         </button>
       </div>
 
-    </div>
-  </div>
-</div>
-
-<!-- ─── SEARCH CARD ─── -->
-<div class="seva-card">
-  <div class="card-arch"></div>
-  <div class="card-body">
-
-    <div class="section-title">Document Khoj — Search</div>
-
-    <div class="search-row">
-      <input type="text"
-             class="search-input"
-             [(ngModel)]="userQuestion"
-             [placeholder]="isListening ? '🎙️ Listening to your seva request…' : 'Type or speak… e.g. I want to listen Aarti'"
-             (keyup.enter)="askQuestion()" />
-
-      <button class="btn"
-              [class.btn-stop-listen]="isListening"
-              [class.btn-speak]="!isListening"
-              [disabled]="isLoading"
-              (click)="isListening ? stopListening() : startListening()">
-        {{ isListening ? '🔴 Stop' : '🎙️ Speak' }}
-      </button>
-
-      <button class="btn btn-search"
-              [disabled]="isLoading || !userQuestion.trim()"
-              (click)="askQuestion()">
-        🔍 Search
-      </button>
-    </div>
-
-    <!-- OM LOADER -->
-    <div class="om-loader-wrapper" *ngIf="isLoading">
-      <div class="om-loader-ring">
-        <span class="om-symbol">ॐ</span>
+      <!-- OM Loader -->
+      <div class="om-loader" *ngIf="isLoading">
+        <div class="om-loader__ring">
+          <span class="om-loader__symbol">ॐ</span>
+        </div>
+        <p class="om-loader__text">Searching sacred documents, please wait…</p>
       </div>
-      <div class="om-loader-text">Searching sacred documents, please wait…</div>
-    </div>
 
-    <!-- Not Found -->
-    <div class="not-found-box" *ngIf="notFound && !isLoading">
-      🪷 No document found. Please try a different name or speak again.
-    </div>
+      <!-- Not Found -->
+      <div class="not-found-box" *ngIf="notFound && !isLoading">
+        🪷 No document found. Please try a different name or speak again.
+      </div>
 
+    </div>
   </div>
-</div>
 
-<!-- ─── RESULTS CARD ─── -->
-<div class="seva-card" *ngIf="pages.length > 0 && !isLoading">
-  <div class="card-arch"></div>
-  <div class="card-body">
-
-    <!-- Document Header -->
-    <div class="doc-header">
-      <div class="doc-title-block">
-        <div class="doc-name">📄 {{ documentName }}</div>
+  <!-- ════════════════════════════════════════════
+       CARD 3 — Results
+  ════════════════════════════════════════════ -->
+  <div class="seva-card" *ngIf="pages.length > 0 && !isLoading">
+    <div class="seva-card__header">
+      <span class="seva-card__header-dot seva-card__header-dot--gold"></span>
+      <div class="seva-card__header-title-block">
+        <h2 class="seva-card__title">📄 {{ documentName }}</h2>
         <span *ngIf="detectedLang" class="lang-badge">🌐 {{ detectedLang }}</span>
       </div>
+
+      <!-- Doc Actions -->
       <div class="doc-actions">
-        <button class="btn btn-sm btn-outline-warning"
+        <button class="btn btn--outline-gold btn--sm"
                 [disabled]="isSummarizing"
                 (click)="summarizeDocument()">
-          {{ isSummarizing ? '⏳ Summarizing...' : '📋 Summarize' }}
+          {{ isSummarizing ? '⏳ Summarizing…' : '📋 Summarize' }}
         </button>
-        <button class="btn btn-read-all"
+        <button class="btn btn--outline-peacock btn--sm"
                 [disabled]="isSpeaking"
                 (click)="speakText(fullText)">
           🔊 {{ isSpeaking ? 'Speaking…' : 'Read All' }}
         </button>
-        <button class="btn btn-stop-speak"
+        <button class="btn btn--ghost-danger btn--sm"
                 [disabled]="!isSpeaking"
                 (click)="stopSpeaking()">
           ⏹ Stop
@@ -171,70 +188,175 @@
       </div>
     </div>
 
-    <!-- Summary Loader -->
-    <div *ngIf="isSummarizing" class="text-center p-4">
-      <div class="om-wrapper mx-auto">
-        <div class="om-ring"></div>
-        <div class="om-ring-2"></div>
-        <div class="om-symbol">ॐ</div>
-      </div>
-      <div class="om-text mt-2">Generating Summary...</div>
-    </div>
+    <div class="seva-card__body">
 
-    <!-- Summary Panel -->
-    <div *ngIf="showSummary && !isSummarizing" class="card mb-4 border-warning">
-      <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
-        <strong>📋 Document Summary</strong>
-        <div class="d-flex gap-2">
-          <button class="btn btn-sm btn-dark" (click)="speakText(summary)">
-            🔊 Read Summary
-          </button>
-          <button class="btn btn-sm btn-outline-dark" (click)="showSummary = false">
-            ✖ Close
-          </button>
+      <!-- Summary Loader -->
+      <div class="om-loader" *ngIf="isSummarizing">
+        <div class="om-loader__ring">
+          <span class="om-loader__symbol">ॐ</span>
+        </div>
+        <p class="om-loader__text">Generating summary…</p>
+      </div>
+
+      <!-- Summary Panel -->
+      <!-- <div class="summary-panel" *ngIf="showSummary && !isSummarizing">
+        <div class="summary-panel__header">
+          <span>📋 Document Summary</span>
+          <div class="summary-panel__actions">
+            <button class="btn btn--outline-peacock btn--sm" (click)="speakText(summary)">
+              🔊 Read Summary
+            </button>
+            <button class="btn btn--ghost btn--sm" (click)="showSummary = false">
+              ✖ Close
+            </button>
+          </div>
+        </div>
+        <div class="summary-panel__body">
+          <pre class="summary-text">{{ summary }}</pre>
+        </div>
+      </div> -->
+
+      <div class="summary-panel" *ngIf="showSummary && !isSummarizing">
+        <div class="summary-panel__header">
+          <div>
+            <span>📋 Document Summary</span>
+            <span *ngIf="summaryFromCache" class="lang-badge" style="margin-left:8px">
+              💾 Saved
+            </span>
+            <small *ngIf="summaryUpdatedAt" style="margin-left:8px; opacity:.6">
+              Last saved: {{ summaryUpdatedAt | date:'dd MMM yyyy, hh:mm a' }}
+            </small>
+          </div>
+          <div class="summary-panel__actions">
+            <button class="btn btn--outline-peacock btn--sm"
+                    (click)="speakText(summary)">
+              🔊 Read Summary
+            </button>
+            <button class="btn btn--primary btn--sm"
+            [disabled]="isSavingSummary || (!summaryDirty && summaryFromCache)"
+            (click)="saveSummary()">
+      {{ isSavingSummary ? '⏳ Saving…' : '💾 Save Summary' }}
+    </button>
+            <button class="btn btn--ghost btn--sm" (click)="showSummary = false">
+              ✖ Close
+            </button>
+          </div>
+        </div>
+        <div class="summary-panel__body">
+          <!-- Editable textarea instead of <pre> -->
+          <textarea
+            class="form-control summary-textarea"
+            rows="10"
+            [(ngModel)]="summary"
+            (input)="onSummaryEdit()"
+            placeholder="Summary will appear here…">
+          </textarea>
         </div>
       </div>
-      <div class="card-body">
-        <pre style="white-space: pre-wrap; font-size: 14px; font-family: 'Poppins', sans-serif;">
-          {{ summary }}
-        </pre>
+
+      <!-- Section divider -->
+      <div class="section-divider" *ngIf="!isSummarizing">
+        <span class="section-divider__icon">🪷</span>
+        <span class="section-divider__icon">🪷</span>
+        <span class="section-divider__icon">🪷</span>
       </div>
-    </div>
 
-    <div class="lotus-divider">🪷 &nbsp; 🪷 &nbsp; 🪷</div>
-
-    <!-- Pages -->
-    <div class="pages-list">
-      <div class="page-card" *ngFor="let page of pages">
-
-        <div class="page-header">
-          <div class="page-title">📜 Page {{ page.pageNumber }}</div>
-          <button class="btn btn-read-page" (click)="speakText(page.extractedText)">
-            🔊 Read Page
-          </button>
+      <!-- Pages List -->
+      <!-- <div class="pages-list">
+        <div class="page-card" *ngFor="let page of pages">
+          <div class="page-card__header">
+            <div class="page-card__title">
+              📜 Page {{ page.pageNumber }}
+            </div>
+            <button class="btn btn--save-page btn--sm" (click)="speakText(page.extractedText)">
+              🔊 Read Page
+            </button>
+          </div>
+          <pre class="page-text">{{ page.extractedText }}</pre>
         </div>
+      </div> -->
+      <!-- Single Page Viewer -->
+  <!-- Single Page Viewer -->
+<div class="pages-list" *ngIf="currentDocPage">
 
-        <pre class="page-text">{{ page.extractedText }}</pre>
-
+  <!-- Page Card -->
+  <div class="page-card">
+    <div class="page-card__header">
+      <div class="page-card__title">
+        📜 Page {{ currentDocPage.pageNumber }}
+        <span style="font-size:0.8rem; opacity:0.6; margin-left:8px;">
+          ({{ absolutePageNumber }} of {{ totalRecords }})  <!-- ← fixed -->
+        </span>
       </div>
+      <button class="btn btn--save-page btn--sm"
+              (click)="speakText(currentDocPage.extractedText)">
+        🔊 Read Page
+      </button>
     </div>
-
-    <!-- ✅ Pagination — after pages, before footer -->
-    <div class="lotus-divider">🪷 &nbsp; 🪷 &nbsp; 🪷</div>
-
-    <app-pagination-data
-      [currentPage]="currentPage"
-      [totalPages]="totalPages"
-      [totalRecords]="totalRecords"
-      [pageSize]="itemsPerPage"
-      (pageChange)="onPageChange($event)"
-      (pageSizeChange)="onPageSizeChange($event)">
-    </app-pagination-data>
-
+    <pre class="page-text">{{ currentDocPage.extractedText }}</pre>
   </div>
+
+  <!-- Local Prev / Next -->
+  <div class="page-local-nav">
+    <button class="btn btn--ghost btn--sm"
+            [disabled]="absolutePageNumber === 1"
+            (click)="prevDocPage()">
+      ← Prev Page
+    </button>
+
+    <span style="font-size:0.85rem; opacity:0.7;">
+      Page {{ absolutePageNumber }} of {{ totalRecords }}  <!-- ← fixed -->
+    </span>
+
+    <button class="btn btn--ghost btn--sm"
+            [disabled]="absolutePageNumber === totalRecords"
+            (click)="nextDocPage()">
+      Next Page →
+    </button>
+  </div>
+
+</div>
+
+<!-- Pagination divider -->
+<div class="section-divider">
+  <span class="section-divider__icon">🪷</span>
+  <span class="section-divider__icon">🪷</span>
+  <span class="section-divider__icon">🪷</span>
+</div>
+
+<!-- Backend Pagination -->
+<app-pagination-data
+  [currentPage]="currentPage"
+  [totalPages]="totalPages"
+  [totalRecords]="totalRecords"
+  [pageSize]="itemsPerPage"
+  (pageChange)="onPageChange($event)"
+  (pageSizeChange)="onPageSizeChange($event)">
+</app-pagination-data>
+</div>
+
+      <!-- Pagination -->
+      <!-- <div class="section-divider">
+        <span class="section-divider__icon">🪷</span>
+        <span class="section-divider__icon">🪷</span>
+        <span class="section-divider__icon">🪷</span>
+      </div> -->
+
+      <!-- <app-pagination-data
+        [currentPage]="currentPage"
+        [totalPages]="totalPages"
+        [totalRecords]="totalRecords"
+        [pageSize]="itemsPerPage"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)">
+      </app-pagination-data> -->
+
+    <!-- </div> -->
+  </div>
+
 </div>
 
 <!-- ─── FOOTER ─── -->
-<div class="mandir-footer">
-  🪷 &nbsp; Jai Shri Krishna &nbsp; 🪷 &nbsp; सेवा परमो धर्मः
+<div class="seva-footer">
+  🪷 &nbsp; Jai Shri Krishna &nbsp; • &nbsp; सेवा परमो धर्मः &nbsp; 🪷
 </div>
