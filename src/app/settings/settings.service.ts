@@ -536,7 +536,7 @@ getDocumentByDocumentName(documentId: number, startIndex: number = 0, pageSize: 
   );
 }
 
-getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: number = 10): Observable<any[]> {
+getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: number = 10, roleId: number = 0): Observable<any[]> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
   if (!lsValue) {
     return new Observable<any[]>((observer) => {
@@ -550,7 +550,8 @@ getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: n
   const params = new HttpParams()
     .set('StartIndex', startIndex.toString())  
     .set('PageSize', pageSize.toString())
-    .set('DocumentTypeId', documentTypeId.toString());
+    .set('DocumentTypeId', documentTypeId.toString())
+    .set('RoleId', roleId.toString());
  
   return this.http.get<any[]>(
     environment.BaseUrl + 'api/DocumentPage/GetDocumentById',

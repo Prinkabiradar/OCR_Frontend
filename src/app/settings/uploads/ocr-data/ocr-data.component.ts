@@ -18,6 +18,15 @@ export class OcrDataComponent implements OnInit {
   documentTypesearchTerm: string = '';
   selectedTypeId: number | null = null;
 
+  editedTexts:    { [id: number]: string }  = {};
+  savingRows:     { [id: number]: boolean } = {};
+  savedRows:      { [id: number]: boolean } = {};
+  savingAll:      boolean = false;
+  saveAllSuccess: boolean = false;
+
+   pageList: any[] = [];
+
+  roleId: number = 0; 
   // ── STEP 2: Document List + Pagination ────────────────────
   documentList: any[] = [];
   loadingDocs = false;
@@ -79,6 +88,38 @@ export class OcrDataComponent implements OnInit {
     this.loadDocuments();
   }
 
+  isDirty(item: any): boolean {
+    return this.editedTexts[item.DocumentPageId] !== item.ExtractedText;
+  }
+  onTextChange(item: any, value: string): void {
+    this.editedTexts[item.DocumentPageId] = value;
+    this.savedRows[item.DocumentPageId]   = false;
+    this.saveAllSuccess                   = false;
+    this.cdr.detectChanges();
+  }
+  get hasDirtyRows(): boolean {
+    return this.pageList.some(item => this.isDirty(item));
+  }
+
+  getStatusLabel(statusId: number): string {
+    switch (statusId) {
+      case 0:  return 'Processing';
+      case 1:  return 'Checked';
+      case 2:  return 'Partially verified';
+      case 3:  return 'Verified';
+      default: return `Reviewed (${statusId})`;
+    }
+  }
+
+  getStatusClass(statusId: number): string {
+    switch (statusId) {
+      case 0:  return 'badge-processing';
+      case 1:  return 'badge-pending';
+      case 2:  return 'badge-partially-verified';
+      default: return 'badge-verified';
+    }
+  }
+
   // fetch document list — 0-based offset
   loadDocuments(): void {
     if (!this.selectedTypeId) return;
@@ -88,12 +129,15 @@ export class OcrDataComponent implements OnInit {
 
     const startIndex = (this.docCurrentPage - 1) * this.docPageSize;
 
-    this.service.getDocumentsByTypeId(this.selectedTypeId, startIndex, this.docPageSize).subscribe({
+    
+    this.service.getDocumentsByTypeId(this.selectedTypeId, startIndex, this.docPageSize, this.roleId).subscribe({
       next: (res: any) => {
         const raw: any[] = Array.isArray(res) ? res : (res?.data ?? res?.Data ?? []);
         this.documentList = raw.map((d: any) => ({
           documentId:   d.documentid   ?? d.documentId   ?? d.DocumentId,
           documentName: d.documentname ?? d.documentName ?? d.DocumentName,
+          statusId:     d.statusid     ?? d.statusId     ?? d.StatusId,
+          userName:     d.user_name    ?? d.userName    ?? d.UserName
         }));
         this.loadingDocs = false;
         this.cdr.detectChanges();
