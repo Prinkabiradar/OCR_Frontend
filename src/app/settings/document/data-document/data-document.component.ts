@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ServiceService } from '../../settings.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-data-document',
@@ -22,10 +23,37 @@ export class DataDocumentComponent implements OnInit {
 
   constructor(
     private service: ServiceService,
-    private cdRef: ChangeDetectorRef
+    private cdRef: ChangeDetectorRef,
+    private router: Router
   ) {
     this.documents$ = this.documentsSubject.asObservable();
   }
+
+  formatLabel(text: any): string {
+  return text
+    ? text.toString().replace(/([a-z])([A-Z])/g, '$1 $2')
+    : '';
+}
+  goToAddDocument() {
+  this.router.navigate(['/settings/add-document']);
+}
+
+searchTimeout: any;
+
+onSearchChange(value: string) {
+  this.searchCriteria = value;
+
+  // Clear previous timeout
+  if (this.searchTimeout) {
+    clearTimeout(this.searchTimeout);
+  }
+
+  // Wait 500ms after typing stops
+  this.searchTimeout = setTimeout(() => {
+    this.currentPage = 1; // reset to first page
+    this.search();
+  }, 500);
+}
 
   ngOnInit(): void {
     this.fetchDocuments();

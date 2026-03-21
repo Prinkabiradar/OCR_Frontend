@@ -1,81 +1,57 @@
+<div class="container mt-5">
+  <div class="card shadow-sm border-0">
 
-<div class="mandir-header">
-  <div class="om-header">ॐ</div>
-  <div class="mandir-title">Shri Krishna Mandir</div>
-  <div class="mandir-subtitle">Document Voice Seva — Sacred Listening</div>
-</div>
-<div class="container">
-  <div class="card">
-
-    <!-- HEADER -->
-    <div class="card-header">
-      <!-- <div class="om-symbol">ॐ</div> -->
-
-      <!-- <p class="card-subtitle">
-        SHRI KRISHNA TEMPLE & FOUNDATION
-      </p> -->
-
-      <!-- <div class="seva-title">
-        🌸 SEVA PRABANDHAN · सेवा प्रबंधन
-      </div> -->
-
-      <h2>ADD DOCUMENT TYPE</h2>
-
-      <!-- <p class="header-desc">
-        Register document classification for the foundation
-      </p> -->
-
-      <div class="header-divider">
-        <span class="divider-line"></span>
-        <span class="divider-icon">🪔</span>
-        <span class="divider-line"></span>
-      </div>
+    <!-- Header -->
+    <div class="card-header bg-white">
+      <h5 class="mb-0 fw-bold">Add Document Type</h5>
     </div>
 
-    <!-- FORM -->
-    <form [formGroup]="documentTypeForm">
+    <!-- Form -->
+    <div class="card-body">
+      <form [formGroup]="documentTypeForm">
 
-      <!-- Document Type -->
-      <div class="form-group">
-        <label>DOCUMENT TYPE NAME <span class="req">*</span></label>
+        <!-- Document Type Name -->
+        <div class="mb-3">
+          <label class="form-label">
+            Document Type Name <span class="text-danger">*</span>
+          </label>
 
-        <input
-          type="text"
-          formControlName="documentTypeName"
-          placeholder="e.g. Donation Receipt, Trust Deed, Puja Schedule"
-        />
+          <input
+            type="text"
+            class="form-control"
+            formControlName="documentTypeName"
+            placeholder="Enter document type name"
+          />
 
-        <div class="error"
-             *ngIf="f.documentTypeName.touched && f.documentTypeName.invalid">
-          Document type name is required
+          <div class="text-danger small mt-1"
+               *ngIf="f.documentTypeName.touched && f.documentTypeName.invalid">
+            Document type name is required
+          </div>
         </div>
-      </div>
 
- 
+        <!-- Buttons -->
+        <div class="d-flex justify-content-end gap-2 mt-4">
 
-      <!-- Buttons -->
-      <div class="btn-group">
-        <button
-          type="button"
-          class="save-btn"
-          (click)="saveDocumentType()"
-          [disabled]="saving">
-          {{ saving ? 'Saving...' : 'SAVE RECORD' }}
-        </button>
+          <button
+            type="button"
+            class="btn btn-light"
+            (click)="resetForm()">
+            Reset
+          </button>
 
-        <button
-          type="button"
-          class="reset-btn"
-          (click)="resetForm()">
-          RESET
-        </button>
-      </div>
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="saveDocumentType()"
+            [disabled]="saving">
 
-    </form>
+            <span *ngIf="!saving">Save</span>
+            <span *ngIf="saving" class="spinner-border spinner-border-sm"></span>
+          </button>
 
-    <div class="card-footer">
-      <span>* Required fields</span>
-      <span class="footer-right">जय श्री कृष्ण 🌸</span>
+        </div>
+
+      </form>
     </div>
 
   </div>

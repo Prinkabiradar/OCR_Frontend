@@ -1,10 +1,10 @@
 <ng-template #ocrPageModal let-modal>
   <!-- Modal Header -->
   <div class="modal-header ocr-header">
-    <div class="ocr-header-inner">
-      <span class="ocr-header-glyph">☸</span>
+    <div >
       <h4 class="ocr-modal-title">{{ documentName }}</h4>
     </div>
+    
     <button
       type="button"
       class="btn-close btn-close-white"
@@ -14,10 +14,10 @@
   </div>
 
   <!-- Modal Body -->
-  <div class="modal-body ocr-body">
+  <div >
     <!-- Loading -->
     <div *ngIf="loading" class="ocr-state-center">
-      <div class="ocr-spinner"></div>
+      <div ></div>
       <p class="ocr-state-text">Retrieving Sacred Texts… ॐ</p>
     </div>
 
@@ -28,7 +28,7 @@
     </div>
 
     <!-- Page Cards -->
-    <div *ngIf="!loading && pageList.length > 0" class="ocr-cards-wrapper">
+    <div *ngIf="!loading && pageList.length > 0" >
       <div
         *ngFor="let item of pageList; let i = index"
         class="ocr-card"
@@ -38,8 +38,8 @@
         [class.ocr-card--dirty]="isDirty(item)"
       >
         <!-- Card Top Bar -->
-        <div class="ocr-card-topbar">
-          <span class="ocr-page-pill">Page {{ item.PageNumber }}</span>
+        <!-- <div class="ocr-card-topbar">
+          <span >Page {{ item.PageNumber }}</span>
           <span class="ocr-date">
             <span class="ocr-date-icon">☽</span>
             {{ item.CreatedDate | date: "mediumDate" }}
@@ -47,10 +47,7 @@
               item.CreatedDate | date: "shortTime"
             }}</span>
           </span>
-        </div>
-
-        <!-- Extracted Text Label -->
-        <div class="ocr-field-label">Extracted Text</div>
+        </div> -->
 
         <!-- Textarea -->
         <textarea
@@ -58,7 +55,7 @@
           [class.edited-textarea]="isDirty(item)"
           [value]="editedTexts[item.DocumentPageId]"
           (input)="onTextChange(item, $any($event.target).value)"
-          rows="7"
+          rows="15"
         >
         </textarea>
 
@@ -85,7 +82,7 @@
               {{ getStatusLabel(item.StatusId) }}
             </span>
             <span *ngIf="isDirty(item)" class="ocr-status-next">
-              → <strong>{{ getStatusLabel(item.StatusId + 1) }}</strong>
+              → <strong>{{ getStatusLabel(item.StatusId ) }}</strong>
             </span>
           </div>
 

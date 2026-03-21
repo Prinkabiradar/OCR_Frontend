@@ -108,20 +108,27 @@ export class OcrPageModalComponent {
 
   getStatusLabel(statusId: number): string {
     switch (statusId) {
-      case 0:  return 'Processing';
-      case 1:  return 'Pending';
-      case 2:  return 'Partially verified';
-      case 3:  return 'Verified';
+      case 0:  return 'Pending';
+      case 4:  return 'Partially checked';
+      case 1:  return 'Checked';
+      case 5:  return 'Partially verified';
+      case 2:  return 'Verified';
+      case 6:  return 'Partially Approved';
+      case 3:  return 'Approved';
       default: return `Reviewed (${statusId})`;
     }
   }
 
   getStatusClass(statusId: number): string {
     switch (statusId) {
-      case 0:  return 'badge-processing';
-      case 1:  return 'badge-pending';
-      case 2:  return 'badge-partially-verified';
-      default: return 'badge-verified';
+      case 0:  return 'badge-pending';
+      case 4:  return 'badge-partially-checked';
+      case 1:  return 'badge-Checked';
+      case 5:  return 'badge-Partially-verified';
+      case 2:  return 'badge-Verified';
+      case 6:  return 'badge-Partially-approved';
+      case 3:  return 'badge-approved';
+      default: return 'badge-approved';
     }
   }
 
@@ -131,7 +138,7 @@ export class OcrPageModalComponent {
       documentId:     item.DocumentId,
       pageNumber:     item.PageNumber,
       extractedText:  this.editedTexts[item.DocumentPageId],
-      statusId:       item.StatusId + 1,  
+      statusId:       item.StatusId,  
       createdBy:      item.CreatedBy
     };
   }
@@ -176,7 +183,7 @@ export class OcrPageModalComponent {
       next: () => {
         this.pageList.forEach(item => {
           item.ExtractedText                  = this.editedTexts[item.DocumentPageId];
-          item.StatusId                       = this.isDirty(item) ? item.StatusId + 1 : item.StatusId;
+          item.StatusId                       = this.isDirty(item) ? item.StatusId : item.StatusId;
           this.savedRows[item.DocumentPageId] = true;
         });
 

@@ -46,36 +46,51 @@
       </thead>
 
       <tbody>
-        <tr *ngFor="let doc of documentList; let i = index">
-          <td>{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</td>
+  <tr *ngFor="let doc of documentList; let i = index">
+    <td>{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</td>
 
-          <td>{{ doc.documentName }}</td>
+    <td>{{ doc.documentName }}</td>
 
-          <td>
-            <span class="status" [ngClass]="getStatusClass(doc.statusId)">
-              {{ getStatusLabel(doc.statusId) }}
-            </span>
-          </td>
+    <td>
+      <span class="status" [ngClass]="getStatusClass(doc.statusId)">
+        {{ getStatusLabel(doc.statusId) }}
+      </span>
+    </td>
 
-          <td>{{ doc.createdByName }}</td>
-          <td>{{ doc.createdDate | date: "mediumDate" }}</td>
+    <td>{{ doc.createdByName }}</td>
+    <td>{{ doc.createdDate | date: 'mediumDate' }}</td>
 
-          <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedByName }}</td>
-          <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedDate | date: "mediumDate" }}</td>
+    <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedByName }}</td>
+    <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedDate | date: 'mediumDate' }}</td>
 
-          <!-- Role 3 only -->
-          <td *ngIf="roleId === 3">{{ doc.approvedByName }}</td>
-          <td *ngIf="roleId === 3">{{ doc.approvedDate | date: "mediumDate" }}</td>
+    <td *ngIf="roleId === 3">{{ doc.approvedByName }}</td>
+    <td *ngIf="roleId === 3">{{ doc.approvedDate | date: 'mediumDate' }}</td>
 
-          <td>
-            <button class="btn-primary"
-                    (click)="onDocumentClick(doc)"
-                    [disabled]="loadingPages">
-              {{ loadingPages ? 'Loading...' : 'View' }}
-            </button>
-          </td>
-        </tr>
-      </tbody>
+    <td>
+      <!-- Show button only if this role is allowed to view this document -->
+      <ng-container *ngIf="canView(doc); else notAvailable">
+        <button
+          class="btn-primary"
+          (click)="onDocumentClick(doc)"
+          [disabled]="loadingPages"
+        >
+          {{ loadingPages ? 'Loading...' : 'View' }}
+        </button>
+      </ng-container>
+
+      <!-- Shown instead of button when status not yet ready for this role -->
+      <ng-template #notAvailable>
+        <span
+          class="status-not-ready"
+          [title]="roleId === 2 ? 'Available once document is Checked'
+                                : 'Available once document is Verified'"
+        >
+          —
+        </span>
+      </ng-template>
+    </td>
+  </tr>
+</tbody>
     </table>
 
     <!-- Empty -->

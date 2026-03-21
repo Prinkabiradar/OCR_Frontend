@@ -102,22 +102,37 @@ export class OcrDataComponent implements OnInit {
     return this.pageList.some(item => this.isDirty(item));
   }
 
+  canView(doc: any): boolean {
+  switch (this.roleId) {
+    case 1: return true;
+    case 2: return doc.statusId >= 1 && doc.statusId !== 4; // 4 = Partially checked
+    case 3: return doc.statusId >= 2 && doc.statusId !== 5; // 5 = Partially verified
+    default: return false;
+  }
+}
   getStatusLabel(statusId: number): string {
     switch (statusId) {
-      case 0:  return 'Processing';
+      case 0:  return 'Pending';
+      case 4:  return 'Partially checked';
       case 1:  return 'Checked';
-      case 2:  return 'Partially verified';
-      case 3:  return 'Verified';
+      case 5:  return 'Partially verified';
+      case 2:  return 'Verified';
+      case 6:  return 'Partially Approved';
+      case 3:  return 'Approved';
       default: return `Reviewed (${statusId})`;
     }
   }
 
   getStatusClass(statusId: number): string {
     switch (statusId) {
-      case 0:  return 'badge-processing';
-      case 1:  return 'badge-pending';
-      case 2:  return 'badge-partially-verified';
-      default: return 'badge-verified';
+      case 0:  return 'badge-pending';
+      case 4:  return 'badge-partially-checked';
+      case 1:  return 'badge-Checked';
+      case 5:  return 'badge-Partially-verified';
+      case 2:  return 'badge-Verified';
+      case 6:  return 'badge-Partially-approved';
+      case 3:  return 'badge-approved';
+      default: return 'badge-approved';
     }
   }
 

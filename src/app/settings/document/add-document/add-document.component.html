@@ -1,71 +1,73 @@
-
-<div class="mandir-header">
-  <div class="om-header">ॐ</div>
-  <div class="mandir-title">Shri Krishna Mandir</div>
-  <div class="mandir-subtitle">Document Voice Seva — Sacred Listening</div>
-</div>
-<div class="container">
-  <div class="card">
+<div class="container mt-5">
+  <div class="card shadow-sm border-0">
 
     <!-- Header -->
-    <div class="card-header">
-      <!-- <div class="om-symbol">ॐ</div>
-
-      <p class="card-subtitle">
-        SHRI KRISHNA TEMPLE & FOUNDATION
-      </p> -->
-
-      <h2 class="main-title">ADD DOCUMENT</h2>
-      <!-- <p class="header-desc">
-        Register document details in the foundation
-      </p> -->
-
-      <div class="header-divider">
-        <span class="divider-line"></span>
-        <span class="divider-icon">🪷</span>
-        <span class="divider-line"></span>
-      </div>
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0 fw-bold">Add Document</h5>
     </div>
 
     <!-- Form -->
-    <form [formGroup]="documentForm">
+    <div class="card-body">
+      <form [formGroup]="documentForm">
 
-      <!-- Document Type -->
-      <div class="form-group">
-        <label>DOCUMENT TYPE <span class="req">*</span></label>
-        <ng-select2 class="full-width-select" [data]="documentTypedata" formControlName="documentTypeId"
-          [options]="documentTypeoptions">
-        </ng-select2>
-        <div class="error" *ngIf="f.documentTypeId.touched && f.documentTypeId.invalid">
-          Document type is required
+        <div class="row g-3">
+
+          <!-- Document Type -->
+          <div class="col-md-12">
+            <label class="form-label">Document Type <span class="text-danger">*</span></label>
+            <ng-select2
+              [data]="documentTypedata"
+              formControlName="documentTypeId"
+              [options]="documentTypeoptions"
+              class="w-100">
+            </ng-select2>
+
+            <div class="text-danger small mt-1"
+                 *ngIf="f.documentTypeId.touched && f.documentTypeId.invalid">
+              Document type is required
+            </div>
+          </div>
+
+          <!-- Document Name -->
+          <div class="col-md-12">
+            <label class="form-label">Document Name <span class="text-danger">*</span></label>
+            <input
+              type="text"
+              class="form-control"
+              formControlName="documentName"
+              placeholder="Enter document name" />
+
+            <div class="text-danger small mt-1"
+                 *ngIf="f.documentName.touched && f.documentName.invalid">
+              Document name is required
+            </div>
+          </div>
+
         </div>
-      </div>
 
-      <!-- Document Name -->
-      <div class="form-group">
-        <label>DOCUMENT NAME <span class="req">*</span></label>
-        <input type="text" formControlName="documentName" placeholder="e.g. Trust Deed 2024" />
+        <!-- Buttons -->
+        <div class="d-flex justify-content-end gap-2 mt-4">
 
-        <div class="error" *ngIf="f.documentName.touched && f.documentName.invalid">
-          Document name is required
+          <button
+            type="button"
+            class="btn btn-light"
+            (click)="resetForm()">
+            Reset
+          </button>
+
+          <button
+            type="button"
+            class="btn btn-primary"
+            (click)="saveDocument()"
+            [disabled]="saving">
+
+            <span *ngIf="!saving">Save</span>
+            <span *ngIf="saving" class="spinner-border spinner-border-sm"></span>
+          </button>
+
         </div>
-      </div>
-      
-      <!-- Buttons -->
-      <div class="btn-group">
-        <button type="button" class="save-btn" (click)="saveDocument()" [disabled]="saving">
-          {{ saving ? 'Saving...' : 'Save Record' }}
-        </button>
 
-        <button type="button" class="reset-btn" (click)="resetForm()">
-          Reset
-        </button>
-      </div>
-
-    </form>
-
-    <div class="card-footer">
-      <span>जय श्री कृष्ण 🙏</span>
+      </form>
     </div>
 
   </div>

@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ServiceService } from '../../settings.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-data-document-type',
@@ -22,10 +23,32 @@ export class DataDocumentTypeComponent implements OnInit {
 
   constructor(
     private service: ServiceService,
-    private cdRef: ChangeDetectorRef
+    private cdRef: ChangeDetectorRef,
+    private router: Router
   ) {
     this.documents$ = this.documentsSubject.asObservable();
   }
+
+  goToAddDocument() {
+  this.router.navigate(['/settings/add-documentType']);
+}
+
+formatLabel(text: any): string {
+  return text.replace(/([a-z])([A-Z])/g, '$1 $2');
+}
+
+searchTimeout: any;
+
+onSearchChange(value: string) {
+  if (this.searchTimeout) {
+    clearTimeout(this.searchTimeout);
+  }
+
+  this.searchTimeout = setTimeout(() => {
+    this.currentPage = 1;
+    this.search();
+  }, 400);
+}
 
   ngOnInit(): void {
     this.fetchDocuments();
