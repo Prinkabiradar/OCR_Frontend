@@ -2,6 +2,8 @@ import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Options } from 'select2';
 import { ServiceService } from '../../settings.service'; // ✅ adjust path
+import Swal from 'sweetalert2';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-add-document',
@@ -21,7 +23,8 @@ export class AddDocumentComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private service: ServiceService,        // ✅ FIXED
-    private cd: ChangeDetectorRef           // ✅ FIXED
+    private cd: ChangeDetectorRef,          // ✅ FIXED
+    private router: Router 
   ) {}
 
   ngOnInit(): void {
@@ -69,27 +72,48 @@ export class AddDocumentComponent implements OnInit {
 
   // ✅ PRODUCTION SAVE
   saveDocument() {
-    if (this.documentForm.invalid) {
-      this.documentForm.markAllAsTouched();
-      return;
-    }
-
-    this.saving = true;
-
-    const payload = this.documentForm.value;
-
-    this.service.saveDocument(payload).subscribe({
-      next: (res) => {
-        console.log('Saved successfully', res);
-        this.saving = false;
-        this.resetForm();
-      },
-      error: (err) => {
-        console.error('Save failed', err);
-        this.saving = false;
-      }
-    });
+  if (this.documentForm.invalid) {
+    this.documentForm.markAllAsTouched();
+    return;
   }
+
+  this.saving = true;
+
+  const payload = this.documentForm.value;
+
+  this.service.saveDocument(payload).subscribe({
+    next: (res) => {
+      this.saving = false;
+
+      // ✅ SUCCESS SWAL
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Document saved successfully!',
+        confirmButtonText: 'OK'
+      }).then(() => {
+        this.resetForm();
+
+        // ✅ REDIRECT
+        this.router.navigate(['/settings/data-document']);
+      });
+    },
+
+    error: (err) => {
+      this.saving = false;
+
+      // ❌ ERROR SWAL
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to save document. Please try again.',
+        confirmButtonText: 'OK'
+      });
+
+      console.error('Save failed', err);
+    }
+  });
+}
 
   // ✅ proper reset
   resetForm() {

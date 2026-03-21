@@ -55,7 +55,7 @@
           [class.edited-textarea]="isDirty(item)"
           [value]="editedTexts[item.DocumentPageId]"
           (input)="onTextChange(item, $any($event.target).value)"
-          rows="15"
+          rows="20"
         >
         </textarea>
 
@@ -105,7 +105,7 @@
   </div>
 
   <!-- Modal Footer — pagination + close -->
-  <div class="modal-footer ocr-footer">
+  <div class="modal-footer ocr-footer d-flex justify-content-start align-items-center gap-3 flex-wrap">
     <span class="ocr-page-info">
       🪷 Page {{ currentPage }} &nbsp;|&nbsp; {{ pageList.length }} record{{
         pageList.length !== 1 ? "s" : ""

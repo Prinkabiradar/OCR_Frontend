@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ServiceService } from '../../settings.service';
+import Swal from 'sweetalert2';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-add-document-type',
@@ -14,7 +16,8 @@ export class AddDocumentTypeComponent {
 
   constructor(
     private fb: FormBuilder,
-    private service: ServiceService
+    private service: ServiceService,
+    private router: Router
   ) {
     this.buildForm();
   }
@@ -32,24 +35,57 @@ export class AddDocumentTypeComponent {
   // ✅ save document type
   saveDocumentType() {
 
-    if (this.documentTypeForm.invalid || this.saving) return;
+  if (this.documentTypeForm.invalid) {
+    this.documentTypeForm.markAllAsTouched();
 
-    this.saving = true;
-
-    const payload = this.documentTypeForm.value;
-
-    this.service.saveDocumentType(payload).subscribe({
-      next: (res: any) => {
-        console.log('Saved successfully', res);
-        this.saving = false;
-        this.resetForm();
-      },
-      error: (err: any) => {
-        console.error(err);
-        this.saving = false;
-      }
+    // ⚠️ Validation Swal
+    Swal.fire({
+      icon: 'warning',
+      title: 'Validation Error',
+      text: 'Please enter Document Type Name'
     });
+
+    return;
   }
+
+  if (this.saving) return;
+
+  this.saving = true;
+
+  const payload = this.documentTypeForm.value;
+
+  this.service.saveDocumentType(payload).subscribe({
+    next: (res: any) => {
+      this.saving = false;
+
+      // ✅ Success Swal
+      Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: 'Document Type saved successfully!',
+        confirmButtonText: 'OK'
+      }).then(() => {
+        this.resetForm();
+
+        // ✅ Redirect
+        this.router.navigate(['/settings/data-documentType']);
+      });
+    },
+
+    error: (err: any) => {
+      this.saving = false;
+
+      // ❌ Error Swal
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Failed to save Document Type'
+      });
+
+      console.error(err);
+    }
+  });
+}
 
   // ✅ reset form
   resetForm() {

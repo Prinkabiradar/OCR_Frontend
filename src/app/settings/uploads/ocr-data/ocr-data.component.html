@@ -99,17 +99,17 @@
     </div>
 
     <!-- Pagination -->
-    <div class="pagination" *ngIf="documentList.length > 0">
-      <button (click)="goToDocPrevious()" [disabled]="!docHasPrevious">
-        Previous
-      </button>
+    <div class="pagination d-flex justify-content-start align-items-center gap-2">
+  <button (click)="goToDocPrevious()" [disabled]="!docHasPrevious">
+    Previous
+  </button>
 
-      <span>Page {{ docCurrentPage }}</span>
+  <span class="mx-2">Page {{ docCurrentPage }}</span>
 
-      <button (click)="goToDocNext()" [disabled]="!docHasNext">
-        Next
-      </button>
-    </div>
+  <button (click)="goToDocNext()" [disabled]="!docHasNext">
+    Next
+  </button>
+</div>
 
   </div>
 
