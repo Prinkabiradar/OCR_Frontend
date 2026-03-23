@@ -79,5 +79,18 @@ gstrateMaster$ = this.gstrateMasterListSubject.asObservable();
     this.submastertableSubject.next(null);
   }
 
+  // ── DocumentType Edit ──────────────────────────────────────
+  private documentTypeSubject = new BehaviorSubject<any>(null);
+  documentType$ = this.documentTypeSubject.asObservable();
+
+  setDocumentTypeData(data: any) { this.documentTypeSubject.next(data); }
+  clearDocumentTypeData() { this.documentTypeSubject.next(null); }
+
+  // ── Document Edit ──────────────────────────────────────────
+  private documentSubject = new BehaviorSubject<any>(null);
+  document$ = this.documentSubject.asObservable();
+
+  setDocumentData(data: any) { this.documentSubject.next(data); }
+  clearDocumentData() { this.documentSubject.next(null); }
      
 }

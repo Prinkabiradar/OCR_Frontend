@@ -208,7 +208,7 @@ export class ServiceService {
     });
 
     return this.http.post<any>(
-      `${environment.BaseUrl}api/Utility/InactivateRecordForAll?typeId=${typeId}&primaryId=${primaryId}&userId=${userId}`,
+      `${environment.BaseUrl}api/Utility/DeleteForAll?typeId=${typeId}&primaryId=${primaryId}&userId=${userId}`,
       {}, // Empty body
       { headers: headers },
     );

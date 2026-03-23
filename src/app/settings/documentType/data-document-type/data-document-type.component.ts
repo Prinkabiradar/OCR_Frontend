@@ -3,6 +3,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { ServiceService } from '../../settings.service';
 import { Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
+import { SharedDataService } from '../../shared-data.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -27,7 +28,8 @@ export class DataDocumentTypeComponent implements OnInit {
   constructor(
     private service: ServiceService,
     private cdRef: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private _shareds: SharedDataService
   ) {
     this.documents$ = this.documentsSubject.asObservable();
   }
@@ -98,12 +100,13 @@ export class DataDocumentTypeComponent implements OnInit {
 
   // ── Navigate ───────────────────────────────────────────────
   goToAddDocument(): void {
+    this._shareds.clearDocumentTypeData();
     this.router.navigate(['/settings/add-documentType']);
   }
 
   goToEdit(item: any): void {
-    const id = item.documentTypeId ?? item.DocumentTypeId ?? item.id;
-    this.router.navigate(['/settings/add-documentType'], { queryParams: { id } });
+    this._shareds.setDocumentTypeData(item);
+    this.router.navigate(['/settings/add-documentType']);
   }
 
   // ── Delete ─────────────────────────────────────────────────
