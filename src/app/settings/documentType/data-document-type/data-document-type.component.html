@@ -78,54 +78,16 @@
   </div>
 
   <!-- PAGINATION -->
-  <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-3">
+  <div class="pagination d-flex justify-content-start align-items-center gap-2">
+  <button (click)="goToPrevious()" [disabled]="!hasPrevious">
+    Previous
+  </button>
 
-    <!-- Page Size -->
-    <div class="d-flex align-items-center gap-2">
-      <span class="text-muted small">Showing</span>
-      <select class="form-select form-select-sm w-auto"
-              (change)="onPageSizeChange($event)"
-              [value]="itemsPerPage">
-        <option [value]="10">10</option>
-        <option [value]="25">25</option>
-        <option [value]="50">50</option>
-        <option [value]="100">100</option>
-      </select>
-      <span class="text-muted small">entries</span>
-    </div>
+  <span class="mx-2">Page {{ currentPage }}</span>
 
-    <!-- Pagination -->
-    <ul class="pagination mb-0">
-
-      <li class="page-item" [class.disabled]="currentPage === 1">
-        <button class="page-link" (click)="onPageChange(1)">First</button>
-      </li>
-
-      <li class="page-item" [class.disabled]="currentPage === 1">
-        <button class="page-link" (click)="onPageChange(currentPage - 1)">Prev</button>
-      </li>
-
-      <li class="page-item active">
-        <span class="page-link">{{ currentPage }} / {{ totalPages }}</span>
-      </li>
-
-      <li class="page-item" [class.disabled]="currentPage === totalPages">
-        <button class="page-link" (click)="onPageChange(currentPage + 1)">Next</button>
-      </li>
-
-      <li class="page-item" [class.disabled]="currentPage === totalPages">
-        <button class="page-link" (click)="onPageChange(totalPages)">Last</button>
-      </li>
-
-    </ul>
-
-    <!-- Total -->
-    <div>
-      <span class="text-muted small">
-        Total: {{ totalRecords }}
-      </span>
-    </div>
-
-  </div>
+  <button (click)="goToNext()" [disabled]="!hasNext">
+    Next
+  </button>
+</div>
 
 </div>

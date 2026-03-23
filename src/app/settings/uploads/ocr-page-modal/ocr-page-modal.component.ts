@@ -144,32 +144,40 @@ export class OcrPageModalComponent {
   }
 
   saveRow(item: any): void {
-    if (this.savingRows[item.DocumentPageId]) return;
-    this.savingRows[item.DocumentPageId] = true;
+  if (this.savingRows[item.DocumentPageId]) return;
 
-    const payload = this.buildPayload(item);
+  this.savingRows[item.DocumentPageId] = true;
 
-    this.service.saveDocumentPage(payload).subscribe({
-      next: () => {
-        item.ExtractedText                   = this.editedTexts[item.DocumentPageId];
-        item.StatusId                        = payload.statusId;
-        this.savingRows[item.DocumentPageId] = false;
-        this.savedRows[item.DocumentPageId]  = true;
+  const payload = this.buildPayload(item);
 
-        setTimeout(() => {
-          this.savedRows[item.DocumentPageId] = false;
-          this.cdr.detectChanges();
-        }, 2000);
+  this.service.saveDocumentPage(payload).subscribe({
+    next: (res: any) => {
 
+      // ✅ IMPORTANT: use response data
+      const updated = res?.data || res; // adjust based on API
+
+      item.ExtractedText = updated.extractedText || this.editedTexts[item.DocumentPageId];
+
+      // 🔥 THIS FIXES YOUR ISSUE
+      item.StatusId = updated.statusId;  
+
+      this.savingRows[item.DocumentPageId] = false;
+      this.savedRows[item.DocumentPageId] = true;
+
+      setTimeout(() => {
+        this.savedRows[item.DocumentPageId] = false;
         this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Save failed', err);
-        this.savingRows[item.DocumentPageId] = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
+      }, 2000);
+
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('Save failed', err);
+      this.savingRows[item.DocumentPageId] = false;
+      this.cdr.detectChanges();
+    }
+  });
+}
   saveAll(): void {
     if (this.savingAll) return;
     if (!this.pageList.length) return;

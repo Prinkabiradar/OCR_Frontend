@@ -11,12 +11,13 @@ import { Router } from '@angular/router';
 export class DataDocumentComponent implements OnInit {
 
   isLoading: boolean = false;
-  totalPages: number = 1;
-  currentPage: number = 1;
-  totalRecords: number = 0;
-  itemsPerPage: number = 10;
   searchBy: string = '';
   searchCriteria: string = '';
+  searchTimeout: any;
+
+  // ── Pagination (standard pattern) ─────────────────────────
+  currentPage: number = 1;
+  pageSize: number = 10;
 
   documents$: Observable<any[]>;
   private documentsSubject = new BehaviorSubject<any[]>([]);
@@ -29,59 +30,45 @@ export class DataDocumentComponent implements OnInit {
     this.documents$ = this.documentsSubject.asObservable();
   }
 
-  formatLabel(text: any): string {
-  return text
-    ? text.toString().replace(/([a-z])([A-Z])/g, '$1 $2')
-    : '';
-}
-  goToAddDocument() {
-  this.router.navigate(['/settings/add-document']);
-}
+  // ── Standard pagination getters ───────────────────────────
+  get hasPrevious(): boolean { return this.currentPage > 1; }
+  get hasNext(): boolean { return this.documentsSubject.getValue().length === this.pageSize; }
 
-searchTimeout: any;
-
-onSearchChange(value: string) {
-  this.searchCriteria = value;
-
-  // Clear previous timeout
-  if (this.searchTimeout) {
-    clearTimeout(this.searchTimeout);
+  goToPrevious(): void {
+    if (!this.hasPrevious) return;
+    this.currentPage--;
+    this.fetchDocuments();
   }
 
-  // Wait 500ms after typing stops
-  this.searchTimeout = setTimeout(() => {
-    this.currentPage = 1; // reset to first page
-    this.search();
-  }, 500);
-}
+  goToNext(): void {
+    if (!this.hasNext) return;
+    this.currentPage++;
+    this.fetchDocuments();
+  }
+
+  // ─────────────────────────────────────────────────────────
 
   ngOnInit(): void {
     this.fetchDocuments();
   }
 
-  fetchDocuments(): void {
-    this.isLoading = true;
-    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+  formatLabel(text: any): string {
+    return text
+      ? text.toString().replace(/([a-z])([A-Z])/g, '$1 $2')
+      : '';
+  }
 
-    this.service.getDocuments(
-      startIndex,
-      this.itemsPerPage,
-      this.searchBy,
-      this.searchCriteria
-    ).subscribe({
-      next: (response: any) => {
-        this.isLoading = false;
-        const items: any[] = response?.items ?? response ?? [];
-        this.documentsSubject.next(items);
-        this.totalRecords = response?.totalCount ?? items.length;
-        this.totalPages = response?.totalPages ?? Math.ceil(this.totalRecords / this.itemsPerPage);
-        this.cdRef.detectChanges();
-      },
-      error: (err) => {
-        this.isLoading = false;
-        console.error('Error:', err);
-      }
-    });
+  goToAddDocument(): void {
+    this.router.navigate(['/settings/add-document']);
+  }
+
+  onSearchChange(value: string): void {
+    this.searchCriteria = value;
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.currentPage = 1;
+      this.fetchDocuments();
+    }, 500);
   }
 
   search(): void {
@@ -89,19 +76,27 @@ onSearchChange(value: string) {
     this.fetchDocuments();
   }
 
-  onPageChange(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
-    this.fetchDocuments();
-    this.cdRef.detectChanges();
-  }
+  fetchDocuments(): void {
+    this.isLoading = true;
+    const startIndex = (this.currentPage - 1) * this.pageSize;
 
-  onPageSizeChange(event: Event): void {
-    if (event.target instanceof HTMLSelectElement) {
-      this.itemsPerPage = parseInt(event.target.value, 10);
-      this.currentPage = 1;
-      this.fetchDocuments();
-      this.cdRef.detectChanges();
-    }
+    this.service.getDocuments(
+      startIndex,
+      this.pageSize,
+      this.searchBy,
+      this.searchCriteria
+    ).subscribe({
+      next: (response: any) => {
+        const items: any[] = response?.items ?? response ?? [];
+        this.documentsSubject.next(items);
+        this.isLoading = false;
+        this.cdRef.detectChanges();
+      },
+      error: (err) => {
+        this.isLoading = false;
+        console.error('Error:', err);
+        this.cdRef.detectChanges();
+      }
+    });
   }
 }

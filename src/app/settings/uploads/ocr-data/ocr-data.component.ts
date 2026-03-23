@@ -5,6 +5,7 @@ import { ModalConfig } from 'src/app/_metronic/partials';
 import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { OcrPageModalComponent } from '../ocr-page-modal/ocr-page-modal.component';
 import { environment } from 'src/environments/environment';
+import { EventEmitter, Output } from '@angular/core';
 
 @Component({
   selector: 'app-ocr-data',
@@ -35,6 +36,7 @@ export class OcrDataComponent implements OnInit {
   docCurrentPage: number = 1;
   docPageSize: number = 10;
 
+  @Output() statusUpdated = new EventEmitter<any>();
   // ── Modal ──────────────────────────────────────────────────
   @ViewChild('ocrModal') modalComponent!: OcrPageModalComponent;
   private modalRef: NgbModalRef;

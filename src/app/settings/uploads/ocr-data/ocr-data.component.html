@@ -32,7 +32,7 @@
         <tr>
           <th>#</th>
           <th>Document Name</th>
-          <th>Status</th>
+          
           <th>Checked By</th>
           <th>Checked Date</th>
           <th *ngIf="roleId === 2 || roleId === 3">Verified By</th>
@@ -41,6 +41,7 @@
           <!-- Role 3 only -->
           <th *ngIf="roleId === 3">Approved By</th>
           <th *ngIf="roleId === 3">Approved Date</th>
+          <th>Status</th>
           <th>Action</th>
         </tr>
       </thead>
@@ -51,11 +52,7 @@
 
     <td>{{ doc.documentName }}</td>
 
-    <td>
-      <span class="status" [ngClass]="getStatusClass(doc.statusId)">
-        {{ getStatusLabel(doc.statusId) }}
-      </span>
-    </td>
+    
 
     <td>{{ doc.createdByName }}</td>
     <td>{{ doc.createdDate | date: 'mediumDate' }}</td>
@@ -65,6 +62,12 @@
 
     <td *ngIf="roleId === 3">{{ doc.approvedByName }}</td>
     <td *ngIf="roleId === 3">{{ doc.approvedDate | date: 'mediumDate' }}</td>
+
+    <td>
+      <span class="status" [ngClass]="getStatusClass(doc.statusId)">
+        {{ getStatusLabel(doc.statusId) }}
+      </span>
+    </td>
 
     <td>
       <!-- Show button only if this role is allowed to view this document -->
