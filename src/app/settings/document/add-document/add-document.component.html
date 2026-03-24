@@ -3,7 +3,7 @@
 
     <!-- Header -->
     <div class="card-header bg-white d-flex justify-content-between align-items-center">
-      <h5 class="mb-0 fw-bold">Add Document</h5>
+      <h5 class="mb-0 fw-bold">{{ isEditMode ? 'Edit Document' : 'Add Document' }}</h5>
     </div>
 
     <!-- Form -->
@@ -21,7 +21,6 @@
               [options]="documentTypeoptions"
               class="w-100">
             </ng-select2>
-
             <div class="text-danger small mt-1"
                  *ngIf="f.documentTypeId.touched && f.documentTypeId.invalid">
               Document type is required
@@ -36,7 +35,6 @@
               class="form-control"
               formControlName="documentName"
               placeholder="Enter document name" />
-
             <div class="text-danger small mt-1"
                  *ngIf="f.documentName.touched && f.documentName.invalid">
               Document name is required
@@ -47,24 +45,17 @@
 
         <!-- Buttons -->
         <div class="d-flex justify-content-end gap-2 mt-4">
-
-          <button
-            type="button"
-            class="btn btn-light"
-            (click)="resetForm()">
+          <button type="button" class="btn btn-light" (click)="resetForm()">
             Reset
           </button>
-
           <button
             type="button"
             class="btn btn-primary"
             (click)="saveDocument()"
             [disabled]="saving">
-
-            <span *ngIf="!saving">Save</span>
+            <span *ngIf="!saving">{{ isEditMode ? 'Update' : 'Save' }}</span>
             <span *ngIf="saving" class="spinner-border spinner-border-sm"></span>
           </button>
-
         </div>
 
       </form>

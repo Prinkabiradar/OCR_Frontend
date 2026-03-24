@@ -226,7 +226,7 @@ export class ServiceService {
     });
 
     return this.http.post<any>(
-      `${environment.BaseUrl}api/Utility/InactivateRecordForAll?typeId=${typeId}&primaryId=${primaryId}&userId=${userId}`,
+      `${environment.BaseUrl}api/Utility/DeleteForAll?typeId=${typeId}&primaryId=${primaryId}&userId=${userId}`,
       {}, // Empty body
       { headers: headers },
     );
@@ -651,7 +651,8 @@ getDocumentType(
   startIndex: number,
   pageSize: number,
   searchBy: string,
-  searchCriteria: string
+  searchCriteria: string,
+  roleId: number
 ): Observable<any[]> {
 
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
@@ -671,7 +672,8 @@ getDocumentType(
     .set('StartIndex', startIndex.toString())
     .set('PageSize', pageSize.toString())
     .set('SearchBy', searchBy || '')
-    .set('SearchCriteria', searchCriteria || '');
+    .set('SearchCriteria', searchCriteria || '')
+    .set('RoleId', roleId.toString());
 
   return this.http.get<any[]>(
     environment.BaseUrl + 'api/DocumentType/GetDocumentType',
@@ -717,6 +719,18 @@ getDocuments(
   );
 }
 
+// In settings.service.ts
+getPdf(documentId: number, roleId: number): Observable<Blob> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.get(
+    `${environment.BaseUrl}api/DocumentPdf/GeneratePdf?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}`,
+    { headers, responseType: 'blob' }
+  );
+}
 SummaryDataGet(
   startIndex: number,
   pageSize: number,

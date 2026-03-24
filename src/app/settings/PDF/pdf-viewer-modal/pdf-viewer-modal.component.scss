@@ -1,0 +1,340 @@
+// ══════════════════════════════════════════════════════
+//  PDF Viewer Modal  –  SCSS
+// ══════════════════════════════════════════════════════
+
+$navy:      #0f1e38;
+$amber:     #f5a623;
+$white:     #ffffff;
+$off:       #f5f7fb;
+$border:    #e2e7f0;
+$mute:      #7a869a;
+$text:      #1a2234;
+$radius:    10px;
+$shadow:    0 20px 60px rgba(0,0,0,.28), 0 4px 16px rgba(0,0,0,.14);
+
+// ── Overlay ────────────────────────────────────────────
+.pvm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 12, 28, .65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: pvm-fadein .22s ease;
+  padding: 16px;
+}
+
+@keyframes pvm-fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ── Container ──────────────────────────────────────────
+.pvm-container {
+  background: $white;
+  border-radius: 14px;
+  box-shadow: $shadow;
+  width: 860px;
+  max-width: 100%;
+  height: 90vh;
+  max-height: 920px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: pvm-slidein .25s ease;
+}
+
+@keyframes pvm-slidein {
+  from { transform: translateY(20px) scale(.98); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);   opacity: 1; }
+}
+
+// ── Top bar ────────────────────────────────────────────
+.pvm-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  background: $navy;
+  flex-shrink: 0;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  &__icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: rgba(255,255,255,.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $amber;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: $white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 420px;
+  }
+
+  &__meta {
+    font-size: 12px;
+    color: rgba(255,255,255,.45);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+}
+
+// ── Body (iframe area) ─────────────────────────────────
+.pvm-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8eaee;
+  overflow: hidden;
+  position: relative;
+}
+
+.pvm-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+// ── State views ────────────────────────────────────────
+.pvm-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: $mute;
+  font-size: 14px;
+
+  p { margin: 0; }
+
+  &--error { color: #c0392b; }
+}
+
+// ── Spinner ────────────────────────────────────────────
+.pvm-spinner {
+  width: 34px; height: 34px;
+  border: 3px solid rgba(15,30,56,.12);
+  border-top-color: $navy;
+  border-radius: 50%;
+  animation: pvm-spin .7s linear infinite;
+
+  &--amber {
+    border-color: rgba($amber,.25);
+    border-top-color: $amber;
+  }
+
+  &--btn {
+    width: 13px; height: 13px;
+    border-width: 2px;
+    border-top-color: $white;
+  }
+}
+
+@keyframes pvm-spin { to { transform: rotate(360deg); } }
+
+// ── Buttons ────────────────────────────────────────────
+.pvm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 14px;
+  transition: all .17s;
+
+  &--download {
+    background: $amber;
+    color: $navy;
+    &:hover:not(:disabled) { background: darken($amber, 8%); }
+    &:disabled { opacity: .45; cursor: not-allowed; }
+  }
+
+  &--suggest {
+    background: rgba(255,255,255,.12);
+    color: $white;
+    border: 1px solid rgba(255,255,255,.2);
+    &:hover:not(:disabled) { background: rgba(255,255,255,.2); }
+    &:disabled { opacity: .4; cursor: not-allowed; }
+  }
+
+  &--close {
+    background: rgba(255,255,255,.08);
+    color: rgba(255,255,255,.7);
+    padding: 8px 10px;
+    &:hover { background: rgba(255,255,255,.18); color: $white; }
+  }
+
+  &--ghost {
+    background: transparent;
+    border: 1px solid $border;
+    color: $text;
+    &:hover:not(:disabled) { background: $off; }
+    &:disabled { opacity: .4; cursor: not-allowed; }
+  }
+
+  &--retry {
+    background: $navy;
+    color: $white;
+    margin-top: 6px;
+    &:hover { background: lighten($navy, 8%); }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+//  Suggestion Modal
+// ══════════════════════════════════════════════════════
+
+.sg-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: pvm-fadein .2s ease;
+}
+
+.sg-modal {
+  background: $white;
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.2);
+  width: 500px;
+  max-width: calc(100vw - 32px);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid $border;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    color: $navy;
+  }
+
+  &__close {
+    background: none;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+    color: $mute;
+    padding: 4px 6px;
+    border-radius: 5px;
+    transition: all .15s;
+    line-height: 1;
+    &:hover { background: $off; color: $text; }
+  }
+
+  &__context {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 22px;
+    background: $off;
+    border-bottom: 1px solid $border;
+    font-size: 13px;
+    color: $mute;
+  }
+
+  &__body {
+    padding: 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: $text;
+  }
+
+  &__textarea {
+    width: 100%;
+    border: 1.5px solid $border;
+    border-radius: 8px;
+    padding: 11px 13px;
+    font-size: 14px;
+    font-family: inherit;
+    color: $text;
+    resize: vertical;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color .2s;
+
+    &:focus { border-color: $navy; }
+    &:disabled { background: $off; cursor: not-allowed; }
+  }
+
+  &__error {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: #c0392b;
+    background: #fdf2f2; padding: 8px 12px; border-radius: 7px;
+  }
+
+  &__success {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12.5px; color: #27ae60;
+    background: #eafaf1; padding: 8px 12px; border-radius: 7px;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    padding: 14px 22px;
+    border-top: 1px solid $border;
+    background: $off;
+
+    // Override suggest button colors inside modal
+    .pvm-btn--suggest {
+      background: $navy;
+      color: $white;
+      border: none;
+      &:hover:not(:disabled) { background: lighten($navy, 8%); }
+    }
+  }
+}

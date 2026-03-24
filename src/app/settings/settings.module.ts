@@ -58,6 +58,8 @@ import { OcrPageModalComponent } from './uploads/ocr-page-modal/ocr-page-modal.c
 import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
 import { DataDocumentComponent } from './document/data-document/data-document.component';
 import { DataDocumentTypeComponent } from './documentType/data-document-type/data-document-type.component';
+import { PdfViewerModalComponent } from './PDF/pdf-viewer-modal/pdf-viewer-modal.component';
+import { SuggestionModalComponent } from './uploads/suggestion-modal/suggestion-modal.component';
 import { DataSummaryComponent } from './Agent/data-summary/data-summary.component';
 import { ViewSummaryComponent } from './Agent/view-summary/view-summary.component';
 
@@ -97,6 +99,8 @@ import { ViewSummaryComponent } from './Agent/view-summary/view-summary.componen
         AgentAddComponent,
         DataDocumentComponent,
         DataDocumentTypeComponent,
+        PdfViewerModalComponent,
+        SuggestionModalComponent,
         DataSummaryComponent,
         ViewSummaryComponent,
         

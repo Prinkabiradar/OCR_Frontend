@@ -15,6 +15,7 @@ export class OcrPageModalComponent {
   documentName: string = '';
   documentId: number | null = null;
 
+  
   pageList: any[] = [];
   currentPage: number = 1;
   pageSize: number = 1;
@@ -30,6 +31,7 @@ export class OcrPageModalComponent {
 
   @ViewChild('ocrPageModal')
   private modalContent: TemplateRef<OcrPageModalComponent>;
+  pdfUrl: string;
 
   constructor(
     private modalService: NgbModal,

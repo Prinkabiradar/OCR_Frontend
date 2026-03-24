@@ -18,6 +18,7 @@ import { OcrDataComponent } from './uploads/ocr-data/ocr-data.component';
 import { AgentAddComponent } from './Agent/agent-add/agent-add.component';
 import { DataDocumentComponent } from './document/data-document/data-document.component';
 import { DataDocumentTypeComponent } from './documentType/data-document-type/data-document-type.component';
+import { PdfViewerModalComponent } from './PDF/pdf-viewer-modal/pdf-viewer-modal.component';
 import { DataSummaryComponent } from './Agent/data-summary/data-summary.component';
 
 
@@ -105,6 +106,11 @@ const routes: Routes = [
     path: 'data-documentType',
     component: DataDocumentTypeComponent,
   },
+  {
+    path: 'pdf-viewer',
+    component: PdfViewerModalComponent,
+  },
+  
 
   {
     path: 'data-summary',
