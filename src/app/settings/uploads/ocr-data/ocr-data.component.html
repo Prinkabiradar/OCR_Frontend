@@ -33,16 +33,17 @@
           <th>#</th>
           <th>Document Name</th>
           
-          <th>Checked By</th>
-          <th>Checked Date</th>
+          <th *ngIf="roleId !== 5">Checked By</th>
+          <th *ngIf="roleId !== 5">Checked Date</th>
           <th *ngIf="roleId === 2 || roleId === 3">Verified By</th>
           <th *ngIf="roleId === 2 || roleId === 3">Verified Date</th>
 
           <!-- Role 3 only -->
           <th *ngIf="roleId === 3">Approved By</th>
           <th *ngIf="roleId === 3">Approved Date</th>
-          <th>Status</th>
-          <th>Action</th>
+          <th *ngIf="roleId !== 5">Status</th>
+          <th *ngIf="roleId !== 5">Action</th>
+          <th *ngIf="roleId === 5">View PDF</th>
         </tr>
       </thead>
 
@@ -54,8 +55,8 @@
 
     
 
-    <td>{{ doc.createdByName }}</td>
-    <td>{{ doc.createdDate | date: 'mediumDate' }}</td>
+    <td *ngIf="roleId !== 5">{{ doc.createdByName }}</td>
+    <td *ngIf="roleId !== 5">{{ doc.createdDate | date: 'mediumDate' }}</td>
 
     <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedByName }}</td>
     <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedDate | date: 'mediumDate' }}</td>
@@ -63,13 +64,13 @@
     <td *ngIf="roleId === 3">{{ doc.approvedByName }}</td>
     <td *ngIf="roleId === 3">{{ doc.approvedDate | date: 'mediumDate' }}</td>
 
-    <td>
+    <td *ngIf="roleId !== 5">
       <span class="status" [ngClass]="getStatusClass(doc.statusId)">
         {{ getStatusLabel(doc.statusId) }}
       </span>
     </td>
 
-    <td>
+    <td *ngIf="roleId !== 5">
       <!-- Show button only if this role is allowed to view this document -->
       <ng-container *ngIf="canView(doc); else notAvailable">
         <button
@@ -92,6 +93,17 @@
         </span>
       </ng-template>
     </td>
+
+    <td *ngIf="roleId === 5">
+      <button
+        class="btn-light-primary"
+        (click)="onViewPdf(doc)"
+        [disabled]="loadingPages"
+      >
+        {{ loadingPages ? 'Loading...' : 'View PDF' }}
+      </button>
+    </td>
+    
   </tr>
 </tbody>
     </table>

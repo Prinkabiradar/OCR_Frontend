@@ -20,6 +20,7 @@ export class DataDocumentTypeComponent implements OnInit {
   searchCriteria: string = '';
   searchTimeout: any;
 
+  roleId: number = 0; 
   private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
 
   documents$: Observable<any[]>;
@@ -59,11 +60,17 @@ export class DataDocumentTypeComponent implements OnInit {
     this.isLoading = true;
     const startIndex = (this.currentPage - 1) * this.pageSize;
 
+    const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    const userId = userData?.id ?? 0;
+    this.roleId = userData?.roleId ?? 0;
+
     this.service.getDocumentType(
       startIndex,
       this.pageSize,
       this.searchBy,
-      this.searchCriteria
+      this.searchCriteria,
+      this.roleId
     ).subscribe({
       next: (response: any) => {
         const items: any[] = response?.items ?? response ?? [];
@@ -127,11 +134,16 @@ export class DataDocumentTypeComponent implements OnInit {
     });
   }
 
+  goToViewMore(item: any): void {
+  this.router.navigate(['/settings/ocr-data']);
+}
   deleteDocument(item: any): void {
     const id = item.documentTypeId ?? item.DocumentTypeId ?? item.id;
 
     const lsValue = localStorage.getItem(this.authLocalStorageToken);
     const userId = lsValue ? JSON.parse(lsValue)?.id ?? 0 : 0;
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    this.roleId = userData?.roleId ?? 0;
 
     this.service.DeleteForAll(3, id, userId).subscribe({
       next: () => {
