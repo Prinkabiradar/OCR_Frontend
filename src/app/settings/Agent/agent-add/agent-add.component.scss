@@ -6,7 +6,7 @@
 
 // ── Design Tokens — IDENTICAL to add-image.component.scss
 :host {
-  --saffron:       #E8620A;
+  --saffron:       #2980B9;//#E8620A;
   --saffron-lt:    #F5A623;
   --saffron-pale:  #FFF4EC;
   --gold:          #C9922A;
@@ -351,7 +351,7 @@
 
   // Primary — saffron fill
   &--primary {
-    background: linear-gradient(135deg, var(--saffron), #D4500A);
+    background:var(--saffron); //linear-gradient(135deg, var(--saffron), #D4500A);
     color: white;
     box-shadow: var(--shadow-btn);
 
@@ -394,7 +394,7 @@
     border-color: var(--border);
 
     &:hover:not(:disabled) {
-      background: #EBEBEB;
+      background: #80caeffa;
     }
   }
 
@@ -553,8 +553,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 18px;
-    background: var(--gold-pale);
-    border-bottom: 1px solid var(--gold-lt);
+    background:#fdf9f933; //var(--gold-pale);
+   // border-bottom: 1px solid var(--gold-lt);
     font-size: 13px;
     font-weight: 700;
     color: var(--text-label);
@@ -684,7 +684,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 @media (max-width: 768px) {
   .seva-content        { padding: 0 14px 32px; }
-  .seva-card__body     { padding: 18px; }
+  .seva-card__body     { padding: 10px; }
   .page-title-bar      { padding: 0 16px; }
   .settings-grid       { flex-direction: column; }
   .settings-field,

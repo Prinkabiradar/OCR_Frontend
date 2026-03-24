@@ -1,5 +1,5 @@
 <!-- ─── PAGE TITLE BAR ─── -->
-<div class="page-title-bar">
+<!-- <div class="page-title-bar">
   <div class="page-title-bar__inner">
     <div class="page-title-bar__heading">
       <span class="page-title-bar__om">ॐ</span>
@@ -9,7 +9,7 @@
       </div>
     </div>
   </div>
-</div>
+</div> -->
 
 <!-- ─── CONTENT WRAPPER ─── -->
 <div class="seva-content">
@@ -17,7 +17,7 @@
   <!-- ════════════════════════════════════════════
        CARD 1 — Voice Yantra Settings
   ════════════════════════════════════════════ -->
-  <div class="seva-card">
+  <!-- <div class="seva-card">
     <div class="seva-card__header">
       <span class="seva-card__header-dot seva-card__header-dot--peacock"></span>
       <h2 class="seva-card__title">Voice Yantra Settings</h2>
@@ -27,7 +27,7 @@
     <div class="seva-card__body">
       <div class="settings-grid">
 
-        <!-- Voice Selector -->
+      
         <div class="settings-field settings-field--wide">
           <label class="form-label">🎙️ Voice</label>
 
@@ -59,7 +59,7 @@
           </select>
         </div>
 
-        <!-- Speed -->
+      
         <div class="settings-field">
           <label class="form-label">⚡ Speed — <span class="range-val">{{ speechRate }}</span></label>
           <input type="range" class="range-slider"
@@ -69,8 +69,7 @@
             <small>🐢 Slow</small><small>🚀 Fast</small>
           </div>
         </div>
-
-        <!-- Pitch -->
+ 
         <div class="settings-field">
           <label class="form-label">🎵 Pitch — <span class="range-val">{{ speechPitch }}</span></label>
           <input type="range" class="range-slider"
@@ -80,8 +79,7 @@
             <small>🔉 Low</small><small>🔔 High</small>
           </div>
         </div>
-
-        <!-- Volume -->
+ 
         <div class="settings-field">
           <label class="form-label">🔊 Volume — <span class="range-val">{{ speechVolume }}</span></label>
           <input type="range" class="range-slider"
@@ -91,8 +89,7 @@
             <small>🔇</small><small>🔊</small>
           </div>
         </div>
-
-        <!-- Preview -->
+ 
         <div class="settings-field settings-field--preview">
           <label class="form-label">&nbsp;</label>
           <button class="btn btn--outline-peacock"
@@ -104,7 +101,7 @@
 
       </div>
     </div>
-  </div>
+  </div> -->
 
   <!-- ════════════════════════════════════════════
        CARD 2 — Search
@@ -112,8 +109,8 @@
   <div class="seva-card">
     <div class="seva-card__header">
       <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
-      <h2 class="seva-card__title">Document Khoj</h2>
-      <span class="seva-card__subtitle">Search sacred documents by name or voice</span>
+      <h2 class="seva-card__title">Search sacred documents by name or voice</h2>
+      <!-- <span class="seva-card__subtitle">Search sacred documents by name or voice</span> -->
     </div>
 
     <div class="seva-card__body">
@@ -123,7 +120,7 @@
         <input type="text"
                class="form-control search-row__input"
                [(ngModel)]="userQuestion"
-               [placeholder]="isListening ? '🎙️ Listening to your seva request…' : 'Type or speak… e.g. I want to listen Aarti'"
+               [placeholder]="isListening ? '🎙️ Listening to your seva request…' : 'Type or speak…  (Document Name)'"
                (keyup.enter)="askQuestion()" />
 
         <button class="btn"
@@ -156,10 +153,7 @@
 
     </div>
   </div>
-
-  <!-- ════════════════════════════════════════════
-       CARD 3 — Results
-  ════════════════════════════════════════════ -->
+ 
   <div class="seva-card" *ngIf="pages.length > 0 && !isLoading">
     <div class="seva-card__header">
       <span class="seva-card__header-dot seva-card__header-dot--gold"></span>
@@ -255,11 +249,11 @@
       </div>
 
       <!-- Section divider -->
-      <div class="section-divider" *ngIf="!isSummarizing">
+      <!-- <div class="section-divider" *ngIf="!isSummarizing">
         <span class="section-divider__icon">🪷</span>
         <span class="section-divider__icon">🪷</span>
         <span class="section-divider__icon">🪷</span>
-      </div>
+      </div> -->
 
       <!-- Pages List -->
       <!-- <div class="pages-list">
@@ -297,7 +291,7 @@
   </div>
 
   <!-- Local Prev / Next -->
-  <div class="page-local-nav">
+  <div class="page-local-nav" style="text-align: center;">
     <button class="btn btn--ghost btn--sm"
             [disabled]="absolutePageNumber === 1"
             (click)="prevDocPage()">
@@ -318,11 +312,11 @@
 </div>
 
 <!-- Pagination divider -->
-<div class="section-divider">
+<!-- <div class="section-divider">
   <span class="section-divider__icon">🪷</span>
   <span class="section-divider__icon">🪷</span>
   <span class="section-divider__icon">🪷</span>
-</div>
+</div> -->
 
 <!-- Backend Pagination -->
 <app-pagination-data

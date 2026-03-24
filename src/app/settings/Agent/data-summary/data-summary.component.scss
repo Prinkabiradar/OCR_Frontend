@@ -1,0 +1,125 @@
+.ocr-container {
+    padding: 24px;
+    background: #f5f7fb;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  
+  /* Header */
+  .header h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  
+  .header .sub {
+    color: #6b7280;
+    margin-top: 4px;
+    font-size: 14px;
+  }
+  
+  /* Filter */
+  .filter-bar {
+    margin: 20px 0;
+    max-width: 300px;
+  }
+  
+  .filter-bar label {
+    font-size: 13px;
+    color: #6b7280;
+    display: block;
+    margin-bottom: 6px;
+  }
+  
+  /* Card */
+  .card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+  
+  /* Table */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .table th {
+    text-align: left;
+    font-size: 13px;
+    color: #6b7280;
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .table td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f1f1;
+    font-size: 14px;
+  }
+  
+  /* Button */
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  
+  .btn-primary:hover {
+    background: #1e40af;
+  }
+  
+  /* Status */
+  .status {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+  }
+  
+  .badge-processing { background: #e5e7eb; }
+  .badge-pending { background: #fef3c7; }
+  .badge-partially-verified { background: #fde68a; }
+  .badge-verified { background: #d1fae5; }
+  
+  /* Pagination */
+  .pagination {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  
+  .pagination button {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  /* States */
+  .loading {
+    padding: 20px;
+    color: #6b7280;
+  }
+  
+  .error {
+    padding: 20px;
+    color: red;
+  }
+  
+  .empty {
+    padding: 20px;
+    text-align: center;
+    color: #6b7280;
+  }

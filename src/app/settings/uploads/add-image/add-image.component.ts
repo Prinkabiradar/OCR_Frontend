@@ -1,41 +1,59 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, FormControl } from '@angular/forms';
-import { ServiceService } from '../../settings.service';
+import { ServiceService, OcrJobStatus, OcrFileResult } from '../../settings.service';
 import { Options } from 'select2';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-add-image',
   templateUrl: './add-image.component.html',
   styleUrls: ['./add-image.component.scss']
 })
-export class AddImageComponent {
+export class AddImageComponent implements OnInit, OnDestroy {
 
+  // ── File selection
   selectedFiles: File[] = [];
   uploading = false;
+  readonly SUPPORTED_EXTENSIONS  = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf'];
+  readonly SUPPORTED_MIME_TYPES  = [
+    'image/jpeg', 'image/png', 'image/webp',
+    'image/gif',  'application/pdf'
+  ];
+  
+  rejectedFiles: { name: string; extension: string; reason: string }[] = [];
 
+
+  // ── Job tracking
+  currentJobId: string | null = null;
+  jobStatus: OcrJobStatus | null = null;
+  pollingInterval: any = null;
+  pollingMessage = '';
+  progressPercent = 0;
+  jobStartedAt: string | null = null;
+  elapsedTimer: any = null;
+  elapsedSeconds = 0;
+
+  // ── Screen states
+  // 'upload'     → show file picker
+  // 'processing' → show full-screen progress
+  // 'edit'       → show edit form after completion
+  screenState: 'upload' | 'processing' | 'edit' = 'upload';
+
+  // ── Edit form
   ocrResults: any[] = [];
   editForm!: FormGroup;
-  showEditForm = false;
-
   documentId: number = 0;
   documentTypeId: number = 0;
-
   isDocumentTypeSaved = false;
   isDocumentSaved = false;
   savedPages: Set<number> = new Set();
-
-  // ── Pagination
   currentPageIndex = 0;
 
-  //SELECT2 document
-  public documentoptions: Options;
+  // SELECT2
+  public documentoptions!: Options;
   public documentdata: Array<{ id: string; text: string }> = [];
-  documentsearchTerm: string = '';
-
-  //SELECT2 documentType
-  public documentTypeoptions: Options;
+  public documentTypeoptions!: Options;
   public documentTypedata: Array<{ id: string; text: string }> = [];
-  documentTypesearchTerm: string = '';
 
   constructor(
     private fb: FormBuilder,
@@ -46,116 +64,490 @@ export class AddImageComponent {
   ngOnInit(): void {
     this.documentropdown();
     this.documentTyperopdown();
+    this.checkForActiveJob(); // ← Resume polling if job was running
   }
 
-  onFileSelect(event: any) {
-    const files: FileList = event.target.files;
-    for (let i = 0; i < files.length; i++) {
-      this.selectedFiles.push(files[i]);
-    }
-    event.target.value = null;
+  ngOnDestroy(): void {
+    this.stopPolling();
+    this.stopElapsedTimer();
   }
 
-  removeFile(index: number) {
-    this.selectedFiles.splice(index, 1);
-  }
+  // ─────────────────────────────────────────────────────────────
+  // RESUME — check localStorage on component load
+  // ─────────────────────────────────────────────────────────────
 
-  documentTyperopdown() {
-    this.service.dropdownAll(this.documentTypesearchTerm, '1', '3', '0').subscribe(
-      (response) => {
-        this.documentTypedata = [
-          { id: '', text: '' },
-          ...response.map((item: any) => ({
-            id: item.id.toString(),
-            text: item.text,
-          }))
-        ];
-        this.documentTypeoptions = {
-          data: this.documentTypedata,
-          width: '100%',
-          placeholder: 'Select Document Type',
-          allowClear: true,
-        };
-        this.cd.markForCheck();
-        this.cd.detectChanges();
+  checkForActiveJob() {
+    const saved = this.service.getActiveJob();
+    if (!saved) return;
+
+    // Job was running before — check its current status
+    this.service.getOcrJobById(saved.jobId).subscribe({
+      next: (status: OcrJobStatus) => {
+        if (status.status === 'Queued' || status.status === 'Processing') {
+          // Job still running — resume progress screen
+          this.currentJobId   = saved.jobId;
+          this.jobStatus      = status;
+          this.jobStartedAt   = saved.startedAt;
+          this.screenState    = 'processing';
+          this.uploading      = true;
+          this.updateProgress(status);
+          this.startPolling(saved.jobId);
+          this.startElapsedTimer(saved.startedAt);
+          this.cd.detectChanges();
+
+          Swal.fire({
+            icon: 'info',
+            title: 'Job Resumed',
+            text: `Your OCR job (${status.processed_files}/${status.total_files} files done) is still running.`,
+            confirmButtonText: 'OK',
+            timer: 4000,
+            timerProgressBar: true
+          });
+
+        } else if (status.status === 'Completed') {
+          // Completed while user was away — load results directly
+          this.currentJobId = saved.jobId;
+          this.service.clearActiveJob();
+          this.loadResults(saved.jobId);
+
+        } else if (status.status === 'Failed') {
+          this.service.clearActiveJob();
+          Swal.fire({
+            icon: 'error',
+            title: 'Previous Job Failed',
+            text: status.error_message || 'The previous OCR job failed.',
+            confirmButtonText: 'OK'
+          });
+        }
       },
-      (error) => console.error('Error fetching data', error)
-    );
-  }
-
-  documentropdown() {
-    this.service.dropdownAll(this.documentsearchTerm, '1', '1', this.documentTypeId?.toString() || '0').subscribe(
-      (response) => {
-        this.documentdata = [
-          { id: '', text: '' },
-          ...response.map((item: any) => ({
-            id: item.id.toString(),
-            text: item.text,
-          }))
-        ];
-        this.documentoptions = {
-          data: this.documentdata,
-          width: '100%',
-          placeholder: 'Select Document Name',
-          allowClear: true,
-        };
-        this.cd.markForCheck();
-        this.cd.detectChanges();
-      },
-      (error) => console.error('Error fetching data', error)
-    );
-  }
-
-  uploadFiles() {
-    if (this.selectedFiles.length === 0 || this.uploading) return;
-
-    const formData = new FormData();
-    this.selectedFiles.forEach(file => formData.append('files', file));
-    this.uploading = true;
-
-    this.service.uploadOcrFiles(formData).subscribe({
-      next: (res: any[]) => {
-        const parsed: any[] = [];
-        res.forEach((fileResult, index) => {
-          try {
-            const geminiObj = JSON.parse(fileResult.ocrResult);
-            const extractedText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            parsed.push({ fileName: fileResult.fileName, extractedText, pageNumber: index + 1 });
-          } catch (error) {
-            parsed.push({ fileName: fileResult.fileName, extractedText: 'Parse error', pageNumber: index + 1 });
-          }
-        });
-
-        this.ocrResults = parsed;
-        this.buildEditableForm(parsed);
-        this.currentPageIndex = 0; // ── Reset to first page on new upload
-        this.uploading = false;
-        this.cd.detectChanges();
-      },
-      error: err => {
-        console.error(err);
-        this.uploading = false;
+      error: () => {
+        // Job not found or API error — clear stale localStorage
+        this.service.clearActiveJob();
       }
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // File selection
+  // ─────────────────────────────────────────────────────────────
+
+  // onFileSelect(event: any) {
+  //   const files: FileList = event.target.files;
+  //   for (let i = 0; i < files.length; i++) {
+  //     this.selectedFiles.push(files[i]);
+  //   }
+  //   event.target.value = null;
+  // }
+
+  // removeFile(index: number) {
+  //   this.selectedFiles.splice(index, 1);
+  // }
+
+  onFileSelect(event: any) {
+    const files: FileList = event.target.files;
+    const accepted: File[] = [];
+    const rejected: { name: string; extension: string; reason: string }[] = [];
+  
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext  = this.getExtension(file.name);
+      const mime = file.type.toLowerCase();
+  
+      if (this.SUPPORTED_EXTENSIONS.includes(ext) && this.SUPPORTED_MIME_TYPES.includes(mime)) {
+        accepted.push(file);
+      } else {
+        rejected.push({
+          name:      file.name,
+          extension: ext || '(no extension)',
+          reason:    this.getRejectionReason(ext, mime)
+        });
+      }
+    }
+  
+    // ── Accepted files go into selectedFiles normally
+    this.selectedFiles.push(...accepted);
+  
+    // ── Rejected files go into rejectedFiles list (blocks upload)
+    this.rejectedFiles.push(...rejected);
+  
+    event.target.value = null;
+    this.cd.detectChanges();
+  
+    // ── Show Swal only if there are rejections
+    if (rejected.length > 0) {
+      this.showRejectedFilesAlert(rejected, accepted.length);
+    }
+  }
+  
+  // ── Getter — upload is blocked if ANY rejected file still exists
+  get hasRejectedFiles(): boolean {
+    return this.rejectedFiles.length > 0;
+  }
+  
+  // ── Remove a rejected file from the rejected list
+  removeRejectedFile(index: number) {
+    this.rejectedFiles.splice(index, 1);
+    this.cd.detectChanges();
+  }
+  
+  // ── Remove accepted file (your existing method — unchanged)
+  removeFile(index: number) {
+    this.selectedFiles.splice(index, 1);
+    this.cd.detectChanges();
+  }
+
+  private getExtension(filename: string): string {
+    const parts = filename.toLowerCase().split('.');
+    return parts.length > 1 ? '.' + parts[parts.length - 1] : '';
+  }
+  
+  private getRejectionReason(ext: string, mime: string): string {
+    const unsupportedMap: Record<string, string> = {
+      '.bmp':  'BMP format is not supported by Gemini OCR',
+      '.tiff': 'TIFF format is not supported by Gemini OCR',
+      '.tif':  'TIFF format is not supported by Gemini OCR',
+      '.svg':  'SVG is a vector format — OCR cannot extract text from it',
+      '.heic': 'HEIC/HEIF format is not supported by Gemini OCR',
+      '.heif': 'HEIC/HEIF format is not supported by Gemini OCR',
+      '.docx': 'Word documents must be converted to PDF first',
+      '.doc':  'Word documents must be converted to PDF first',
+      '.xlsx': 'Excel files are not supported — export as PDF first',
+      '.xls':  'Excel files are not supported — export as PDF first',
+      '.txt':  'Plain text files do not need OCR — paste text directly',
+      '.csv':  'CSV files are not supported by OCR',
+      '.mp4':  'Video files are not supported by OCR',
+      '.avi':  'Video files are not supported by OCR',
+      '.mov':  'Video files are not supported by OCR',
+      '.pptx': 'PowerPoint files must be converted to PDF first',
+      '.ppt':  'PowerPoint files must be converted to PDF first',
+    };
+  
+    if (unsupportedMap[ext]) return unsupportedMap[ext];
+    if (!mime || mime === 'application/octet-stream') return 'Unknown file type — cannot process';
+    return `File type "${ext}" is not supported by Gemini OCR`;
+  }
+  
+  private showRejectedFilesAlert(
+    rejected: { name: string; extension: string; reason: string }[],
+    acceptedCount: number
+  ) {
+    const rows = rejected.map(f => `
+      <tr>
+        <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0">
+          <span style="font-size:13px">📄 ${f.name}</span>
+        </td>
+        <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0">
+          <code style="background:#fff0f0;color:#c0392b;padding:2px 6px;
+                       border-radius:4px;font-size:12px">${f.extension}</code>
+        </td>
+        <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;
+                   font-size:12px;color:#666">${f.reason}</td>
+      </tr>
+    `).join('');
+  
+    const acceptedMsg = acceptedCount > 0
+      ? `<p style="color:#27ae60;font-size:13px;margin-top:12px">
+           ✅ <strong>${acceptedCount}</strong> valid file(s) were added successfully.
+         </p>`
+      : `<p style="color:#e74c3c;font-size:13px;margin-top:12px">
+           ⚠️ No valid files were added.
+         </p>`;
+  
+    Swal.fire({
+      icon: 'warning',
+      title: `${rejected.length} File(s) Not Supported`,
+      html: `
+        <p style="font-size:14px;color:#555;margin-bottom:12px">
+          The following files were skipped because they are not supported by Gemini OCR:
+        </p>
+        <div style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+          <table style="width:100%;border-collapse:collapse">
+            <thead>
+              <tr style="background:#fafafa">
+                <th style="padding:8px 10px;text-align:left;font-size:12px;
+                           color:#999;font-weight:600">File</th>
+                <th style="padding:8px 10px;text-align:left;font-size:12px;
+                           color:#999;font-weight:600">Type</th>
+                <th style="padding:8px 10px;text-align:left;font-size:12px;
+                           color:#999;font-weight:600">Reason</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+  
+        <div style="margin-top:16px;padding:12px;background:#f8f9fa;
+                    border-radius:8px;text-align:left">
+          <p style="font-size:13px;font-weight:600;margin-bottom:6px;color:#333">
+            ✅ Supported formats:
+          </p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${this.SUPPORTED_EXTENSIONS.map(e =>
+              `<code style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;
+                            border-radius:4px;font-size:12px">${e}</code>`
+            ).join('')}
+          </div>
+        </div>
+  
+        ${acceptedMsg}
+      `,
+      confirmButtonText: 'Got it',
+      width: '600px'
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Upload
+  // ─────────────────────────────────────────────────────────────
+
+  uploadFiles() {
+    if (this.selectedFiles.length === 0 || this.uploading) return;
+
+      // Double-check — re-validate all selected files before sending
+  const stillInvalid = this.selectedFiles.filter(f => {
+    const ext = this.getExtension(f.name);
+    return !this.SUPPORTED_EXTENSIONS.includes(ext);
+  });
+
+  if (stillInvalid.length > 0) {
+    Swal.fire({
+      icon: 'error',
+      title: 'Invalid Files Detected',
+      html: `Please remove these unsupported files before uploading:<br><br>
+             ${stillInvalid.map(f =>
+               `<code style="display:block;margin:4px 0;background:#fff0f0;
+                             color:#c0392b;padding:3px 8px;border-radius:4px">
+                  ${f.name}
+                </code>`
+             ).join('')}`,
+      confirmButtonText: 'OK'
+    });
+    return;
+  }
+
+
+    const formData = new FormData();
+    this.selectedFiles.forEach(file => formData.append('files', file));
+
+    this.uploading      = true;
+    this.currentJobId   = null;
+    this.jobStatus      = null;
+    this.pollingMessage = 'Uploading files to server…';
+    this.progressPercent = 0;
+    this.elapsedSeconds  = 0;
+    this.screenState    = 'processing'; // ← Switch to progress screen immediately
+    this.cd.detectChanges();
+
+    this.service.uploadOcrImages(formData).subscribe({
+      next: (res) => {
+        this.currentJobId  = res.jobId;
+        this.jobStartedAt  = new Date().toISOString();
+        this.pollingMessage = 'Files uploaded. OCR processing started…';
+
+        // Persist to localStorage so user can navigate away
+        this.service.saveActiveJob(res.jobId, this.selectedFiles.length);
+        this.startPolling(res.jobId);
+        this.startElapsedTimer(this.jobStartedAt);
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        this.uploading      = false;
+        this.screenState    = 'upload';
+        this.pollingMessage = '';
+        Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed',
+          text: err?.error?.message || 'Something went wrong while uploading.',
+          confirmButtonText: 'OK'
+        });
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Polling
+  // ─────────────────────────────────────────────────────────────
+
+  startPolling(jobId: string) {
+    this.stopPolling();
+
+    this.pollingInterval = setInterval(() => {
+      this.service.getOcrJobById(jobId).subscribe({
+        next: (status: OcrJobStatus) => {
+          this.jobStatus = status;
+          this.updateProgress(status);
+          this.cd.detectChanges();
+
+          if (status.status === 'Completed') {
+            this.stopPolling();
+            this.stopElapsedTimer();
+            this.service.clearActiveJob();
+            this.loadResults(jobId);
+
+          } else if (status.status === 'Failed') {
+            this.stopPolling();
+            this.stopElapsedTimer();
+            this.service.clearActiveJob();
+            this.uploading   = false;
+            this.screenState = 'upload';
+            Swal.fire({
+              icon: 'error',
+              title: 'OCR Processing Failed',
+              text: status.error_message || 'Job failed during processing.',
+              confirmButtonText: 'OK'
+            });
+            this.cd.detectChanges();
+          }
+        },
+        error: (err) => console.warn('Polling error (will retry):', err)
+      });
+    }, 3000);
+  }
+
+  stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  updateProgress(status: OcrJobStatus) {
+    this.progressPercent = status.total_files > 0
+      ? Math.round((status.processed_files / status.total_files) * 100)
+      : 0;
+
+    switch (status.status) {
+      case 'Queued':
+        this.pollingMessage = 'Job is queued — waiting for worker…';
+        break;
+      case 'Processing':
+        this.pollingMessage =
+          `Processing ${status.processed_files} of ${status.total_files} files (${this.progressPercent}%)`;
+        break;
+      case 'Completed':
+        this.pollingMessage = '✅ All files processed! Loading results…';
+        this.progressPercent = 100;
+        break;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Elapsed time counter
+  // ─────────────────────────────────────────────────────────────
+
+  startElapsedTimer(startedAt: string) {
+    this.stopElapsedTimer();
+    const start = new Date(startedAt).getTime();
+
+    this.elapsedTimer = setInterval(() => {
+      this.elapsedSeconds = Math.floor((Date.now() - start) / 1000);
+      this.cd.detectChanges();
+    }, 1000);
+  }
+
+  stopElapsedTimer() {
+    if (this.elapsedTimer) {
+      clearInterval(this.elapsedTimer);
+      this.elapsedTimer = null;
+    }
+  }
+
+  get elapsedFormatted(): string {
+    const m = Math.floor(this.elapsedSeconds / 60);
+    const s = this.elapsedSeconds % 60;
+    return `${m}m ${s.toString().padStart(2, '0')}s`;
+  }
+
+  get estimatedRemaining(): string {
+    if (!this.jobStatus || this.jobStatus.processed_files === 0) return '—';
+    const rate    = this.elapsedSeconds / this.jobStatus.processed_files; // sec per file
+    const remaining = Math.round(rate * (this.jobStatus.total_files - this.jobStatus.processed_files));
+    if (remaining <= 0) return 'Almost done…';
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    return m > 0 ? `~${m}m ${s}s` : `~${s}s`;
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Load results after completion
+  // ─────────────────────────────────────────────────────────────
+
+  loadResults(jobId: string) {
+    this.service.getOcrJobResults(jobId).subscribe({
+      next: (results: OcrFileResult[]) => {
+        const parsed: any[] = [];
+        results.forEach((fileResult, index) => {
+          try {
+            const geminiObj    = JSON.parse(fileResult.ocr_text);
+            const extractedText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            parsed.push({ fileName: fileResult.file_name, extractedText, pageNumber: index + 1 });
+          } catch {
+            parsed.push({ fileName: fileResult.file_name || `File ${index + 1}`,
+              extractedText: 'Parse error', pageNumber: index + 1 });
+          }
+        });
+
+        this.ocrResults  = parsed;
+        this.buildEditableForm(parsed);
+        this.currentPageIndex = 0;
+        this.uploading   = false;
+        this.screenState = 'edit'; // ← Switch to edit screen
+        this.cd.detectChanges();
+      },
+      error: () => {
+        this.uploading   = false;
+        this.screenState = 'upload';
+        Swal.fire({ icon: 'error', title: 'Load Failed',
+          text: 'Could not load OCR results.', confirmButtonText: 'OK' });
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // Allow user to dismiss progress and come back later
+  // ─────────────────────────────────────────────────────────────
+
+  dismissAndContinue() {
+    Swal.fire({
+      icon: 'info',
+      title: 'Job Running in Background',
+      html: `Your OCR job is still processing.<br><br>
+             <strong>Come back to this screen anytime</strong> — 
+             the progress will resume automatically.`,
+      confirmButtonText: 'Got it!'
+    }).then(() => {
+      // Navigate away — user's choice handled by router
+      // For now just go back to upload screen (progress persists in localStorage)
+      this.stopPolling();
+      this.stopElapsedTimer();
+      this.screenState = 'upload';
+      this.uploading   = false;
+      this.cd.detectChanges();
+    });
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // All form methods unchanged from your original
+  // ─────────────────────────────────────────────────────────────
+
   buildEditableForm(results: any[]) {
     const pagesArray = this.fb.array<FormGroup>([]);
     results.forEach((r, i) => {
-      const group = this.fb.group({
-        fileName: new FormControl(r.fileName),
-        pageNumber: new FormControl(i + 1),
+      pagesArray.push(this.fb.group({
+        fileName:      new FormControl(r.fileName),
+        pageNumber:    new FormControl(i + 1),
         extractedText: new FormControl(r.extractedText)
-      });
-      pagesArray.push(group);
+      }));
     });
 
     this.editForm = this.fb.group({
       documentTypeId: new FormControl(null),
-      documentId: new FormControl(null),
-      documentType: new FormControl(''),
-      documentName: new FormControl(''),
-      pages: pagesArray
+      documentId:     new FormControl(null),
+      documentType:   new FormControl(''),
+      documentName:   new FormControl(''),
+      pages:          pagesArray
     });
 
     this.editForm.get('documentTypeId')?.valueChanges.subscribe(value => {
@@ -172,7 +564,7 @@ export class AddImageComponent {
     });
 
     this.editForm.get('documentType')?.valueChanges.subscribe(value => {
-      if (value && value.trim() !== '') {
+      if (value?.trim()) {
         this.editForm.get('documentTypeId')?.setValue(null, { emitEvent: false });
         this.isDocumentTypeSaved = false;
         this.documentTypeId = 0;
@@ -193,219 +585,185 @@ export class AddImageComponent {
     });
 
     this.editForm.get('documentName')?.valueChanges.subscribe(value => {
-      if (value && value.trim() !== '') {
+      if (value?.trim()) {
         this.editForm.get('documentId')?.setValue(null, { emitEvent: false });
         this.isDocumentSaved = false;
         this.documentId = 0;
       }
       this.cd.detectChanges();
     });
-
-    this.showEditForm = true;
   }
 
   get pages(): FormArray<FormGroup> {
     return this.editForm.get('pages') as FormArray<FormGroup>;
   }
 
-  // ─────────────────────────────────────────────
-  //  PAGINATION
-  // ─────────────────────────────────────────────
-
-  /** Navigate to a specific page index */
-  goToPage(index: number): void {
+  goToPage(index: number) {
     if (index < 0 || index >= this.pages.controls.length) return;
     this.currentPageIndex = index;
     this.cd.detectChanges();
   }
 
-  /**
-   * Returns true if the numbered page button for index [i] should be shown.
-   * Always shows: first, last, current, current-1, current+1.
-   * Hides the rest when total > 7.
-   */
   shouldShowPageButton(i: number): boolean {
     const total = this.pages.controls.length;
     if (total <= 7) return true;
-
     const cur = this.currentPageIndex;
-    return (
-      i === 0 ||
-      i === total - 1 ||
-      i === cur ||
-      i === cur - 1 ||
-      i === cur + 1
-    );
+    return i === 0 || i === total - 1 || i === cur || i === cur - 1 || i === cur + 1;
   }
 
-  /**
-   * Returns true if an ellipsis (…) should appear BEFORE rendering page button [i].
-   * Covers the gap between page 1 and the left edge of the current window,
-   * and between the right edge of the window and the last page.
-   */
   shouldShowEllipsisBefore(i: number): boolean {
     const total = this.pages.controls.length;
     if (total <= 7) return false;
-
     const cur = this.currentPageIndex;
-
-    // Gap between "1" and the start of the window around current
     if (i === Math.max(1, cur - 1) && cur > 2) return true;
-
-    // Gap between end of window and last page
     if (i === total - 1 && cur < total - 3) return true;
-
     return false;
   }
 
-  // ─────────────────────────────────────────────
-  //  SAVE ACTIONS
-  // ─────────────────────────────────────────────
+  documentTyperopdown() {
+    this.service.dropdownAll('', '1', '3', '0').subscribe(
+      (response) => {
+        this.documentTypedata = [{ id: '', text: '' },
+          ...response.map((item: any) => ({ id: item.id.toString(), text: item.text }))];
+        this.documentTypeoptions = { data: this.documentTypedata,
+          width: '100%', placeholder: 'Select Document Type', allowClear: true };
+        this.cd.detectChanges();
+      });
+  }
+
+  documentropdown() {
+    this.service.dropdownAll('', '1', '1', this.documentTypeId?.toString() || '0').subscribe(
+      (response) => {
+        this.documentdata = [{ id: '', text: '' },
+          ...response.map((item: any) => ({ id: item.id.toString(), text: item.text }))];
+        this.documentoptions = { data: this.documentdata,
+          width: '100%', placeholder: 'Select Document Name', allowClear: true };
+        this.cd.detectChanges();
+      });
+  }
 
   saveDocumentType() {
     const formValue = this.editForm.getRawValue();
-
-    if (!formValue.documentType || formValue.documentType.trim() === '') {
-      alert('Please enter a new Document Type name.');
+    if (!formValue.documentType?.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please enter a Document Type name.', confirmButtonText: 'OK' });
       return;
     }
-
-    const typeModel = {
-      documentTypeId: 0,
-      documentTypeName: formValue.documentType.trim(),
-      isActive: true,
-      createdBy: 1
-    };
-
-    this.service.saveDocumentTypeJson(typeModel).subscribe({
+    this.service.saveDocumentTypeJson({ documentTypeId: 0,
+      documentTypeName: formValue.documentType.trim(), isActive: true, createdBy: 1 }).subscribe({
       next: (res: any) => {
-        const newTypeId = res.documentTypeId || res.DocumentTypeId;
-        if (!newTypeId) {
-          alert('Document Type save failed.');
-          return;
-        }
-        this.documentTypeId = newTypeId;
+        const newId = res.documentTypeId || res.DocumentTypeId;
+        if (!newId) { Swal.fire({ icon: 'error', title: 'Failed', text: 'Save failed.', confirmButtonText: 'OK' }); return; }
+        this.documentTypeId = newId;
         this.isDocumentTypeSaved = true;
-        alert('Document Type saved successfully. ID = ' + newTypeId);
+        Swal.fire({ icon: 'success', title: 'Saved!', text: `Document Type saved. ID = ${newId}`, confirmButtonText: 'OK' });
         this.cd.detectChanges();
-      },
-      error: err => console.error(err)
+      }
     });
   }
 
   saveDocument() {
-    if (!this.documentTypeId || this.documentTypeId === 0) {
-      alert('Please save or select a Document Type first.');
+    if (!this.documentTypeId) {
+      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please save or select a Document Type first.', confirmButtonText: 'OK' });
       return;
     }
-
     const formValue = this.editForm.getRawValue();
-
-    if (!formValue.documentName || formValue.documentName.trim() === '') {
-      alert('Please enter a Document Name.');
+    if (!formValue.documentName?.trim()) {
+      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please enter a Document Name.', confirmButtonText: 'OK' });
       return;
     }
-
-    const model = {
-      DocumentId: 0,
-      DocumentTypeId: this.documentTypeId,
-      DocumentName: formValue.documentName.trim(),
-      TotalPages: this.pages.length,
-      CreatedBy: 1
-    };
-
-    this.service.saveDocument(model).subscribe({
+    this.service.saveDocument({ DocumentId: 0, DocumentTypeId: this.documentTypeId,
+      DocumentName: formValue.documentName.trim(), TotalPages: this.pages.length, CreatedBy: 1 }).subscribe({
       next: (res: any) => {
         this.documentId = res.documentId || res.DocumentId;
         this.isDocumentSaved = true;
-        alert('Document saved successfully. ID = ' + this.documentId);
+        Swal.fire({ icon: 'success', title: 'Saved!', text: `Document saved. ID = ${this.documentId}`, confirmButtonText: 'OK' });
         this.cd.detectChanges();
-      },
-      error: err => console.error(err)
+      }
     });
   }
 
   savePage(index: number) {
-    if (!this.documentId || this.documentId === 0) {
-      alert('⚠️ Please save the Document first before saving pages.');
+    if (!this.documentId) {
+      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please save the Document first.', confirmButtonText: 'OK' });
       return;
     }
-
     const page = this.pages.at(index).value;
-    const model = {
-      DocumentPageId: 0,
-      DocumentId: this.documentId,
-      PageNumber: page.pageNumber,
-      ExtractedText: page.extractedText,
-      StatusId: 2,
-      CreatedBy: 1
-    };
-
-    this.service.saveDocumentPage(model).subscribe({
+    this.service.saveDocumentPage({ DocumentPageId: 0, DocumentId: this.documentId,
+      PageNumber: page.pageNumber, ExtractedText: page.extractedText, StatusId: 0, CreatedBy: 1 }).subscribe({
       next: () => {
         this.savedPages.add(index);
+        Swal.fire({ icon: 'success', title: 'Saved!', text: `Page ${page.pageNumber} saved.`, confirmButtonText: 'OK' });
+        const next = this.pages.controls.findIndex((_, idx) => idx > index && !this.savedPages.has(idx));
+        if (next !== -1) this.goToPage(next);
         this.cd.detectChanges();
-        alert('Page ' + page.pageNumber + ' saved successfully');
-
-        // ── Auto-advance to next unsaved page after saving
-        const next = this.pages.controls.findIndex(
-          (_, idx) => idx > index && !this.savedPages.has(idx)
-        );
-        if (next !== -1) {
-          this.goToPage(next);
-        }
-      },
-      error: err => console.error(err)
+      }
     });
   }
 
   async saveAllRemainingPages() {
-    if (!this.documentId || this.documentId === 0) {
-      alert('⚠️ Please save the Document first before saving pages.');
+    if (!this.documentId) {
+      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please save the Document first.', confirmButtonText: 'OK' });
       return;
     }
-
-    const unsavedIndexes = this.pages.controls
-      .map((_, i) => i)
-      .filter(i => !this.savedPages.has(i))
-      .sort((a, b) => a - b);
-
-    if (unsavedIndexes.length === 0) {
-      alert('All pages are already saved!');
+    const unsaved = this.pages.controls.map((_, i) => i).filter(i => !this.savedPages.has(i));
+    if (!unsaved.length) {
+      Swal.fire({ icon: 'info', title: 'Info', text: 'All pages already saved!', confirmButtonText: 'OK' });
       return;
     }
-
-    for (const i of unsavedIndexes) {
-      await this.savePageAsync(i);
-    }
-
-    alert('All remaining pages saved successfully!');
+    for (const i of unsaved) await this.savePageAsync(i);
+    Swal.fire({ icon: 'success', title: 'Done!', text: 'All pages saved!', confirmButtonText: 'OK' });
     this.cd.detectChanges();
   }
 
   private savePageAsync(index: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const page = this.pages.at(index).value;
-      const model = {
-        DocumentPageId: 0,
-        DocumentId: this.documentId,
-        PageNumber: page.pageNumber,
-        ExtractedText: page.extractedText,
-        StatusId: 2,
-        CreatedBy: 1
-      };
-
-      this.service.saveDocumentPage(model).subscribe({
-        next: () => {
-          this.savedPages.add(index);
-          this.cd.detectChanges();
-          resolve();
-        },
-        error: (err) => {
-          console.error(`Page ${page.pageNumber} failed`, err);
-          reject(err);
-        }
+      this.service.saveDocumentPage({ DocumentPageId: 0, DocumentId: this.documentId,
+        PageNumber: page.pageNumber, ExtractedText: page.extractedText, StatusId: 0, CreatedBy: 1 }).subscribe({
+        next: () => { this.savedPages.add(index); this.cd.detectChanges(); resolve(); },
+        error: (err) => reject(err)
       });
+    });
+  }
+  removePage(index: number) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Remove Page?',
+      html: `Are you sure you want to remove <strong>Page ${index + 1}</strong>?<br>
+             <small style="color:#999">${this.pages.at(index).get('fileName')?.value}</small>`,
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Remove',
+      cancelButtonText: 'Cancel',
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#6c757d'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        this.pages.removeAt(index);
+  
+        // Fix savedPages — shift all indexes above removed one down by 1
+        const updated = new Set<number>();
+        this.savedPages.forEach(i => {
+          if (i < index) updated.add(i);
+          else if (i > index) updated.add(i - 1);
+          // i === index is dropped (it's removed)
+        });
+        this.savedPages = updated;
+  
+        // Adjust currentPageIndex if needed
+        if (this.currentPageIndex >= this.pages.controls.length) {
+          this.currentPageIndex = Math.max(0, this.pages.controls.length - 1);
+        }
+  
+        this.cd.detectChanges();
+  
+        Swal.fire({
+          icon: 'success',
+          title: 'Removed',
+          text: `Page ${index + 1} has been removed.`,
+          timer: 1500,
+          showConfirmButton: false
+        });
+      }
     });
   }
 }

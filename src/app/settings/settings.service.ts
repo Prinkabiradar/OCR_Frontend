@@ -13,7 +13,25 @@ import { AuthService } from 'src/app/modules/auth/services/auth.service';
 
 import { BehaviorSubject } from 'rxjs';
 import { Dropdown } from 'bootstrap';
+// ── OCR Job interfaces
+export interface OcrJobStatus {
+  job_id: string;
+  status: 'Queued' | 'Processing' | 'Completed' | 'Failed';
+  total_files: number;
+  processed_files: number;
+  error_message: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
 
+export interface OcrFileResult {
+  result_id: string;
+  job_id: string;
+  file_name: string;
+  ocr_text: string;   // raw Gemini JSON string
+  success: boolean;
+  error: any;
+}
 @Injectable({
   providedIn: 'root',
 })
@@ -420,7 +438,8 @@ export class ServiceService {
       },
     );
   }
-  uploadOcrFiles(formData: FormData) {
+
+uploadOcrFiles(formData: FormData) {
 
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
 
@@ -696,6 +715,125 @@ getDocuments(
       params: params,
     }
   );
+}
+
+SummaryDataGet(
+  startIndex: number,
+  pageSize: number,
+  searchBy: string,
+  searchCriteria: string,
+): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  const params = new HttpParams()
+    .set('startIndex', startIndex.toString())
+    .set('pageSize', pageSize.toString())
+    .set('searchBy', searchBy)
+    .set('searchCriteria', searchCriteria);
+
+  return this.http.get<any[]>(environment.BaseUrl + 'api/Agent/GetSummaryData', {
+    headers: headers,
+    params: params,
+  });
+}
+
+GetFullDashboard(): Observable<any> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+ 
+  if (!lsValue) {
+    return new Observable<any>((observer) => {
+      observer.next(null);
+      observer.complete();
+    });
+  }
+ 
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+ 
+  return this.http.get<any>(
+    environment.BaseUrl + 'api/Dashboard/GetFullDashboard',
+    { headers: headers }
+  );
+}
+
+
+// ── Upload and get jobId back immediately
+uploadOcrImages(formData: FormData) {
+  const headers = this.getAuthHeaders();
+  return this.http.post<{ jobId: string; message: string; statusUrl: string }>(
+    environment.BaseUrl + 'api/OcrJob/UploadImages',
+    formData,
+    { headers }
+  );
+}
+
+// ── Poll job status
+getOcrJobById(jobId: string) {
+  const headers = this.getAuthHeaders();
+  return this.http.get<OcrJobStatus>(
+    environment.BaseUrl + 'api/OcrJob/GetOcrJobById?jobId=' + jobId,
+    { headers }
+  );
+}
+
+readonly activeJobKey = 'ocr_active_job'; // localStorage key
+
+// Save job to localStorage when upload starts
+saveActiveJob(jobId: string, totalFiles: number) {
+  localStorage.setItem(this.activeJobKey, JSON.stringify({
+    jobId,
+    totalFiles,
+    startedAt: new Date().toISOString()
+  }));
+}
+
+// Get saved job from localStorage
+getActiveJob(): { jobId: string; totalFiles: number; startedAt: string } | null {
+  const raw = localStorage.getItem(this.activeJobKey);
+  return raw ? JSON.parse(raw) : null;
+}
+
+// Clear job from localStorage when done
+clearActiveJob() {
+  localStorage.removeItem(this.activeJobKey);
+}
+
+// ── Get all results after job completes
+getOcrJobResults(jobId: string) {
+  const headers = this.getAuthHeaders();
+  return this.http.get<OcrFileResult[]>(
+    environment.BaseUrl + 'api/OcrJob/GetOcrJobResults?jobId=' + jobId,
+    { headers }
+  );
+}
+
+// ── Get all jobs list
+getOcrJobs(startIndex = 0, pageSize = 10) {
+  const headers = this.getAuthHeaders();
+  return this.http.get<OcrJobStatus[]>(
+    `${environment.BaseUrl}api/OcrJob/GetOcrJobs?startIndex=${startIndex}&pageSize=${pageSize}`,
+    { headers }
+  );
+}
+
+// ── Helper to avoid repeating auth header logic
+private getAuthHeaders(): HttpHeaders {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  return new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
 }
 
 }

@@ -1,317 +1,355 @@
-<!-- ─── PAGE TITLE BAR (matches Metronic "Category" heading style) ─── -->
-<div class="page-title-bar">
-  <div class="page-title-bar__inner">
-    <div class="page-title-bar__heading">
-      <span class="page-title-bar__om">ॐ</span>
-      <div>
-        <h1 class="page-title-bar__h1">Document Seva</h1>
-        <p class="page-title-bar__sub">Sacred Records Management — Shri Krishna Mandir</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ─── CONTENT WRAPPER ─── -->
 <div class="seva-content">
 
-  <!-- ════════════════════════════════════════════
-       CARD 1 — Document Arpan (Upload)
-  ════════════════════════════════════════════ -->
-  <div class="seva-card">
+  <!-- ══════════════════════════════════════════
+       SCREEN 1 — Upload (screenState === 'upload')
+  ══════════════════════════════════════════ -->
+  <ng-container *ngIf="screenState === 'upload'">
+    <div class="seva-card">
+      <div class="seva-card__header">
+        <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
+        <h2 class="seva-card__title">Document Arpan</h2>
+        <span class="seva-card__subtitle">Upload sacred documents for processing</span>
+      </div>
+      <div class="seva-card__body">
 
-    <!-- Card Header -->
-    <div class="seva-card__header">
-      <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
-      <h2 class="seva-card__title">Document Arpan</h2>
-      <span class="seva-card__subtitle">Upload sacred documents for processing</span>
-    </div>
-
-    <!-- Card Body -->
-    <div class="seva-card__body">
-
-      <!-- Upload Zone -->
-      <div class="upload-zone" [class.upload-zone--disabled]="uploading">
-        <input
-          type="file"
-          multiple
-          [disabled]="uploading"
-          (change)="onFileSelect($event)">
-        <div class="upload-zone__inner">
-          <div class="upload-zone__icon">📜</div>
-          <div class="upload-zone__label">Click or drag files here to upload</div>
-          <div class="upload-zone__hint">PDF, JPG, PNG accepted</div>
+        <div class="upload-zone" [class.upload-zone--disabled]="uploading">
+          <input type="file" multiple [disabled]="uploading" (change)="onFileSelect($event)">
+          <div class="upload-zone__inner">
+            <div class="upload-zone__icon">📜</div>
+            <div class="upload-zone__label">Click or drag files here to upload</div>
+            <div class="upload-zone__hint">PDF, JPG, PNG accepted</div>
+          </div>
         </div>
+
+        <div class="file-list" *ngIf="selectedFiles.length > 0">
+          <div class="file-list__header">
+            <span class="file-list__count">
+              ✅ {{ selectedFiles.length }} supported file(s) ready to upload
+            </span>
+          </div>
+          <div class="file-row" *ngFor="let f of selectedFiles; let i = index">
+            <span class="file-row__icon">📄</span>
+            <span class="file-row__name">{{ f.name }}</span>
+            <button
+              class="btn btn--ghost-danger btn--sm"
+              [disabled]="uploading"
+              (click)="removeFile(i)">
+              ✕ Remove
+            </button>
+          </div>
+        </div>
+
+        <div class="rejected-strip" *ngIf="rejectedFiles.length > 0">
+
+          <div class="rejected-strip__header">
+            <span>⚠️</span>
+            <strong>
+              {{ rejectedFiles.length }} unsupported file(s) — remove them to enable upload
+            </strong>
+          </div>
+        
+          <!-- Info banner -->
+          <div class="rejected-strip__info">
+            <span class="rejected-strip__info-icon">💡</span>
+            These files were vnot addedv to the upload queue.
+            Remove them from this list or they will block the Upload button.
+            <br>
+            <!-- <span style="font-size:12px;color:#888;margin-top:4px;display:block">
+              Supported formats:
+              <ng-container *ngFor="let ext of SUPPORTED_EXTENSIONS">
+                <code class="supported-badge">{{ ext }}</code>
+              </ng-container>
+            </span> -->
+          </div>
+        
+          <!-- Rejected file rows -->
+          <div class="rejected-strip__row" *ngFor="let f of rejectedFiles; let i = index">
+            <code class="rejected-strip__ext">{{ f.extension }}</code>
+            <div class="rejected-strip__meta">
+              <span class="rejected-strip__name">{{ f.name }}</span>
+              <span class="rejected-strip__reason">{{ f.reason }}</span>
+            </div>
+            <button
+              class="btn btn--ghost-danger btn--sm"
+              (click)="removeRejectedFile(i)"
+              title="Dismiss this file">
+              ✕ Dismiss
+            </button>
+          </div>
+        
+        </div>
+
+        <div class="action-row">
+
+          <!-- Upload button — disabled if rejected files exist -->
+          <button
+            class="btn btn--primary"
+            [disabled]="uploading || selectedFiles.length === 0 || hasRejectedFiles"
+            (click)="uploadFiles()">
+            <span *ngIf="!uploading">🙏&nbsp; Upload Documents</span>
+            <span *ngIf="uploading" class="btn--loading-inner">
+              <span class="spinner-ring"></span> Processing Seva…
+            </span>
+          </button>
+        
+          <!-- Inline blocked message — only shows when rejected files exist -->
+          <!-- <div class="upload-blocked-msg" *ngIf="hasRejectedFiles && !uploading">
+            <span>🚫</span>
+            Upload is disabled — dismiss all
+            <strong>{{ rejectedFiles.length }} unsupported file(s)</strong> above to continue.
+          </div> -->
+        
+        </div>
+
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 2 — Processing Progress
+       (screenState === 'processing')
+  ══════════════════════════════════════════ -->
+  <ng-container *ngIf="screenState === 'processing'">
+    <div class="seva-card progress-card">
+      <div class="seva-card__header">
+        <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
+        <h2 class="seva-card__title">OCR Processing</h2>
+        <span class="seva-card__subtitle">Your files are being processed in background</span>
       </div>
 
-      <!-- File List -->
-      <div class="file-list" *ngIf="selectedFiles.length > 0">
-        <div class="file-list__header">
-          <span class="file-list__count">{{ selectedFiles.length }} file(s) selected</span>
+      <div class="seva-card__body">
+
+        <!-- OM animation -->
+        <div class="om-loader">
+          <div class="om-loader__ring">
+            <span class="om-loader__symbol">ॐ</span>
+          </div>
         </div>
-        <div class="file-row" *ngFor="let f of selectedFiles; let i = index">
-          <span class="file-row__icon">📄</span>
-          <span class="file-row__name">{{ f.name }}</span>
-          <button
-            class="btn btn--ghost-danger btn--sm"
-            [disabled]="uploading"
-            (click)="removeFile(i)">
-            ✕ Remove
+
+        <!-- Status pill -->
+        <div class="progress-status-row">
+          <span class="status-pill"
+            [class.status-pill--queued]="jobStatus?.status === 'Queued'"
+            [class.status-pill--processing]="jobStatus?.status === 'Processing'"
+            [class.status-pill--completed]="jobStatus?.status === 'Completed'"
+            [class.status-pill--failed]="jobStatus?.status === 'Failed'">
+            {{ jobStatus?.status || 'Connecting…' }}
+          </span>
+        </div>
+
+        <!-- Main message -->
+        <p class="progress-message">{{ pollingMessage }}</p>
+
+        <!-- Progress bar -->
+        <div class="progress-track">
+          <div class="progress-fill" [style.width.%]="progressPercent"></div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="progress-stats" *ngIf="jobStatus">
+          <div class="stat-box">
+            <div class="stat-box__value">{{ jobStatus.processed_files }}</div>
+            <div class="stat-box__label">Processed</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box__value">{{ jobStatus.total_files }}</div>
+            <div class="stat-box__label">Total Files</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box__value">{{ progressPercent }}%</div>
+            <div class="stat-box__label">Complete</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box__value">{{ elapsedFormatted }}</div>
+            <div class="stat-box__label">Elapsed</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-box__value">{{ estimatedRemaining }}</div>
+            <div class="stat-box__label">Remaining</div>
+          </div>
+        </div>
+
+        <!-- Job ID reference -->
+        <div class="job-ref" *ngIf="currentJobId">
+          <span class="job-ref__label">Job ID:</span>
+          <code class="job-ref__id">{{ currentJobId }}</code>
+        </div>
+
+        <!-- Dismiss banner -->
+        <div class="dismiss-banner">
+          <div class="dismiss-banner__icon">💡</div>
+          <div class="dismiss-banner__text">
+            <strong>You can navigate away!</strong><br>
+            This job runs on the server. Come back to this screen anytime
+            and your progress will resume automatically.
+          </div>
+          <button class="btn btn--outline-peacock btn--sm"
+            (click)="dismissAndContinue()">
+            Continue &amp; Come Back Later →
           </button>
         </div>
-      </div>
 
-      <!-- Action Row -->
-      <div class="action-row">
-        <button
-          class="btn btn--primary"
-          [disabled]="uploading || selectedFiles.length === 0"
-          (click)="uploadFiles()">
-          <span *ngIf="!uploading">🙏&nbsp; Upload Documents</span>
-          <span *ngIf="uploading" class="btn--loading-inner">
-            <span class="spinner-ring"></span> Processing Seva…
-          </span>
-        </button>
       </div>
-
-      <!-- OM Loader -->
-      <div class="om-loader" *ngIf="uploading">
-        <div class="om-loader__ring">
-          <span class="om-loader__symbol">ॐ</span>
-        </div>
-        <p class="om-loader__text">Processing your sacred documents, please wait…</p>
-      </div>
-
     </div>
-  </div>
+  </ng-container>
 
-  <!-- ════════════════════════════════════════════
-       CARD 2 — Document Parichay (Edit Form)
-  ════════════════════════════════════════════ -->
-  <div class="seva-card" *ngIf="showEditForm" [formGroup]="editForm">
-
-    <!-- Card Header -->
-    <div class="seva-card__header">
-      <span class="seva-card__header-dot seva-card__header-dot--peacock"></span>
-      <h2 class="seva-card__title">Document Parichay</h2>
-      <span class="seva-card__subtitle">Classify and label the uploaded documents</span>
-    </div>
-
-    <!-- Card Body -->
-    <div class="seva-card__body">
-
-      <!-- ── Section: Basic Information ── -->
-      <div class="form-section">
-        <div class="form-section__label">Basic Information</div>
-
-        <!-- Document Type Row -->
-        <div class="form-group">
-          <label class="form-label form-label--required">Document Type</label>
-          <div class="form-inline">
-            <ng-select2
-              [data]="documentTypedata"
-              formControlName="documentTypeId"
-              [options]="documentTypeoptions"
-              class="mandir-select">
-            </ng-select2>
-
-            <span class="inline-or">or</span>
-
-            <input
-              type="text"
-              class="form-control"
-              formControlName="documentType"
-              placeholder="Enter new document type…"
-              [class.form-control--disabled]="editForm.get('documentType')?.disabled"
-              [attr.title]="editForm.get('documentType')?.disabled ? 'Clear dropdown to type here' : null">
-
-            <button
-              type="button"
-              class="btn btn--outline-peacock btn--sm"
-              [disabled]="isDocumentTypeSaved || !editForm.get('documentType')?.value?.trim()"
-              (click)="saveDocumentType()">
-              <span *ngIf="!isDocumentTypeSaved">💾 Save Type</span>
-              <span *ngIf="isDocumentTypeSaved">✅ Saved</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Document Name Row -->
-        <div class="form-group">
-          <label class="form-label form-label--required">Document Name</label>
-          <div class="form-inline">
-            <ng-select2
-              [data]="documentdata"
-              formControlName="documentId"
-              [options]="documentoptions"
-              class="mandir-select">
-            </ng-select2>
-
-            <span class="inline-or">or</span>
-
-            <input
-              type="text"
-              class="form-control"
-              formControlName="documentName"
-              placeholder="Enter new document name…"
-              [class.form-control--disabled]="editForm.get('documentName')?.disabled"
-              [attr.title]="editForm.get('documentName')?.disabled ? 'Clear dropdown to type here' : null">
-
-            <button
-              type="button"
-              class="btn btn--outline-green btn--sm"
-              [disabled]="isDocumentSaved || !editForm.get('documentName')?.value?.trim()"
-              (click)="saveDocument()">
-              <span *ngIf="!isDocumentSaved">💾 Save Document</span>
-              <span *ngIf="isDocumentSaved">✅ Saved</span>
-            </button>
-          </div>
-        </div>
-
+  <!-- ══════════════════════════════════════════
+       SCREEN 3 — Edit Form
+       (screenState === 'edit')
+  ══════════════════════════════════════════ -->
+  <ng-container *ngIf="screenState === 'edit'">
+    <div class="seva-card" [formGroup]="editForm">
+      <div class="seva-card__header">
+        <span class="seva-card__header-dot seva-card__header-dot--peacock"></span>
+        <h2 class="seva-card__title">Document Parichay</h2>
+        <span class="seva-card__subtitle">Classify and label the uploaded documents</span>
       </div>
 
-      <!-- ── Divider ── -->
-      <div class="section-divider">
-        <span class="section-divider__icon">🪷</span>
-        <span class="section-divider__icon">🪷</span>
-        <span class="section-divider__icon">🪷</span>
-      </div>
+      <div class="seva-card__body">
 
-      <!-- ── Section: OCR Seva ── -->
-      <div class="form-section">
-        <div class="form-section__label">OCR Seva — Edit Pages</div>
+        <!-- Basic Information -->
+        <div class="form-section">
+          <div class="form-section__label">Basic Information</div>
 
-        <!-- ── Pagination Header ── -->
-        <div class="pagination-bar" *ngIf="pages.controls.length > 0">
-
-          <!-- Progress dots / pill strip -->
-          <div class="page-dots">
-            <span
-              class="page-dot"
-              *ngFor="let page of pages.controls; let i = index"
-              [class.page-dot--active]="i === currentPageIndex"
-              [class.page-dot--saved]="savedPages.has(i)"
-              (click)="goToPage(i)"
-              [title]="'Page ' + (i + 1) + (savedPages.has(i) ? ' ✅ Saved' : '')">
-            </span>
+          <div class="form-group">
+            <label class="form-label form-label--required">Document Type</label>
+            <div class="form-inline">
+              <ng-select2 [data]="documentTypedata" formControlName="documentTypeId"
+                [options]="documentTypeoptions" class="mandir-select"></ng-select2>
+              <span class="inline-or">or</span>
+              <input type="text" class="form-control" formControlName="documentType"
+                placeholder="Enter new document type…">
+              <button type="button" class="btn btn--outline-peacock btn--sm"
+                [disabled]="isDocumentTypeSaved || !editForm.get('documentType')?.value?.trim()"
+                (click)="saveDocumentType()">
+                <span *ngIf="!isDocumentTypeSaved">💾 Save Type</span>
+                <span *ngIf="isDocumentTypeSaved">✅ Saved</span>
+              </button>
+            </div>
           </div>
 
-          <!-- Counter -->
-          <div class="page-counter">
-            Page <strong>{{ currentPageIndex + 1 }}</strong> of <strong>{{ pages.controls.length }}</strong>
-            <span class="page-counter__saved" *ngIf="savedPages.size > 0">
-              &nbsp;·&nbsp; {{ savedPages.size }} saved
-            </span>
+          <div class="form-group">
+            <label class="form-label form-label--required">Document Name</label>
+            <div class="form-inline">
+              <ng-select2 [data]="documentdata" formControlName="documentId"
+                [options]="documentoptions" class="mandir-select"></ng-select2>
+              <span class="inline-or">or</span>
+              <input type="text" class="form-control" formControlName="documentName"
+                placeholder="Enter new document name…">
+              <button type="button" class="btn btn--outline-green btn--sm"
+                [disabled]="isDocumentSaved || !editForm.get('documentName')?.value?.trim()"
+                (click)="saveDocument()">
+                <span *ngIf="!isDocumentSaved">💾 Save Document</span>
+                <span *ngIf="isDocumentSaved">✅ Saved</span>
+              </button>
+            </div>
           </div>
-
         </div>
 
-        <!-- ── Single Page View ── -->
-        <div formArrayName="pages">
-          <ng-container
-            *ngFor="let page of pages.controls; let i = index"
-            [formGroupName]="i">
+        <div class="section-divider">
+          <span class="section-divider__icon">🪷</span>
+          <span class="section-divider__icon">🪷</span>
+          <span class="section-divider__icon">🪷</span>
+        </div>
 
-            <div class="page-card" *ngIf="i === currentPageIndex" [@pageFade]>
+        <!-- OCR Pages -->
+        <div class="form-section">
+          <div class="form-section__label">OCR Seva — Edit Pages</div>
 
-              <!-- Page Card Header -->
-              <div class="page-card__header">
-                <div class="page-card__title">
-                  📄&nbsp; {{ page.get('fileName')?.value }}
-                  <span class="page-badge">Page {{ page.get('pageNumber')?.value }}</span>
+          <div class="pagination-bar" *ngIf="pages.controls.length > 0">
+            <div class="page-dots">
+              <span class="page-dot"
+                *ngFor="let page of pages.controls; let i = index"
+                [class.page-dot--active]="i === currentPageIndex"
+                [class.page-dot--saved]="savedPages.has(i)"
+                (click)="goToPage(i)"
+                [title]="'Page ' + (i+1) + (savedPages.has(i) ? ' ✅' : '')">
+              </span>
+            </div>
+            <div class="page-counter">
+              Page <strong>{{ currentPageIndex + 1 }}</strong>
+              of <strong>{{ pages.controls.length }}</strong>
+              <span class="page-counter__saved" *ngIf="savedPages.size > 0">
+                &nbsp;·&nbsp; {{ savedPages.size }} saved
+              </span>
+            </div>
+          </div>
+
+          <div formArrayName="pages">
+            <ng-container *ngFor="let page of pages.controls; let i = index"
+              [formGroupName]="i">
+              <div class="page-card" *ngIf="i === currentPageIndex">
+                <div class="page-card__header">
+                  <div class="page-card__title">
+                    📄&nbsp; {{ page.get('fileName')?.value }}
+                    <span class="page-badge">Page {{ currentPageIndex + 1 }}</span>
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  class="btn btn--save-page"
-                  [class.btn--saved]="savedPages.has(i)"
-                  [disabled]="!documentId || savedPages.has(i)"
-                  [title]="!documentId ? 'Save Document first' : savedPages.has(i) ? 'Already saved' : 'Save this page'"
-                  (click)="savePage(i)">
-                  {{ savedPages.has(i) ? '✅ Saved' : 'Save Page ' + page.get('pageNumber')?.value }}
-                </button>
+                <textarea class="page-textarea" rows="14"
+                  formControlName="extractedText"></textarea>
+                <div class="warn-banner" *ngIf="!documentId">
+                  <span class="warn-banner__icon">⚠️</span>
+                  Save the document name above before saving this page.
+                </div>
               </div>
+            </ng-container>
+          </div>
 
-              <!-- Textarea -->
-              <textarea
-                class="page-textarea"
-                rows="14"
-                formControlName="extractedText">
-              </textarea>
+          <div class="pagination-controls" *ngIf="pages.controls.length > 0">
+            <button type="button" class="btn btn--pag"
+              [disabled]="currentPageIndex === 0"
+              (click)="goToPage(currentPageIndex - 1)">← Previous</button>
 
-              <!-- Warning -->
-              <div class="warn-banner" *ngIf="!documentId">
-                <span class="warn-banner__icon">⚠️</span>
-                Save the document name above before saving this page.
-              </div>
-
+            <div class="pagination-pages">
+              <ng-container *ngFor="let page of pages.controls; let i = index">
+                <button *ngIf="shouldShowPageButton(i)" type="button"
+                  class="btn btn--pag-num"
+                  [class.btn--pag-num--active]="i === currentPageIndex"
+                  [class.btn--pag-num--saved]="savedPages.has(i)"
+                  (click)="goToPage(i)">{{ i + 1 }}</button>
+                <span *ngIf="shouldShowEllipsisBefore(i)" class="pag-ellipsis">…</span>
+              </ng-container>
             </div>
 
-          </ng-container>
-        </div>
-
-        <!-- ── Pagination Controls ── -->
-        <div class="pagination-controls" *ngIf="pages.controls.length > 0">
-
-          <!-- Prev -->
-          <button
-            type="button"
-            class="btn btn--pag"
-            [disabled]="currentPageIndex === 0"
-            (click)="goToPage(currentPageIndex - 1)">
-            ← Previous
-          </button>
-
-          <!-- Jump buttons (show up to 7, with ellipsis) -->
-          <div class="pagination-pages">
-            <ng-container *ngFor="let page of pages.controls; let i = index">
-              <button
-                *ngIf="shouldShowPageButton(i)"
-                type="button"
-                class="btn btn--pag-num"
-                [class.btn--pag-num--active]="i === currentPageIndex"
-                [class.btn--pag-num--saved]="savedPages.has(i)"
-                (click)="goToPage(i)">
-                {{ i + 1 }}
+            <button type="button" class="btn btn--pag"
+              [disabled]="currentPageIndex === pages.controls.length - 1"
+              (click)="goToPage(currentPageIndex + 1)">Next →</button>
+              <!-- ✕ Remove button — NEW -->
+              <button type="button" class="btn btn--remove-page ms-3"
+                (click)="removePage(currentPageIndex)"
+                title="Remove this page">
+                ✕ Remove Page {{ currentPageIndex + 1 }}
               </button>
-              <span *ngIf="shouldShowEllipsisBefore(i)" class="pag-ellipsis">…</span>
-            </ng-container>
+            <button type="button" class="btn btn--save-page ms-3"
+              [class.btn--saved]="savedPages.has(currentPageIndex)"
+              [disabled]="!documentId || savedPages.has(currentPageIndex)"
+              (click)="savePage(currentPageIndex)">
+              {{ savedPages.has(currentPageIndex) ? '✅ Saved' : 'Save Page ' + (currentPageIndex + 1) }}
+            </button>
           </div>
 
-          <!-- Next -->
-          <button
-            type="button"
-            class="btn btn--pag"
-            [disabled]="currentPageIndex === pages.controls.length - 1"
-            (click)="goToPage(currentPageIndex + 1)">
-            Next →
-          </button>
-
-        </div>
-
-        <!-- Save All -->
-        <div class="save-all-row">
-          <button
-            type="button"
-            class="btn btn--save-all"
-            [class.btn--all-saved]="savedPages.size === pages.length"
-            [disabled]="!documentId || savedPages.size === pages.length"
-            (click)="saveAllRemainingPages()">
-            <ng-container *ngIf="savedPages.size !== pages.length">
-              🙏&nbsp; Save All Remaining Pages
-              <span class="save-all-badge">{{ pages.length - savedPages.size }}</span>
-            </ng-container>
-            <ng-container *ngIf="savedPages.size === pages.length">
-              ✅&nbsp; All Pages Saved
-            </ng-container>
-          </button>
+          <div class="save-all-row">
+            <button type="button" class="btn btn--save-all"
+              [class.btn--all-saved]="savedPages.size === pages.length"
+              [disabled]="!documentId || savedPages.size === pages.length"
+              (click)="saveAllRemainingPages()">
+              <ng-container *ngIf="savedPages.size !== pages.length">
+                🙏&nbsp; Save All Remaining Pages
+                <span class="save-all-badge">{{ pages.length - savedPages.size }}</span>
+              </ng-container>
+              <ng-container *ngIf="savedPages.size === pages.length">
+                ✅&nbsp; All Pages Saved
+              </ng-container>
+            </button>
+          </div>
         </div>
 
       </div>
     </div>
-  </div>
+  </ng-container>
 
 </div>
 
-<!-- ─── FOOTER ─── -->
 <div class="seva-footer">
   🪷 &nbsp; Jai Shri Krishna &nbsp; • &nbsp; सेवा परमो धर्मः &nbsp; 🪷
 </div>

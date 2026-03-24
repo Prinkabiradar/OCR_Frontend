@@ -2,6 +2,7 @@ import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ServiceService } from '../../settings.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import Swal from 'sweetalert2';
 
 @Component({
   selector: 'app-agent-add',
@@ -253,8 +254,19 @@ export class AgentAddComponent implements OnInit {
         this.isSavingSummary  = false;
         this.summaryDirty     = false;
         this.cd.detectChanges();
+        Swal.fire({
+          icon: 'success',
+          title: 'Saved!',
+          text: 'Summary saved successfully',
+          confirmButtonText: 'OK'
+        }) ;
       },
-      error: () => { this.isSavingSummary = false; this.cd.detectChanges(); }
+      error: () => { this.isSavingSummary = false; this.cd.detectChanges();
+        Swal.fire({
+          icon: 'error',
+          title: 'Error!',
+          text: 'Failed to save summary'
+        }); }
     });
   }
   

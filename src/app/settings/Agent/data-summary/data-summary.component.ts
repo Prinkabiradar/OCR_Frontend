@@ -1,0 +1,146 @@
+import { Component, OnInit, ChangeDetectorRef, ViewChild } from '@angular/core';
+import { ServiceService } from '../../settings.service';
+import { Options } from 'select2';
+import { ModalConfig } from 'src/app/_metronic/partials';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
+ import { environment } from 'src/environments/environment';
+import { ActivatedRoute, Router } from '@angular/router';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { ViewSummaryComponent } from '../view-summary/view-summary.component';
+
+@Component({
+  selector: 'app-data-summary',
+  templateUrl: './data-summary.component.html',
+  styleUrl: './data-summary.component.scss'
+})
+export class DataSummaryComponent {
+ 
+
+  constructor(
+  
+    private route: ActivatedRoute,
+    private router: Router,
+    private _service: ServiceService,
+    private cdRef: ChangeDetectorRef, 
+    private modalService: NgbModal 
+  
+  ) {
+    this.roleList$ = this.rolesListSubject.asObservable();
+    this.isLoading$ = this.isLoadingSubject.asObservable();
+  }
+
+ngOnInit(): void { 
+  this.SummaryDataGet();
+}
+
+   //Pagination
+   totalPages: number = 50;
+   currentPage: number = 0;
+   totalRecords: number = 0;
+   itemsPerPage = 10;
+   totalItems = 0;
+   searchQuery: string='';
+  
+   loading = false;
+  
+   isLoading$: Observable<boolean>;
+   private isLoadingSubject = new BehaviorSubject<boolean>(false);
+  
+  
+   roleList$: Observable<any[]>;
+   private rolesListSubject: BehaviorSubject<any[]> = new BehaviorSubject<any[]>([]);
+  
+   private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
+   userId: number;
+  
+   @ViewChild('ocrModal') modalComponent!: ViewSummaryComponent;
+   private modalRef: NgbModalRef;
+   loadingPages = false;
+ 
+   modalConfig: ModalConfig = {
+     modalTitle: 'Sacred Pages',
+     dismissButtonLabel: 'Close',
+     closeButtonLabel: 'Close',
+   };
+ 
+   openViewModal(element: any) {
+    const modalRef = this.modalService.open(ViewSummaryComponent, {
+      size: 'xl',        // large modal
+      backdrop: 'static',
+      centered: true,
+      //fullscreen: true   // ✅ FULL SCREEN
+    });
+  
+    modalRef.componentInstance.documentName = element.DocumentName;
+    modalRef.componentInstance.summaryId = element.SummaryId;
+    modalRef.result.then((result) => {
+      if (result === true) { 
+        this.SummaryDataGet();
+      }
+    }).catch(() => {
+      // modal dismissed
+    });
+  }
+  
+  SummaryDataGet() {
+    const startIndex = this.currentPage;
+    const pageSize = this.itemsPerPage;
+    const searchBy = this.searchQuery ? '' : '';
+    const searchCriteria = this.searchQuery;
+  
+    this._service
+     .SummaryDataGet(
+        startIndex,
+        pageSize,
+        searchBy,
+        searchCriteria
+      )
+      .subscribe((response: any[]) => {
+        this.rolesListSubject.next(response);
+        this.totalPages = response[0].TotalPages;
+        this.totalRecords = response[0].TotalRecords;
+      });
+  }
+  
+    onSearch(target: EventTarget | null): void {
+      if (target instanceof HTMLInputElement) {
+        this.searchQuery = target.value;
+        this.currentPage = 1;
+        this.SummaryDataGet();
+      }
+    }
+  
+    onPageChange(page: number) {
+      this.currentPage = page;
+      this.SummaryDataGet();
+      this.cdRef.detectChanges(); 
+    }
+    onPageSizeChange(newSize: number) {
+      this.itemsPerPage = newSize;
+      this.SummaryDataGet();
+      this.cdRef.detectChanges();
+     }
+getStatusLabel(statusId: number): string {
+  switch (statusId) {
+    case 0:  return 'Processing';
+    case 1:  return 'Approve';
+    case 2:  return 'verified';
+    case 3:  return 'Checked';
+    default: return 'Reviewed';
+  }
+}
+
+getStatusClass(statusId: number): string {
+  switch (statusId) {
+    case 0:  return 'badge-processing';
+    case 1:  return 'badge-pending';
+    case 2:  return 'badge-partially-verified';
+    default: return 'badge-verified';
+  }
+}
+
+ 
+ 
+
+ 
+}

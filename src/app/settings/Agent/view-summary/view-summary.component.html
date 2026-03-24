@@ -1,0 +1,31 @@
+<div class="modal-header" style="max-height: 100vh; overflow-y: auto;">
+    <h4 class="modal-title">Summary - {{ documentName }}</h4>
+    <button type="button" class="btn-close" (click)="close()"></button>
+  </div>
+  
+  <div class="modal-body" style="max-height: 100vh; overflow-y: auto;">
+  
+    <!-- Loader -->
+    <div *ngIf="loading" class="text-center">
+      Loading summary...
+    </div>
+  
+    <!-- Textarea -->
+    <div *ngIf="!loading">
+      <textarea
+        class="form-control"
+        rows="22"
+        [(ngModel)]="summaryText"
+        placeholder="Summary will appear here..."
+      ></textarea>
+    </div>
+  
+  </div>
+  
+  <div class="modal-footer">
+    <button class="btn btn-secondary" (click)="close()">Close</button>
+  
+    <button   [disabled]="loading" class="btn btn-primary" (click)="saveSummary()">
+      Save Summary
+    </button>
+  </div>
