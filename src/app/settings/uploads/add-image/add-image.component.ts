@@ -762,7 +762,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     return new Promise((resolve, reject) => {
       const page = this.pages.at(index).value;
       this.service.saveDocumentPage({ DocumentPageId: 0, DocumentId: this.documentId,
-        PageNumber: page.pageNumber, ExtractedText: page.extractedText, StatusId: 0, CreatedBy: 1 }).subscribe({
+        PageNumber: page.pageNumber, ExtractedText: page.extractedText, StatusId: 0, CreatedBy: 1, RejectionReason: page.rejectionreason }).subscribe({
         next: () => { this.savedPages.add(index); this.cd.detectChanges(); resolve(); },
         error: (err) => reject(err)
       });
