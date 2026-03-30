@@ -12,6 +12,7 @@ import { ServiceService } from '../../settings.service';
 import Swal from 'sweetalert2';
 import { forkJoin } from 'rxjs';
 import { environment } from 'src/environments/environment';
+import { Editor, Toolbar } from 'ngx-editor';
 
 @Component({
   selector: 'app-ocr-page-modal',
@@ -51,6 +52,47 @@ export class OcrPageModalComponent implements OnDestroy {
     private cdr: ChangeDetectorRef,
   ) {}
 
+  pageEditors: { [id: number]: Editor } = {};
+
+  pageToolbar: Toolbar = [
+    ['bold', 'italic', 'underline', 'strike'],
+    ['ordered_list', 'bullet_list'],
+    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+    ['blockquote'],
+    ['align_left', 'align_center', 'align_right'],
+    ['format_clear'],
+  ];
+  private preserveLines(text: string): string {
+    if (!text) return '';
+    if (text.trim().startsWith('<')) return text; // already HTML
+  
+    return text
+      .split('\n')
+      .map(line => {
+        const trimmed = line.trimEnd();
+        if (!trimmed) return '<p><br></p>';
+        if (trimmed.startsWith('### ')) return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
+        if (trimmed.startsWith('## '))  return `<h2>${this.inlineFormat(trimmed.slice(3))}</h2>`;
+        if (trimmed.startsWith('# '))   return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
+        if (trimmed.startsWith('* ') || trimmed.startsWith('- '))
+          return `<p>${this.inlineFormat(trimmed.slice(2))}</p>`;
+        return `<p>${this.inlineFormat(trimmed)}</p>`;
+      })
+      .join('');
+  }
+  
+  private inlineFormat(text: string): string {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
+  
+  getOrCreateEditor(id: number): Editor {
+    if (!this.pageEditors[id]) {
+      this.pageEditors[id] = new Editor();
+    }
+    return this.pageEditors[id];
+  }
   // 🔥 OPEN MODAL
   open(): Promise<boolean> {
     this.resetState();
@@ -129,8 +171,10 @@ export class OcrPageModalComponent implements OnDestroy {
 
   this.pageList.forEach((item) => {
     if (!this.editedTexts[item.DocumentPageId]) {
-      this.editedTexts[item.DocumentPageId] = item.ExtractedText;
+      this.editedTexts[item.DocumentPageId] = this.preserveLines(item.ExtractedText);
     }
+    // ensure editor instance exists
+    this.getOrCreateEditor(item.DocumentPageId);
   });
 
   this.loading = false;      // ✅ now always reached
@@ -190,8 +234,8 @@ error: () => {
   }
 
   // 🔥 AUTO SAVE (DEBOUNCE)
-  onTextChange(item: any, value: string) {
-    this.editedTexts[item.DocumentPageId] = value;
+  onEditorChange(item: any, html: string): void {
+    this.editedTexts[item.DocumentPageId] = html;
   }
 
   isDirty(item: any): boolean {
@@ -442,10 +486,11 @@ error: () => {
 
   // 🔥 AUTO UNLOCK
   ngOnDestroy() {
+    // Destroy all page editors
+    Object.values(this.pageEditors).forEach(editor => editor.destroy());
+  
     if (this.documentId) {
-      this.service
-        .manageLock(this.documentId, this.currentUserId, 'UNLOCK')
-        .subscribe();
+      this.service.manageLock(this.documentId, this.currentUserId, 'UNLOCK').subscribe();
     }
   }
 

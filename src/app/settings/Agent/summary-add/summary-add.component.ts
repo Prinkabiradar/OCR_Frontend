@@ -110,7 +110,7 @@ export class SummaryAddComponent implements OnInit ,OnDestroy {
     return this.availableVoices.filter(v => indianLangs.some(l => v.lang.startsWith(l)));
   }
   documentropdown() {
-    this.service.dropdownAll('', '1', '1', '4').subscribe(
+    this.service.dropdownAll('','1','4','0').subscribe(
       (response) => {
         this.documentdata = [{ id: '', text: '' },
           ...response.map((item: any) => ({ id: item.id.toString(), text: item.text }))];

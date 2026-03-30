@@ -67,13 +67,18 @@
         </div>
 
         <!-- ✍️ TEXT AREA -->
-        <textarea
-          class="ocr-textarea"
-          [class.edited]="isDirty(item)"
-          [value]="editedTexts[item.DocumentPageId] || item.ExtractedText"
-          (input)="onTextChange(item, $any($event.target).value)"
-        >
-        </textarea>
+        <div class="ocr-editor-wrap" [class.edited]="isDirty(item)">
+          <ngx-editor-menu
+            [editor]="getOrCreateEditor(item.DocumentPageId)"
+            [toolbar]="pageToolbar">
+          </ngx-editor-menu>
+          <ngx-editor
+            [editor]="getOrCreateEditor(item.DocumentPageId)"
+            [(ngModel)]="editedTexts[item.DocumentPageId]"
+            (ngModelChange)="onEditorChange(item, $event)"
+            placeholder="Extracted text will appear here…">
+          </ngx-editor>
+        </div>
 
         <!-- 🔹 FOOTER -->
         <div
