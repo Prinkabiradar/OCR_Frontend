@@ -1,31 +1,32 @@
-<div class="modal-header" style="max-height: 100vh; overflow-y: auto;">
-    <h4 class="modal-title">Summary - {{ documentName }}</h4>
-    <button type="button" class="btn-close" (click)="close()"></button>
+<div class="modal-header">
+  <h4 class="modal-title">Summary — {{ documentName }}</h4>
+  <button type="button" class="btn-close" (click)="close()"></button>
+</div>
+
+<div class="modal-body">
+
+  <!-- Loader -->
+  <div *ngIf="loading" class="text-center py-4">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Loading summary...</p>
   </div>
-  
-  <div class="modal-body" style="max-height: 100vh; overflow-y: auto;">
-  
-    <!-- Loader -->
-    <div *ngIf="loading" class="text-center">
-      Loading summary...
-    </div>
-  
-    <!-- Textarea -->
-    <div *ngIf="!loading">
-      <textarea
-        class="form-control"
-        rows="22"
-        [(ngModel)]="summaryText"
-        placeholder="Summary will appear here..."
-      ></textarea>
-    </div>
-  
+
+  <!-- Rich Text Editor -->
+  <div *ngIf="!loading" class="editor-wrapper">
+    <ngx-editor-menu [editor]="editor" [toolbar]="toolbar"></ngx-editor-menu>
+    <ngx-editor
+      [editor]="editor"
+      [(ngModel)]="editorContent"
+      [disabled]="false"
+      placeholder="Summary will appear here...">
+    </ngx-editor>
   </div>
-  
-  <div class="modal-footer">
-    <button class="btn btn-secondary" (click)="close()">Close</button>
-  
-    <button   [disabled]="loading" class="btn btn-primary" (click)="saveSummary()">
-      Save Summary
-    </button>
-  </div>
+
+</div>
+
+<div class="modal-footer">
+  <button class="btn btn-secondary" (click)="close()">Close</button>
+  <button class="btn btn-primary" [disabled]="loading" (click)="saveSummary()">
+    Save Summary
+  </button>
+</div>

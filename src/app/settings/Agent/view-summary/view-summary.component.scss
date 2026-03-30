@@ -1,0 +1,13 @@
+
+@import 'ngx-editor/assets/ngx-editor.css';
+.editor-wrapper {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+  
+    .NgxEditor {
+      min-height: 400px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+  }

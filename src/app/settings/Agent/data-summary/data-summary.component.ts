@@ -34,12 +34,11 @@ ngOnInit(): void {
 }
 
    //Pagination
-   totalPages: number = 50;
-   currentPage: number = 0;
-   totalRecords: number = 0;
-   itemsPerPage = 10;
-   totalItems = 0;
-   searchQuery: string='';
+   totalPages   : number = 0;
+   currentPage  : number = 1;
+   totalRecords : number = 0;
+   itemsPerPage          = 10;
+   searchQuery  : string = ''; 
   
    loading = false;
   
@@ -95,10 +94,10 @@ ngOnInit(): void {
         searchBy,
         searchCriteria
       )
-      .subscribe((response: any[]) => {
+      .subscribe((response: any) => {
         this.rolesListSubject.next(response);
-        this.totalPages = response[0].TotalPages;
-        this.totalRecords = response[0].TotalRecords;
+        this.totalRecords = response[0].TotalCount;
+        this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage);
       });
   }
   
@@ -122,25 +121,22 @@ ngOnInit(): void {
      }
 getStatusLabel(statusId: number): string {
   switch (statusId) {
-    case 0:  return 'Processing';
-    case 1:  return 'Approve';
+    case 0:  return 'Pending';
+    case 1:  return 'Checked';
     case 2:  return 'verified';
-    case 3:  return 'Checked';
+    case 3:  return 'Approve';
     default: return 'Reviewed';
   }
 }
 
 getStatusClass(statusId: number): string {
   switch (statusId) {
-    case 0:  return 'badge-processing';
-    case 1:  return 'badge-pending';
+    case 0:  return 'badge-pending'; //'badge-processing';
+    case 1:  return 'badge-processing';
     case 2:  return 'badge-partially-verified';
-    default: return 'badge-verified';
+    case 3:  return 'badge-verified';
+    default: return 'badge-pending';
   }
 }
 
- 
- 
-
- 
 }

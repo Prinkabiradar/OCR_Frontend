@@ -1,21 +1,24 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ServiceService } from '../../settings.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import Swal from 'sweetalert2';
+import { Editor, Toolbar } from 'ngx-editor';
+import { Options } from 'select2';
+import { Router } from '@angular/router';
 
 @Component({
-  selector: 'app-agent-add',
-  templateUrl: './agent-add.component.html',
-  styleUrls: ['./agent-add.component.scss']
+  selector: 'app-summary-add',
+  templateUrl: './summary-add.component.html',
+  styleUrls: ['./summary-add.component.scss']
 })
-export class AgentAddComponent implements OnInit {
+export class SummaryAddComponent implements OnInit ,OnDestroy {
 
   // ✅ Pagination — exactly like RolesDataComponent
   totalPages   : number = 0;
   currentPage  : number = 1;
   totalRecords : number = 0;
-  itemsPerPage          = 10;
+  itemsPerPage          = 5;
   searchQuery  : string = '';
   selectedPageIndex: number = 0;
 
@@ -26,6 +29,18 @@ export class AgentAddComponent implements OnInit {
   summaryUpdatedAt: Date | null = null;
   isSavingSummary  = false;
   summaryDirty     = false; 
+
+
+  editor: Editor;
+
+  toolbar: Toolbar = [
+    ['bold', 'italic', 'underline', 'strike'],
+    ['ordered_list', 'bullet_list'],
+    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+    ['blockquote'],
+    ['align_left', 'align_center', 'align_right'],
+    ['format_clear'],
+  ];
 
   // ✅ Pages list — exactly like roleList$
   pageList$: Observable<any[]>;
@@ -69,17 +84,51 @@ export class AgentAddComponent implements OnInit {
     { lang: 'en-IN', label: 'Indian English',  pattern: /[a-zA-Z]/        }
   ];
 
-  constructor(private service: ServiceService, private cd: ChangeDetectorRef) {
+    // SELECT2
+    public documentoptions!: Options;
+    public documentdata: Array<{ id: string; text: string }> = [];
+    
+  constructor(
+    private service: ServiceService, 
+    private cd: ChangeDetectorRef,
+    private router: Router,) 
+    {
     this.pageList$ = this.pageListSubject.asObservable();
     this.setupSpeechRecognition();
   }
 
   ngOnInit(): void {
+    this.editor = new Editor();
+    this.documentropdown();
     this.loadVoices();
+  }
+  ngOnDestroy(): void {
+    this.editor.destroy();
   }
   get indianVoices() {
     const indianLangs = ['en-IN', 'hi', 'bn', 'ta', 'te', 'kn', 'ml', 'gu', 'pa'];
     return this.availableVoices.filter(v => indianLangs.some(l => v.lang.startsWith(l)));
+  }
+  documentropdown() {
+    this.service.dropdownAll('', '1', '1', '4').subscribe(
+      (response) => {
+        this.documentdata = [{ id: '', text: '' },
+          ...response.map((item: any) => ({ id: item.id.toString(), text: item.text }))];
+        this.documentoptions = { data: this.documentdata,
+          width: '100%', placeholder: 'Select Document Name', allowClear: true };
+        this.cd.detectChanges();
+      });
+  }
+  onDocumentSelect(selectedId: string | string[]) {
+    const id = Array.isArray(selectedId) ? selectedId[0] : selectedId;
+    if (!id) {
+      this.userQuestion = '';
+      return;
+    }
+    const found = this.documentdata.find(d => d.id === id);
+    if (found) {
+      this.userQuestion = found.text;
+    }
   }
   // ✅ Main search — exactly like RolesGET()
   AgentGET() {
@@ -108,7 +157,7 @@ export class AgentAddComponent implements OnInit {
         this.notFound     = response.pages.length === 0;
         this.pages        = response.pages;
         this.selectedPageIndex = 0;   
-      
+        this.summarizeDocument();
         this.pageListSubject.next(response.pages);
       
         if (!this.notFound) {
@@ -148,62 +197,12 @@ export class AgentAddComponent implements OnInit {
     if (!this.userQuestion.trim()) return;
     this.currentPage = 1;
     this.AgentGET();
+   // this.summarizeDocument();
   }
-  get currentDocPage(): any {
-    return this.pages[this.selectedPageIndex] ?? null;
-  }
+ 
   
-  get totalDocPagesInCurrentBatch(): number {
-    return this.pages.length;
-  }
-  get absolutePageNumber(): number {
-    return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
-  }
-  prevDocPage() {
-    if (this.selectedPageIndex > 0) {
-      this.selectedPageIndex--;
-    } else if (this.currentPage > 1) {
-      // reached start of batch — fetch previous batch, go to last item
-      this.currentPage--;
-      this.AgentGET();
-      // after load, jump to last item in that batch
-      setTimeout(() => {
-        this.selectedPageIndex = this.pages.length - 1;
-        this.cd.detectChanges();
-      }, 500);
-    }
-    this.cd.detectChanges();
-  }
-  
-  nextDocPage() {
-    if (this.selectedPageIndex < this.pages.length - 1) {
-      this.selectedPageIndex++;
-    } else if (this.currentPage < this.totalPages) {
-      // reached end of batch — fetch next batch automatically
-      this.currentPage++;
-      this.selectedPageIndex = 0;
-      this.AgentGET();
-    }
-    this.cd.detectChanges();
-  }
-  // ✅ Summary
-  // summarizeDocument() {
-  //   if (!this.documentName) return;
-  //   this.isSummarizing = true;
-  //   this.summary       = '';
-  //   this.showSummary   = false;
-  //   this.cd.detectChanges();
-
-  //   this.service.summarizeDocument(this.documentName).subscribe({
-  //     next: (res: any) => {
-  //       this.summary       = res.summary;
-  //       this.isSummarizing = false;
-  //       this.showSummary   = true;
-  //       this.cd.detectChanges();
-  //     },
-  //     error: () => { this.isSummarizing = false; this.cd.detectChanges(); }
-  //   });
-  // }
+ 
+ 
  
   summarizeDocument() {
     if (!this.documentName) return;
@@ -222,7 +221,8 @@ export class AgentAddComponent implements OnInit {
   
     this.service.summarizeDocument(this.documentName).subscribe({
       next: (res: any) => {
-        this.summary          = res.summary.summary;
+        const raw: string = res.summary.summary || '';
+        this.summary          = this.markdownToHtml(raw);
         this.summaryId        = res.summary.summaryId ?? 0;
         this.summaryFromCache = res.summary.fromCache;   // false = Gemini, true = DB
         this.summaryUpdatedAt = res.summary.updatedAt ? new Date(res.summary.updatedAt) : null;
@@ -234,7 +234,22 @@ export class AgentAddComponent implements OnInit {
       error: () => { this.isSummarizing = false; this.cd.detectChanges(); }
     });
   }
-
+  private markdownToHtml(text: string): string {
+    // If it already looks like HTML, return as-is
+    if (text.trim().startsWith('<')) return text;
+  
+    return text
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^\* (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/^(?!<[hul\/])(.+)$/gm, '<p>$1</p>')
+      .replace(/<p><\/p>/g, '');
+  }
   saveSummary() {
     if (!this.documentName || !this.summary.trim()) return;
     this.isSavingSummary = true;
@@ -259,7 +274,11 @@ export class AgentAddComponent implements OnInit {
           title: 'Saved!',
           text: 'Summary saved successfully',
           confirmButtonText: 'OK'
-        }) ;
+        }) .then((result) => {
+          if (result.isConfirmed) {
+            this.router.navigate(['/settings/data-summary']);
+          }
+        });
       },
       error: () => { this.isSavingSummary = false; this.cd.detectChanges();
         Swal.fire({

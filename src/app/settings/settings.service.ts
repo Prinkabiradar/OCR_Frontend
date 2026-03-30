@@ -31,6 +31,8 @@ export interface OcrFileResult {
   ocr_text: string;   // raw Gemini JSON string
   success: boolean;
   error: any;
+  suggested_document_type?: string;
+  suggested_document_name?: string;
 }
 @Injectable({
   providedIn: 'root',
