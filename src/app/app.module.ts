@@ -31,6 +31,7 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { TransactionModule } from './transactions/transaction.module';
 import { TransactionRoutingModule } from './transactions/transaction-routing.module';
 import { HighchartsChartModule } from 'highcharts-angular';
+import { NgxEditorModule } from 'ngx-editor';
  
  
 
@@ -64,6 +65,7 @@ function appInitializer(authService: AuthService) {
     NgSelect2Module,
     MatTabsModule,
     MatDialogModule,
+    NgxEditorModule,
     // #fake-start#
     environment.isMockEnabled
       ? HttpClientInMemoryWebApiModule.forRoot(FakeAPIService, {

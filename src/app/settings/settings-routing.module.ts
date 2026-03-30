@@ -20,6 +20,7 @@ import { DataDocumentComponent } from './document/data-document/data-document.co
 import { DataDocumentTypeComponent } from './documentType/data-document-type/data-document-type.component';
 import { PdfViewerModalComponent } from './PDF/pdf-viewer-modal/pdf-viewer-modal.component';
 import { DataSummaryComponent } from './Agent/data-summary/data-summary.component';
+import { SummaryAddComponent } from './Agent/summary-add/summary-add.component';
 import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion-list.component';
 
 
@@ -111,7 +112,10 @@ const routes: Routes = [
     path: 'pdf-viewer',
     component: PdfViewerModalComponent,
   },
-  
+  {
+    path: 'summary-add',
+    component: SummaryAddComponent,
+  },
 
   {
     path: 'data-summary',

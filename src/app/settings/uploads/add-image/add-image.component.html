@@ -219,6 +219,9 @@
               <span class="inline-or">or</span>
               <input type="text" class="form-control" formControlName="documentType"
                 placeholder="Enter new document type…">
+                <span class="ai-suggest-badge" *ngIf="editForm.get('documentType')?.value">
+                  ✨ AI suggested — edit if needed
+                </span>
               <button type="button" class="btn btn--outline-peacock btn--sm"
                 [disabled]="isDocumentTypeSaved || !editForm.get('documentType')?.value?.trim()"
                 (click)="saveDocumentType()">
@@ -236,6 +239,9 @@
               <span class="inline-or">or</span>
               <input type="text" class="form-control" formControlName="documentName"
                 placeholder="Enter new document name…">
+                <span class="ai-suggest-badge" *ngIf="editForm.get('documentType')?.value">
+                  ✨ AI suggested — edit if needed
+                </span>
               <button type="button" class="btn btn--outline-green btn--sm"
                 [disabled]="isDocumentSaved || !editForm.get('documentName')?.value?.trim()"
                 (click)="saveDocument()">
@@ -285,8 +291,16 @@
                     <span class="page-badge">Page {{ currentPageIndex + 1 }}</span>
                   </div>
                 </div>
-                <textarea class="page-textarea" rows="14"
-                  formControlName="extractedText"></textarea>
+                <!-- <textarea class="page-textarea" rows="14"
+                  formControlName="extractedText"></textarea> -->
+                  <div class="page-editor-wrap">
+                    <ngx-editor-menu [editor]="pageEditor" [toolbar]="pageToolbar"> </ngx-editor-menu>
+                    <ngx-editor
+                      [editor]="pageEditor"
+                      formControlName="extractedText"
+                      placeholder="Extracted text will appear here…">
+                    </ngx-editor>
+                  </div>
                 <div class="warn-banner" *ngIf="!documentId">
                   <span class="warn-banner__icon">⚠️</span>
                   Save the document name above before saving this page.

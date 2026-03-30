@@ -62,6 +62,8 @@ import { PdfViewerModalComponent } from './PDF/pdf-viewer-modal/pdf-viewer-modal
 import { SuggestionModalComponent } from './suggestion/suggestion-modal/suggestion-modal.component';
 import { DataSummaryComponent } from './Agent/data-summary/data-summary.component';
 import { ViewSummaryComponent } from './Agent/view-summary/view-summary.component';
+import { NgxEditorModule } from 'ngx-editor';
+import { SummaryAddComponent } from './Agent/summary-add/summary-add.component';
 import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion-list.component';
 
 
@@ -104,6 +106,7 @@ import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion
         SuggestionModalComponent,
         DataSummaryComponent,
         ViewSummaryComponent,
+        SummaryAddComponent,
         SuggestionListComponent,
         
 
@@ -129,6 +132,7 @@ import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion
     RouterModule,
     EngagesModule,
     HighchartsChartModule,
+    NgxEditorModule,
   ],
 
   exports: [

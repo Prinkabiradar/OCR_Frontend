@@ -1,0 +1,104 @@
+ 
+
+<div class="seva-content">
+    <div class="seva-card">
+        <div class="seva-card__header">
+            <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
+            <h2 class="seva-card__title">Search sacred documents by name or voice</h2>
+            <!-- <span class="seva-card__subtitle">Search sacred documents by name or voice</span> -->
+        </div>
+
+        <div class="seva-card__body">
+
+            <!-- Search Row formControlName="documentId"-->
+            <div class="row search-row">
+                <!-- <input type="text" class="form-control search-row__input" [(ngModel)]="userQuestion"
+                    [placeholder]="isListening ? '🎙️ Listening to your seva request…' : 'Type or speak…  (Document Name)'"
+                    (keyup.enter)="askQuestion()" /> -->
+                <div class="col-6">
+                    <ng-select2 [data]="documentdata"  
+                        [options]="documentoptions" class="mandir-select" (valueChanged)="onDocumentSelect($event)">
+                    </ng-select2>
+                </div>
+                 
+                <!-- <button class="btn" [class.btn--danger]="isListening" [class.btn--ghost]="!isListening"
+                    [disabled]="isLoading" (click)="isListening ? stopListening() : startListening()">
+                    {{ isListening ? '🔴 Stop' : '🎙️ Speak' }}
+                </button> -->
+                <div class="col-1"></div>
+                <div class="col-1">
+                    <button class="btn btn--primary" [disabled]="isLoading || !userQuestion.trim()" (click)="askQuestion()">
+                        🔍 Search
+                    </button>
+                </div>
+            </div>
+
+            <!-- OM Loader -->
+            <div class="om-loader" *ngIf="isLoading">
+                <div class="om-loader__ring">
+                    <span class="om-loader__symbol">ॐ</span>
+                </div>
+                <p class="om-loader__text">Searching sacred documents, please wait…</p>
+            </div>
+
+            <!-- Not Found -->
+            <div class="not-found-box" *ngIf="notFound && !isLoading">
+                🪷 No document found. Please try a different name or speak again.
+            </div>
+
+        </div>
+    </div>
+
+    <div class="seva-card" *ngIf="pages.length > 0 && !isLoading">
+        <div class="seva-card__body">
+
+            <!-- Summary Loader -->
+            <div class="om-loader" *ngIf="isSummarizing">
+                <div class="om-loader__ring">
+                    <span class="om-loader__symbol">ॐ</span>
+                </div>
+                <p class="om-loader__text">Generating summary…</p>
+            </div>
+            <div class="summary-panel" *ngIf="showSummary && !isSummarizing">
+                <div class="summary-panel__header">
+                    <div>
+                        <span>📋 {{ documentName }}</span>
+                        <span *ngIf="summaryFromCache" class="lang-badge" style="margin-left:8px">
+                            💾 Saved
+                        </span>
+ 
+                    </div>
+                    <div class="summary-panel__actions">
+                        <button class="btn btn--outline-peacock btn--sm" (click)="speakText(summary)">
+                            🔊 Read Summary
+                        </button>
+                        <button class="btn btn--ghost-danger btn--sm" [disabled]="!isSpeaking" (click)="stopSpeaking()">
+                            ⏹ Stop
+                        </button>
+ 
+                        <button class="btn btn--ghost btn--sm" (click)="showSummary = false">
+                            ✖ Close
+                        </button>
+                    </div>
+                </div>
+                <div class="summary-panel__body editor-wrap " >
+                    <ngx-editor-menu [editor]="editor" [toolbar]="toolbar"></ngx-editor-menu>
+                    <ngx-editor
+                      style="border: none;"
+                      [editor]="editor"
+                      [(ngModel)]="summary"
+                      (ngModelChange)="onSummaryEdit()"
+                      placeholder="Summary will appear here…">
+                    </ngx-editor>
+                </div>
+                <div class="d-flex justify-content-end summary-panel__header">
+                    <button class="btn btn--primary btn--sm" 
+                    [disabled]="isSavingSummary || (!summaryDirty && summaryFromCache)" (click)="saveSummary()">
+                    {{ isSavingSummary ? '⏳ Saving…' : '💾 Save Summary' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

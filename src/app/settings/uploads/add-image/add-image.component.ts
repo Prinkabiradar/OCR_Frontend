@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, FormArray, FormControl } from '@angular/forms';
 import { ServiceService, OcrJobStatus, OcrFileResult } from '../../settings.service';
 import { Options } from 'select2';
 import Swal from 'sweetalert2';
+import { Editor, Toolbar } from 'ngx-editor';
 
 @Component({
   selector: 'app-add-image',
@@ -14,14 +15,23 @@ export class AddImageComponent implements OnInit, OnDestroy {
   // ── File selection
   selectedFiles: File[] = [];
   uploading = false;
-  readonly SUPPORTED_EXTENSIONS  = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf'];
+  readonly SUPPORTED_EXTENSIONS  = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf','.tiff','.tif'];
   readonly SUPPORTED_MIME_TYPES  = [
     'image/jpeg', 'image/png', 'image/webp',
-    'image/gif',  'application/pdf'
+    'image/gif',  'application/pdf','image/tiff','image/tif'
   ];
   
   rejectedFiles: { name: string; extension: string; reason: string }[] = [];
 
+  pageEditor: Editor;
+  pageToolbar: Toolbar = [
+  ['bold', 'italic', 'underline', 'strike'],
+  ['ordered_list', 'bullet_list'],
+  [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+  ['blockquote'],
+  ['align_left', 'align_center', 'align_right'],
+  ['format_clear'],
+];
 
   // ── Job tracking
   currentJobId: string | null = null;
@@ -62,20 +72,18 @@ export class AddImageComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.pageEditor = new Editor();
     this.documentropdown();
     this.documentTyperopdown();
     this.checkForActiveJob(); // ← Resume polling if job was running
   }
 
   ngOnDestroy(): void {
+    this.pageEditor.destroy(); 
     this.stopPolling();
     this.stopElapsedTimer();
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // RESUME — check localStorage on component load
-  // ─────────────────────────────────────────────────────────────
-
+ 
   checkForActiveJob() {
     const saved = this.service.getActiveJob();
     if (!saved) return;
@@ -126,22 +134,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       }
     });
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // File selection
-  // ─────────────────────────────────────────────────────────────
-
-  // onFileSelect(event: any) {
-  //   const files: FileList = event.target.files;
-  //   for (let i = 0; i < files.length; i++) {
-  //     this.selectedFiles.push(files[i]);
-  //   }
-  //   event.target.value = null;
-  // }
-
-  // removeFile(index: number) {
-  //   this.selectedFiles.splice(index, 1);
-  // }
+ 
 
   onFileSelect(event: any) {
     const files: FileList = event.target.files;
@@ -163,11 +156,10 @@ export class AddImageComponent implements OnInit, OnDestroy {
         });
       }
     }
-  
-    // ── Accepted files go into selectedFiles normally
-    this.selectedFiles.push(...accepted);
-  
-    // ── Rejected files go into rejectedFiles list (blocks upload)
+   // ── Sort accepted files by name ascending before adding ──
+   accepted.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+     
+    this.selectedFiles.push(...accepted); 
     this.rejectedFiles.push(...rejected);
   
     event.target.value = null;
@@ -204,8 +196,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
   private getRejectionReason(ext: string, mime: string): string {
     const unsupportedMap: Record<string, string> = {
       '.bmp':  'BMP format is not supported by Gemini OCR',
-      '.tiff': 'TIFF format is not supported by Gemini OCR',
-      '.tif':  'TIFF format is not supported by Gemini OCR',
+      // '.tiff': 'TIFF format is not supported by Gemini OCR',
+      // '.tif':  'TIFF format is not supported by Gemini OCR',
       '.svg':  'SVG is a vector format — OCR cannot extract text from it',
       '.heic': 'HEIC/HEIF format is not supported by Gemini OCR',
       '.heif': 'HEIC/HEIF format is not supported by Gemini OCR',
@@ -296,10 +288,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Upload
-  // ─────────────────────────────────────────────────────────────
-
+ 
   uploadFiles() {
     if (this.selectedFiles.length === 0 || this.uploading) return;
 
@@ -335,7 +324,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.pollingMessage = 'Uploading files to server…';
     this.progressPercent = 0;
     this.elapsedSeconds  = 0;
-    this.screenState    = 'processing'; // ← Switch to progress screen immediately
+    this.screenState    = 'processing'; 
     this.cd.detectChanges();
 
     this.service.uploadOcrImages(formData).subscribe({
@@ -364,11 +353,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       }
     });
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // Polling
-  // ─────────────────────────────────────────────────────────────
-
+ 
   startPolling(jobId: string) {
     this.stopPolling();
 
@@ -431,11 +416,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
         break;
     }
   }
-
-  // ─────────────────────────────────────────────────────────────
-  // Elapsed time counter
-  // ─────────────────────────────────────────────────────────────
-
+ 
   startElapsedTimer(startedAt: string) {
     this.stopElapsedTimer();
     const start = new Date(startedAt).getTime();
@@ -469,46 +450,109 @@ export class AddImageComponent implements OnInit, OnDestroy {
     return m > 0 ? `~${m}m ${s}s` : `~${s}s`;
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // Load results after completion
-  // ─────────────────────────────────────────────────────────────
-
+  private preserveLines(text: string): string {
+    // If already HTML, return as-is
+    if (text.trim().startsWith('<')) return text;
+  
+    return text
+      .split('\n')
+      .map(line => {
+        const trimmed = line.trimEnd();
+  
+        if (!trimmed) return '<p><br></p>';
+  
+        if (trimmed.startsWith('### '))
+          return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
+        if (trimmed.startsWith('## '))
+          return `<h2>${this.inlineFormat(trimmed.slice(3))}</h2>`;
+        if (trimmed.startsWith('# '))
+          return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
+        if (trimmed.startsWith('* ') || trimmed.startsWith('- '))
+          return `<p>${this.inlineFormat(trimmed.slice(2))}</p>`;
+  
+        return `<p>${this.inlineFormat(trimmed)}</p>`;
+      })
+      .join('');
+  }
+  
+  private inlineFormat(text: string): string {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
+ 
   loadResults(jobId: string) {
     this.service.getOcrJobResults(jobId).subscribe({
       next: (results: OcrFileResult[]) => {
         const parsed: any[] = [];
+        const typeVotes: Record<string, number> = {};
+        const nameVotes: Record<string, number> = {};
+  
         results.forEach((fileResult, index) => {
           try {
-            const geminiObj    = JSON.parse(fileResult.ocr_text);
-            const extractedText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            parsed.push({ fileName: fileResult.file_name, extractedText, pageNumber: index + 1 });
+            const geminiObj = JSON.parse(fileResult.ocr_text);
+            const rawText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  
+            let extractedText = rawText;
+            let suggestedType = '';
+            let suggestedName = '';
+  
+            try {
+              // Gemini sometimes wraps JSON in ```json ... ``` — strip it
+              const clean = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+              const structured = JSON.parse(clean);
+              extractedText = structured.extracted_text        ?? rawText;
+              suggestedType = (structured.suggested_document_type ?? '').trim();
+              suggestedName = (structured.suggested_document_name ?? '').trim();
+            } catch {
+              // fallback to raw text
+            }
+  
+            // Vote counting
+            if (suggestedType) typeVotes[suggestedType] = (typeVotes[suggestedType] ?? 0) + 1;
+            if (suggestedName) nameVotes[suggestedName] = (nameVotes[suggestedName] ?? 0) + 1;
+              // REPLACE with:
+              parsed.push({ 
+                fileName: fileResult.file_name, 
+                extractedText: this.preserveLines(extractedText),  // ← convert here
+                pageNumber: index + 1 
+              });
           } catch {
-            parsed.push({ fileName: fileResult.file_name || `File ${index + 1}`,
-              extractedText: 'Parse error', pageNumber: index + 1 });
+            parsed.push({
+              fileName: fileResult.file_name || `File ${index + 1}`,
+              extractedText: '<p>Parse error</p>',
+              pageNumber: index + 1,
+            });
           }
         });
-
-        this.ocrResults  = parsed;
-        this.buildEditableForm(parsed);
+  
+        // Pick winner by most votes
+        const bestType = this.topVote(typeVotes);
+        const bestName = this.topVote(nameVotes);
+  
+        this.ocrResults = parsed;
+        this.buildEditableForm(parsed, bestType, bestName);
         this.currentPageIndex = 0;
         this.uploading   = false;
-        this.screenState = 'edit'; // ← Switch to edit screen
+        this.screenState = 'edit';
         this.cd.detectChanges();
       },
       error: () => {
         this.uploading   = false;
         this.screenState = 'upload';
-        Swal.fire({ icon: 'error', title: 'Load Failed',
-          text: 'Could not load OCR results.', confirmButtonText: 'OK' });
+        Swal.fire({ icon: 'error', title: 'Load Failed', text: 'Could not load OCR results.', confirmButtonText: 'OK' });
         this.cd.detectChanges();
       }
     });
   }
+  
+  private topVote(votes: Record<string, number>): string {
+    const entries = Object.entries(votes);
+    if (!entries.length) return '';
+    return entries.reduce((a, b) => b[1] > a[1] ? b : a)[0];
+  }
 
-  // ─────────────────────────────────────────────────────────────
-  // Allow user to dismiss progress and come back later
-  // ─────────────────────────────────────────────────────────────
-
+ 
   dismissAndContinue() {
     Swal.fire({
       icon: 'info',
@@ -528,11 +572,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ─────────────────────────────────────────────────────────────
-  // All form methods unchanged from your original
-  // ─────────────────────────────────────────────────────────────
-
-  buildEditableForm(results: any[]) {
+ 
+  buildEditableForm(results: any[], suggestedType = '', suggestedName = '') {
     const pagesArray = this.fb.array<FormGroup>([]);
     results.forEach((r, i) => {
       pagesArray.push(this.fb.group({
@@ -545,8 +586,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.editForm = this.fb.group({
       documentTypeId: new FormControl(null),
       documentId:     new FormControl(null),
-      documentType:   new FormControl(''),
-      documentName:   new FormControl(''),
+      documentType:   new FormControl(suggestedType),
+      documentName:   new FormControl(suggestedName),
       pages:          pagesArray
     });
 
@@ -600,6 +641,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   goToPage(index: number) {
     if (index < 0 || index >= this.pages.controls.length) return;
+    this.pageEditor.destroy();
+    this.pageEditor = new Editor();
     this.currentPageIndex = index;
     this.cd.detectChanges();
   }
@@ -676,7 +719,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       next: (res: any) => {
         this.documentId = res.documentId || res.DocumentId;
         this.isDocumentSaved = true;
-        Swal.fire({ icon: 'success', title: 'Saved!', text: `Document saved. ID = ${this.documentId}`, confirmButtonText: 'OK' });
+        Swal.fire({ icon: 'success', title: 'Saved!', text: `Document saved.`, confirmButtonText: 'OK' });
         this.cd.detectChanges();
       }
     });
