@@ -1,137 +1,165 @@
 <ng-template #ocrPageModal let-modal>
-  <!-- Modal Header -->
-  <div class="modal-header ocr-header">
-    <div >
-      <h4 class="ocr-modal-title">{{ documentName }}</h4>
+  <!-- 🔷 HEADER -->
+  <div
+    class="modal-header ocr-header d-flex justify-content-between align-items-center"
+  >
+    <div>
+      <h4 class="ocr-title mb-0">{{ documentName }}</h4>
+      <small class="text-muted">OCR Review & Validation</small>
     </div>
-    
-    <button
-      type="button"
-      class="btn-close btn-close-white"
-      aria-label="Close"
-      (click)="modal.dismiss('Cross click')"
-    ></button>
+    <button class="btn-close" (click)="close()"></button>
   </div>
 
-  <!-- Modal Body -->
-  <div >
-    <!-- Loading -->
+  <!-- 🔷 BODY -->
+  <div class="modal-body ocr-body">
+    <!-- 🔄 LOADING -->
     <div *ngIf="loading" class="ocr-state-center">
-      <div ></div>
-      <p class="ocr-state-text">Retrieving Sacred Texts… ॐ</p>
+      <div class="spinner-border text-primary"></div>
+      <p class="mt-2 text-muted">Loading document pages...</p>
     </div>
 
-    <!-- Empty -->
+    <!-- 📭 EMPTY -->
     <div *ngIf="!loading && pageList.length === 0" class="ocr-state-center">
-      <div class="ocr-empty-icon">🪷</div>
-      <p class="ocr-state-text">No sacred texts found.</p>
+      <div class="empty-icon">📄</div>
+      <p class="text-muted">No pages available</p>
     </div>
 
-    <!-- Page Cards -->
-    <div *ngIf="!loading && pageList.length > 0" >
-      <div
-        *ngFor="let item of pageList; let i = index"
-        class="ocr-card"
-        [class.ocr-card--saved]="
-          savedRows[item.DocumentPageId] && !isDirty(item)
-        "
-        [class.ocr-card--dirty]="isDirty(item)"
-      >
-        <!-- Card Top Bar -->
-        <!-- <div class="ocr-card-topbar">
-          <span >Page {{ item.PageNumber }}</span>
-          <span class="ocr-date">
-            <span class="ocr-date-icon">☽</span>
-            {{ item.CreatedDate | date: "mediumDate" }}
-            <span class="ocr-date-time">{{
-              item.CreatedDate | date: "shortTime"
-            }}</span>
-          </span>
-        </div> -->
+    <!-- 🔔 Suggestion Info — shown on every page -->
+    <div *ngIf="suggestedPages.length > 0" class="alert alert-warning">
+      <strong>⚠ You have suggestion for page number:</strong>
+      {{ suggestedPageNumbers }}
+    </div>
 
-        <!-- Textarea -->
+    <!-- 📄 DATA -->
+    <div *ngIf="!loading && pageList.length > 0" class="ocr-page-container">
+      <div *ngFor="let item of pageList" class="ocr-card shadow-sm">
+        <!-- 💡 Suggestion -->
+        <div
+          *ngIf="item.Suggestion && item.Suggestion.trim() !== ''"
+          class="suggestion-box"
+        >
+          <strong>Suggestion:</strong>
+          <p>{{ item.Suggestion }}</p>
+          <button
+            class="btn btn-sm btn-success me-2"
+            (click)="reviewSuggestion(item, 'Resolved')"
+          >
+            <!-- ← item not s -->
+            ✔ Resolve
+          </button>
+          <button
+            class="btn btn-sm btn-danger"
+            (click)="reviewSuggestion(item, 'Rejected')"
+          >
+            <!-- ← item not s -->
+            ✖ Reject
+          </button>
+        </div>
+        <!-- 🔹 CARD HEADER -->
+        <div
+          class="ocr-card-header d-flex justify-content-between align-items-center"
+        >
+          <span class="ocr-page-label">Page {{ item.PageNumber }}</span>
+
+          <span class="ocr-badge" [ngClass]="getStatusClass(item.StatusId)">
+            {{ getStatusLabel(item.StatusId) }}
+          </span>
+        </div>
+
+        <!-- ✍️ TEXT AREA -->
         <textarea
           class="ocr-textarea"
-          [class.edited-textarea]="isDirty(item)"
-          [value]="editedTexts[item.DocumentPageId]"
+          [class.edited]="isDirty(item)"
+          [value]="editedTexts[item.DocumentPageId] || item.ExtractedText"
           (input)="onTextChange(item, $any($event.target).value)"
-          rows="20"
         >
         </textarea>
 
-        <!-- Inline feedback -->
-        <div class="ocr-feedback ocr-feedback--unsaved" *ngIf="isDirty(item)">
-          ✎ Unsaved changes
-        </div>
+        <!-- 🔹 FOOTER -->
         <div
-          class="ocr-feedback ocr-feedback--saved"
-          *ngIf="savedRows[item.DocumentPageId] && !isDirty(item)"
+          class="ocr-card-footer d-flex justify-content-between align-items-center"
         >
-          ✓ Saved successfully
-        </div>
-
-        <!-- Card Footer: Status + Action -->
-        <div class="ocr-card-footer">
-          <!-- Status -->
-          <div class="ocr-status-block">
-            <span
-              class="ocr-status-badge"
-              [ngClass]="getStatusClass(item.StatusId)"
-            >
-              <span class="ocr-status-dot"></span>
-              {{ getStatusLabel(item.StatusId) }}
-            </span>
-            <span *ngIf="isDirty(item)" class="ocr-status-next">
-              → <strong>{{ getStatusLabel(item.StatusId ) }}</strong>
-            </span>
+          <!-- STATUS FLOW -->
+          <div class="ocr-status-flow" *ngIf="isDirty(item)">
+            <small class="text-muted">
+              Next:
+              <strong>{{
+                getStatusLabel(getNextStatus(item.StatusId))
+              }}</strong>
+            </small>
           </div>
 
-          <!-- Save Row Action -->
-          <button
-            class="ocr-save-btn"
-            (click)="saveRow(item)"
-            [disabled]="savingRows[item.DocumentPageId]"
-          >
-            <span *ngIf="!savingRows[item.DocumentPageId]"> Save </span>
+          <div class="d-flex gap-2">
+            <!-- SAVE BUTTON -->
+            <button
+              class="btn btn-success btn-sm"
+              (click)="saveRow(item)"
+              [disabled]="savingRows[item.DocumentPageId]"
+            >
+              <span *ngIf="!savingRows[item.DocumentPageId]">Save</span>
+              <span *ngIf="savingRows[item.DocumentPageId]">
+                <span class="spinner-border spinner-border-sm"></span> Saving...
+              </span>
+            </button>
 
-            <span *ngIf="savingRows[item.DocumentPageId]">
-              <span class="spinner"></span>
-              Saving...
-            </span>
-          </button>
+            <!-- ← ADD: REJECT BUTTON (role 2 or 3 only, not already rejected) -->
+            <button
+              class="btn btn-danger btn-sm"
+              (click)="rejectRow(item)"
+              [disabled]="savingRows[item.DocumentPageId]"
+            >
+              ✕ Reject
+            </button>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Modal Footer — pagination + close -->
-  <div class="modal-footer ocr-footer d-flex justify-content-start align-items-center gap-3 flex-wrap">
-    <span class="ocr-page-info">
-      🪷 Page {{ currentPage }} &nbsp;|&nbsp; {{ pageList.length }} record{{
-        pageList.length !== 1 ? "s" : ""
-      }}
-    </span>
-
-    <div class="ocr-pagination">
+  <!-- 🔷 FOOTER -->
+  <div
+    class="modal-footer ocr-footer d-flex justify-content-between align-items-center flex-wrap"
+  >
+    <!-- PAGINATION -->
+    <div class="d-flex align-items-center gap-2">
       <button
-        class="ocr-nav-btn"
+        class="btn btn-light btn-sm"
         (click)="goToPrevious()"
         [disabled]="!hasPrevious"
       >
         ← Previous
       </button>
-      <span class="ocr-current-page">{{ currentPage }}</span>
-      <button class="ocr-nav-btn" (click)="goToNext()" [disabled]="!hasNext">
+
+      <span class="fw-semibold">Page {{ currentPage }}</span>
+
+      <button
+        class="btn btn-light btn-sm"
+        (click)="goToNext()"
+        [disabled]="!hasNext"
+      >
         Next →
       </button>
     </div>
 
-    <button
-      type="button"
-      class="ocr-close-btn"
-      (click)="modal.dismiss('Cross click')"
-    >
-      Close
-    </button>
+    <!-- ACTIONS -->
+    <div class="d-flex gap-2">
+      <!-- <button
+        class="btn btn-success btn-sm"
+        (click)="saveAll()"
+        [disabled]="!hasDirtyRows || savingAll">
+
+        <span *ngIf="!savingAll">✔ Save All</span>
+
+        <span *ngIf="savingAll">
+          <span class="spinner-border spinner-border-sm"></span>
+          Saving...
+        </span>
+
+      </button> -->
+
+      <button class="btn btn-outline-secondary btn-sm" (click)="close()">
+        Close
+      </button>
+    </div>
   </div>
 </ng-template>

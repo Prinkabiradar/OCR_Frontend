@@ -20,6 +20,8 @@ export class DataDocumentTypeComponent implements OnInit {
   searchCriteria: string = '';
   searchTimeout: any;
 
+  totalRecords: number = 0;
+  totalPages: number = 0;
   roleId: number = 0; 
   private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
 
@@ -55,6 +57,7 @@ export class DataDocumentTypeComponent implements OnInit {
     this.fetchDocuments();
   }
 
+  
   // ── Fetch ──────────────────────────────────────────────────
   fetchDocuments(): void {
     this.isLoading = true;
@@ -77,6 +80,10 @@ export class DataDocumentTypeComponent implements OnInit {
         this.documentsSubject.next(items);
         this.isLoading = false;
         this.cdRef.detectChanges();
+        this.totalRecords = items.length > 0 ? items[0].totalrecords : 0;
+
+  // ✅ calculate total pages
+  this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
       },
       error: (err) => {
         this.isLoading = false;
@@ -84,6 +91,25 @@ export class DataDocumentTypeComponent implements OnInit {
         this.cdRef.detectChanges();
       }
     });
+  }
+
+  get docHasPrevious(): boolean {
+    return this.currentPage > 1;
+  }
+  get docHasNext(): boolean {
+  return this.currentPage < this.totalPages;
+}
+
+goToDocPrevious(): void {
+    if (!this.docHasPrevious) return;
+    this.currentPage--;
+    this.fetchDocuments();
+  }
+
+  goToDocNext(): void {
+    if (!this.docHasNext) return;
+    this.currentPage++;
+    this.fetchDocuments();
   }
 
   // ── Search ─────────────────────────────────────────────────

@@ -1,18 +1,6 @@
 <div>
-
   <!-- Header -->
-  <div class="header" style="text-align: center;">
-  </div>
-
-  <!-- Filter -->
-  <div class="filter-bar">
-    <label>Document Type</label>
-    <ng-select2
-      [data]="documentTypedata"
-      [options]="documentTypeoptions"
-      (valueChanged)="onTypeChange($event)">
-    </ng-select2>
-  </div>
+  <div class="header text-center"></div>
 
   <!-- Loading -->
   <div *ngIf="loadingDocs" class="loading">
@@ -24,23 +12,80 @@
     {{ docsError }}
   </div>
 
-  <!-- Table -->
+  <!-- Main Card -->
   <div class="card" *ngIf="!loadingDocs && !docsError">
 
-    <table class="table" *ngIf="documentList.length > 0">
+    <!-- 🔍 Filter Section -->
+    <div class="row top-bar align-items-center pb-5">
+
+      <!-- Search -->
+      <div class="col-md-3">
+        <div class="search-box">
+          <input
+            type="text"
+            class="form-control uniform-control"
+            placeholder="Search Document..."
+            [(ngModel)]="searchCriteria"
+            (input)="onSearchChange()"
+          />
+        </div>
+      </div>
+
+      <!-- Gap -->
+      <div class="col-md-1"></div>
+
+      <!-- Dropdown -->
+      <div class="col-md-3">
+        <div class="filter-box">
+          <ng-select2
+            class="uniform-control"
+            [data]="documentTypedata"
+            [options]="documentTypeoptions"
+            [(ngModel)]="selectedTypeId"
+            (valueChanged)="onTypeChange($event)"
+          >
+          </ng-select2>
+        </div>
+      </div>
+
+      <!-- Clear Button -->
+      <div class="col-md-1">
+        <button class="btn btn-light ms-2" (click)="clearDropdown()">✖</button>
+      </div>
+
+      <div class="col-md-2"></div>
+
+      <!-- Add Button -->
+      <div class="col-md-2">
+        <button
+          class="btn btn-primary btn-sm"
+          (click)="goToAddDocument()"
+          *ngIf="roleId !== 5"
+        >
+          <i class="fa fa-plus"></i> Add Document
+        </button>
+      </div>
+    </div>
+
+    <!-- 📋 Table -->
+    <table
+      class="table table-bordered text-center ocr-table"
+      *ngIf="documentList.length > 0"
+    >
       <thead>
         <tr>
           <th>#</th>
           <th>Document Name</th>
-          
+
           <th *ngIf="roleId !== 5">Checked By</th>
           <th *ngIf="roleId !== 5">Checked Date</th>
+
           <th *ngIf="roleId === 2 || roleId === 3">Verified By</th>
           <th *ngIf="roleId === 2 || roleId === 3">Verified Date</th>
 
-          <!-- Role 3 only -->
           <th *ngIf="roleId === 3">Approved By</th>
           <th *ngIf="roleId === 3">Approved Date</th>
+
           <th *ngIf="roleId !== 5">Status</th>
           <th *ngIf="roleId !== 5">Action</th>
           <th *ngIf="roleId === 5">View PDF</th>
@@ -48,87 +93,152 @@
       </thead>
 
       <tbody>
-  <tr *ngFor="let doc of documentList; let i = index">
-    <td>{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</td>
+        <tr *ngFor="let doc of documentList; let i = index">
 
-    <td>{{ doc.documentName }}</td>
+          <td>{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</td>
 
-    
+          <td>
+            {{ doc.documentName?.trim() ? doc.documentName : "NA" }}
+          </td>
 
-    <td *ngIf="roleId !== 5">{{ doc.createdByName }}</td>
-    <td *ngIf="roleId !== 5">{{ doc.createdDate | date: 'mediumDate' }}</td>
+          <td *ngIf="roleId !== 5">
+            {{ doc.createdByName?.trim() ? doc.createdByName : "NA" }}
+          </td>
 
-    <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedByName }}</td>
-    <td *ngIf="roleId === 2 || roleId === 3">{{ doc.updatedDate | date: 'mediumDate' }}</td>
+          <td *ngIf="roleId !== 5">
+            {{
+              doc.createdDate
+                ? (doc.createdDate | date: "mediumDate")
+                : "NA"
+            }}
+          </td>
 
-    <td *ngIf="roleId === 3">{{ doc.approvedByName }}</td>
-    <td *ngIf="roleId === 3">{{ doc.approvedDate | date: 'mediumDate' }}</td>
+          <td *ngIf="roleId === 2 || roleId === 3">
+            {{ doc.updatedByName?.trim() ? doc.updatedByName : "NA" }}
+          </td>
 
-    <td *ngIf="roleId !== 5">
-      <span class="status" [ngClass]="getStatusClass(doc.statusId)">
-        {{ getStatusLabel(doc.statusId) }}
-      </span>
-    </td>
+          <td *ngIf="roleId === 2 || roleId === 3">
+            {{
+              doc.updatedDate
+                ? (doc.updatedDate | date: "mediumDate")
+                : "NA"
+            }}
+          </td>
 
-    <td *ngIf="roleId !== 5">
-      <!-- Show button only if this role is allowed to view this document -->
-      <ng-container *ngIf="canView(doc); else notAvailable">
-        <button
-          class="btn-primary"
-          (click)="onDocumentClick(doc)"
-          [disabled]="loadingPages"
-        >
-          {{ loadingPages ? 'Loading...' : 'View' }}
-        </button>
-      </ng-container>
+          <td *ngIf="roleId === 3">
+            {{ doc.approvedByName?.trim() ? doc.approvedByName : "NA" }}
+          </td>
 
-      <!-- Shown instead of button when status not yet ready for this role -->
-      <ng-template #notAvailable>
-        <span
-          class="status-not-ready"
-          [title]="roleId === 2 ? 'Available once document is Checked'
-                                : 'Available once document is Verified'"
-        >
-          —
-        </span>
-      </ng-template>
-    </td>
+          <td *ngIf="roleId === 3">
+            {{
+              doc.approvedDate
+                ? (doc.approvedDate | date: "mediumDate")
+                : "NA"
+            }}
+          </td>
 
-    <td *ngIf="roleId === 5">
-      <button
-        class="btn-light-primary"
-        (click)="onViewPdf(doc)"
-        [disabled]="loadingPages"
-      >
-        {{ loadingPages ? 'Loading...' : 'View PDF' }}
-      </button>
-    </td>
-    
-  </tr>
-</tbody>
+          <!-- Status -->
+          <td *ngIf="roleId !== 5">
+            <span class="status" [ngClass]="getStatusClass(doc.statusId)">
+              {{ getStatusLabel(doc.statusId) }}
+            </span>
+          </td>
+
+          <!-- Action -->
+          <td *ngIf="roleId !== 5">
+
+            <ng-container *ngIf="canView(doc); else notAvailable">
+
+              <button
+                class="btn btn-primary"
+                (click)="onDocumentClick(doc)"
+                [disabled]="
+                  (doc.lockedBy && doc.lockedBy !== currentUserId) ||
+                  loadingDocId === doc.documentId
+                "
+              >
+                {{ loadingDocId === doc.documentId ? "Opening..." : "View" }}
+              </button>
+
+              <span *ngIf="doc.lockedBy && doc.lockedBy !== currentUserId">
+                🔒 Locked by {{ doc.lockedByName || "Another user" }}
+              </span>
+
+            </ng-container>
+
+            <ng-template #notAvailable>
+              <span
+                class="status-not-ready"
+                [title]="
+                  roleId === 2
+                    ? 'Available once document is Checked'
+                    : 'Available once document is Verified'
+                "
+              >
+                —
+              </span>
+            </ng-template>
+
+          </td>
+
+          <!-- PDF View -->
+          <td *ngIf="roleId === 5">
+            <button
+              class="btn btn-light-primary"
+              (click)="onViewPdf(doc)"
+              [disabled]="loadingPages"
+            >
+              {{ loadingPages ? "Loading..." : "View PDF" }}
+            </button>
+          </td>
+
+        </tr>
+      </tbody>
     </table>
 
-    <!-- Empty -->
+    <!-- Empty State -->
     <div *ngIf="documentList.length === 0" class="empty">
       No documents found
     </div>
 
-    <!-- Pagination -->
-    <div class="pagination d-flex justify-content-start align-items-center gap-2">
-  <button (click)="goToDocPrevious()" [disabled]="!docHasPrevious">
-    Previous
-  </button>
+    <!-- 📄 Pagination -->
+    <div class="table-footer">
 
-  <span class="mx-2">Page {{ docCurrentPage }}</span>
+      <div class="entries">
+        Showing
+        <select>
+          <option>10</option>
+          <option>25</option>
+        </select>
+        entries
+      </div>
 
-  <button (click)="goToDocNext()" [disabled]="!docHasNext">
-    Next
-  </button>
-</div>
+      <div class="pagination">
+        <button (click)="goToDocPrevious()" [disabled]="!docHasPrevious">
+          Previous
+        </button>
 
+        <span class="page-number">
+          {{ docCurrentPage }} / {{ totalPages }}
+        </span>
+
+        <button (click)="goToDocNext()" [disabled]="!docHasNext">
+          Next
+        </button>
+      </div>
+
+      <div class="total">
+        Total Records: {{ totalRecords }}
+      </div>
+
+    </div>
   </div>
 
-</div>
+  <!-- 📦 Modal -->
+  <app-ocr-page-modal
+    #ocrModal
+    [modalConfig]="modalConfig"
+  >
+  </app-ocr-page-modal>
 
-<!-- Modal -->
-<app-ocr-page-modal #ocrModal [modalConfig]="modalConfig"></app-ocr-page-modal>
+</div>

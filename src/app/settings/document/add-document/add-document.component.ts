@@ -111,15 +111,28 @@ export class AddDocumentComponent implements OnInit {
         });
       },
       error: (err) => {
-        this.saving = false;
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'Failed to save document. Please try again.',
-          confirmButtonText: 'OK'
-        });
-        console.error('Save failed', err);
+
+    let message = 'Something went wrong';
+
+    if (err.error) {
+
+     
+      if (typeof err.error === 'string') {
+
+        if (err.error.includes('Document with same name already exists')) {
+          message = 'Document name already exists';
+        } else {
+          message = err.error;
+        }
+
+      } else if (err.error.message) {
+        message = err.error.message;
       }
+
+    }
+
+    Swal.fire('Error', message, 'error');
+  }
     });
   }
 

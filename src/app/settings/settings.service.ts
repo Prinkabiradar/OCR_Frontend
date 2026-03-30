@@ -555,7 +555,8 @@ getDocumentByDocumentName(documentId: number, startIndex: number = 0, pageSize: 
   );
 }
 
-getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: number = 10, roleId: number = 0): Observable<any[]> {
+getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: number = 10, roleId: number = 0, searchBy: string,
+  searchCriteria: string): Observable<any[]> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
   if (!lsValue) {
     return new Observable<any[]>((observer) => {
@@ -570,7 +571,9 @@ getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: n
     .set('StartIndex', startIndex.toString())  
     .set('PageSize', pageSize.toString())
     .set('DocumentTypeId', documentTypeId.toString())
-    .set('RoleId', roleId.toString());
+    .set('RoleId', roleId.toString())
+    .set('SearchBy', searchBy)
+    .set('SearchCriteria', searchCriteria);
  
   return this.http.get<any[]>(
     environment.BaseUrl + 'api/DocumentPage/GetDocumentById',
@@ -850,4 +853,114 @@ private getAuthHeaders(): HttpHeaders {
   });
 }
 
+saveSuggestion(
+  suggestionId: number,
+  documentId: number,
+  pageNumber: number,
+  documentPageId: number,
+  suggestionText: string,
+  createdBy: number
+): Observable<any> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const userData = lsValue ? JSON.parse(lsValue) : null;
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + (userData?.authToken ?? ''),
+    'Content-Type': 'application/json'
+  });
+
+  const body = {
+    suggestionId,
+    documentId,
+    pageNumber,
+    documentPageId,
+    suggestionText,
+    isActive: true,
+    createdBy,
+    creatorName: userData?.fullName ?? '',
+    createdDate: new Date().toISOString()
+  };
+
+  return this.http.post<any>(
+    environment.BaseUrl + 'api/Suggestion/insert',
+    body,
+    { headers }
+  );
+}
+getActiveSuggestions(documentPageId: number,startIndex: number,
+  pageSize: number,
+  searchBy: string,
+  searchCriteria: string,
+  roleId: number): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+ 
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+ 
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  const params = new HttpParams()
+    .set('DocumentPageId', documentPageId.toString())
+    .set('StartIndex', startIndex.toString())
+    .set('PageSize', pageSize.toString())
+    .set('SearchBy', searchBy || '')
+    .set('SearchCriteria', searchCriteria || '');
+ 
+  return this.http.get<any[]>(
+  `${environment.BaseUrl}api/Suggestion/GetActiveSuggestion`,
+  { headers, params }  
+);
+}
+
+//All suggestions for a document page
+getSuggestionPages(documentId: number, documentPageId: number, startIndex: number = 1, pageSize: number = 10): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => { observer.next([]); observer.complete(); });
+  }
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+  const params = new HttpParams()
+    .set('DocumentId', documentId.toString())
+    .set('DocumentPageId', documentPageId.toString())
+    .set('StartIndex', startIndex.toString())   // 0-based: page1=0, page2=10, page3=20
+    .set('PageSize', pageSize.toString());
+ 
+  return this.http.get<any[]>(
+    environment.BaseUrl + 'api/DocumentPage/GetSuggestionPages',
+    { headers, params }
+  );
+}
+
+manageLock(documentId: number, userId: number, action: 'LOCK' | 'UNLOCK') {
+  return this.http.post<any>(
+    environment.BaseUrl + 'api/Document/ManageLock',
+    {
+      documentId: documentId,
+      userId: userId,
+      action: action
+    }
+  );
+}
+reviewSuggestion(model: any) {
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  const headers = {
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  };
+
+  return this.http.post(
+    environment.BaseUrl + 'api/Suggestion/review',
+    model,
+    { headers }
+  );
+}
 }

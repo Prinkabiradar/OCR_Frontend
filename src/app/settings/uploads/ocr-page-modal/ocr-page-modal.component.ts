@@ -1,55 +1,62 @@
-import { ChangeDetectorRef, Component, Input, TemplateRef, ViewChild } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  Input,
+  TemplateRef,
+  ViewChild,
+  OnDestroy,
+  HostListener,
+} from '@angular/core';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { ServiceService } from '../../settings.service';
+import Swal from 'sweetalert2';
 import { forkJoin } from 'rxjs';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-ocr-page-modal',
   templateUrl: './ocr-page-modal.component.html',
-  styleUrls: ['./ocr-page-modal.component.scss']
+  styleUrls: ['./ocr-page-modal.component.scss'],
 })
-export class OcrPageModalComponent {
-
+export class OcrPageModalComponent implements OnDestroy {
   @Input() modalConfig: any;
+  @Input() roleId: number = 0;
+  @Input() currentUserId: number = 0;
 
   documentName: string = '';
   documentId: number | null = null;
+  suggestedPages: any[] = [];
+  suggestions: any[] = [];
 
-  
   pageList: any[] = [];
   currentPage: number = 1;
   pageSize: number = 1;
   loading: boolean = false;
 
-  editedTexts:    { [id: number]: string }  = {};
-  savingRows:     { [id: number]: boolean } = {};
-  savedRows:      { [id: number]: boolean } = {};
-  savingAll:      boolean = false;
-  saveAllSuccess: boolean = false;
+  editedTexts: any = {};
+  savingRows: any = {};
+  savedRows: any = {};
+  savingAll: boolean = false;
 
-  private modalRef: NgbModalRef;
+  private modalRef!: NgbModalRef;
+  private saveTimeout: any;
 
   @ViewChild('ocrPageModal')
-  private modalContent: TemplateRef<OcrPageModalComponent>;
-  pdfUrl: string;
+  private modalContent!: TemplateRef<any>;
 
+  private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
   constructor(
     private modalService: NgbModal,
     private service: ServiceService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
   ) {}
 
+  // 🔥 OPEN MODAL
   open(): Promise<boolean> {
-    this.currentPage    = 1;
-    this.pageList       = [];
-    this.editedTexts    = {};
-    this.savingRows     = {};
-    this.savedRows      = {};
-    this.savingAll      = false;
-    this.saveAllSuccess = false;
+    this.resetState();
     this.loadPages();
 
-    return new Promise<boolean>((resolve) => {
+    return new Promise((resolve) => {
       this.modalRef = this.modalService.open(this.modalContent, {
         size: 'xl',
         scrollable: true,
@@ -57,181 +64,395 @@ export class OcrPageModalComponent {
       this.modalRef.result.then(resolve, resolve);
     });
   }
+
+  resetState() {
+    this.currentPage = 1;
+    this.pageList = [];
+    this.editedTexts = {};
+    this.savingRows = {};
+    this.savedRows = {};
+  }
+
+  // 🔥 LOAD DATA (FIXED PAGINATION)
   loadPages(): void {
     if (!this.documentId) return;
+
     this.loading = true;
-    const startIndex = (this.currentPage) * this.pageSize;
 
-    this.service.getDocumentByDocumentName(this.documentId, startIndex, this.pageSize).subscribe({
-      next: (res) => {
-        this.pageList = (res || []).map((x: any) => ({
-          DocumentPageId: x.documentpageid,
-          DocumentId:     x.documentid,
-          PageNumber:     x.pagenumber,
-          ExtractedText:  x.extractedtext,
-          StatusId:       x.statusid,
-          CreatedBy:      x.createdby,
-          CreatedDate:    x.createddate,
-          UpdatedBy:      x.updatedby,
-          UpdatedDate:    x.updateddate
-        }));
+    const userId = this.currentUserId;
 
-        this.pageList.forEach(item => {
-          if (this.editedTexts[item.DocumentPageId] === undefined) {
-            this.editedTexts[item.DocumentPageId] = item.ExtractedText;
-          }
+    const startIndex = this.currentPage * this.pageSize;
+
+    this.service
+      .getDocumentByDocumentName(this.documentId, startIndex, this.pageSize)
+      .subscribe({
+        next: (res: any) => {
+  const safeRes = Array.isArray(res) ? res : [];
+
+  this.pageList = safeRes.map((x: any) => ({
+    DocumentPageId: x.documentpageid,
+    DocumentId: x.documentid,
+    PageNumber: x.pagenumber,
+    ExtractedText: x.extractedtext,
+    StatusId: x.statusid,
+
+    // ✅ Check it's a non-empty string (rejects {}, null, undefined)
+    Suggestion: typeof x.suggestiontext === 'string' && x.suggestiontext.trim() !== ''
+      ? x.suggestiontext
+      : '',
+
+    SuggestedPage: typeof x.suggestionpagenumber === 'number'
+      ? x.suggestionpagenumber
+      : null,
+
+    SuggestionId: typeof x.suggestionid === 'number'
+      ? x.suggestionid
+      : null,
+  }));
+
+          const allSuggestionsRaw = safeRes.length > 0 ? safeRes[0]?.allsuggestions : null;
+
+  if (typeof allSuggestionsRaw === 'string' && allSuggestionsRaw.trim() !== '') {
+    this.suggestedPages = allSuggestionsRaw
+      .split('|')
+      .map((entry: string) => {
+        const parts = entry.split(':');
+        return {
+          PageNumber: parseInt(parts[0]),
+          SuggestionId: parseInt(parts[2]),
+        };
+      })
+      .filter(s => !isNaN(s.PageNumber) && !isNaN(s.SuggestionId));
+  } else {
+    this.suggestedPages = []; // ✅ safely handles {} case
+  }
+
+  this.pageList.forEach((item) => {
+    if (!this.editedTexts[item.DocumentPageId]) {
+      this.editedTexts[item.DocumentPageId] = item.ExtractedText;
+    }
+  });
+
+  this.loading = false;      // ✅ now always reached
+  this.cdr.detectChanges();
+},
+error: () => {
+  this.loading = false;
+},
+      });
+  }
+
+  reviewSuggestion(s: any, action: string) {
+    Swal.fire({
+      title: 'Are you sure?',
+      text: `You want to mark as ${action}`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Yes',
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const lsValue = localStorage.getItem(this.authLocalStorageToken);
+        const userData = lsValue ? JSON.parse(lsValue) : null;
+
+        const model = {
+          suggestionId: s.SuggestionId, // ← match mapped property names
+          documentPageId: s.DocumentPageId,
+          action: action,
+          reviewedBy: userData?.id ?? 0,
+          roleId: userData?.roleId ?? 0,
+        };
+
+        this.service.reviewSuggestion(model).subscribe({
+          next: () => {
+            // Remove suggestion from the item in pageList
+            const page = this.pageList.find(
+              (x) => x.DocumentPageId === s.DocumentPageId,
+            );
+            if (page) {
+              page.Suggestion = ''; // ← clear suggestion on UI
+            }
+
+            // Remove from suggestedPages
+            this.suggestedPages = this.suggestedPages.filter(
+              (p) => p !== s.PageNumber,
+            );
+
+            this.cdr.detectChanges(); // ← fix: cdr not cd
+
+            Swal.fire('Success', `Marked as ${action}`, 'success');
+          },
+          error: () => {
+            Swal.fire('Error', 'Failed to update', 'error');
+          },
         });
-
-        this.loading = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error(err);
-        this.loading = false;
-        this.cdr.detectChanges();
       }
     });
+  }
+
+  // 🔥 AUTO SAVE (DEBOUNCE)
+  onTextChange(item: any, value: string) {
+    this.editedTexts[item.DocumentPageId] = value;
   }
 
   isDirty(item: any): boolean {
     return this.editedTexts[item.DocumentPageId] !== item.ExtractedText;
   }
 
-  onTextChange(item: any, value: string): void {
-    this.editedTexts[item.DocumentPageId] = value;
-    this.savedRows[item.DocumentPageId]   = false;
-    this.saveAllSuccess                   = false;
-    this.cdr.detectChanges();
+  get suggestedPageNumbers(): string {
+  if (!this.suggestedPages.length) return '';
+  return this.suggestedPages.map(s => 'Page ' + s.PageNumber).join(', ');
+}
+  get hasDirtyRows(): boolean {
+    return this.pageList.some((x) => this.isDirty(x));
   }
 
-  get hasDirtyRows(): boolean {
-    return this.pageList.some(item => this.isDirty(item));
+  // 🔥 ROLE-BASED STATUS FLOW
+  // 🔥 ROLE-BASED STATUS FLOW
+  getNextStatus(statusId: number): number {
+    switch (this.roleId) {
+      case 1:
+        // Role 1: fresh start or restart after rejection
+        return statusId === 0 || statusId === 7 ? 1 : statusId;
+
+      case 2:
+        return statusId === 0 || statusId === 7 ? 1 : statusId;
+
+      case 3:
+        return statusId === 1 || statusId === 7 ? 2 : statusId;
+
+      case 4:
+        return statusId === 2 || statusId === 7 ? 3 : statusId;
+
+      default:
+        return statusId;
+    }
   }
 
   getStatusLabel(statusId: number): string {
     switch (statusId) {
-      case 0:  return 'Pending';
-      case 4:  return 'Partially checked';
-      case 1:  return 'Checked';
-      case 5:  return 'Partially verified';
-      case 2:  return 'Verified';
-      case 6:  return 'Partially Approved';
-      case 3:  return 'Approved';
-      default: return `Reviewed (${statusId})`;
+      case 0:
+        return 'Pending';
+      case 1:
+        return 'Checked';
+      case 2:
+        return 'Verified';
+      case 3:
+        return 'Approved';
+      case 4:
+        return 'Partially Checked';
+      case 5:
+        return 'Partially Verified';
+      case 6:
+        return 'Partially Approved';
+      case 7:
+        return 'Rejected';
+      default:
+        return 'Unknown';
     }
   }
 
   getStatusClass(statusId: number): string {
     switch (statusId) {
-      case 0:  return 'badge-pending';
-      case 4:  return 'badge-partially-checked';
-      case 1:  return 'badge-Checked';
-      case 5:  return 'badge-Partially-verified';
-      case 2:  return 'badge-Verified';
-      case 6:  return 'badge-Partially-approved';
-      case 3:  return 'badge-approved';
-      default: return 'badge-approved';
+      case 0:
+        return 'badge-red';
+      case 1:
+      case 4:
+        return 'badge-orange';
+      case 2:
+      case 5:
+        return 'badge-yellow';
+      case 3:
+      case 6:
+        return 'badge-green';
+      case 7:
+        return 'badge-rejected';
+      default:
+        return 'badge-default';
     }
   }
 
-  private buildPayload(item: any): any {
-    return {
+  get canReject(): boolean {
+    return this.roleId === 2 || this.roleId === 3;
+  }
+
+  rejectRow(item: any) {
+    if (this.savingRows[item.DocumentPageId]) return;
+
+    Swal.fire({
+      title: 'Reject Page',
+      input: 'textarea',
+      inputLabel: 'Rejection Reason',
+      inputPlaceholder: 'Enter reason for rejection...',
+      inputAttributes: { 'aria-label': 'Rejection reason' },
+      showCancelButton: true,
+      confirmButtonText: 'Reject',
+      confirmButtonColor: '#dc3545',
+      inputValidator: (value) => {
+        if (!value || !value.trim()) {
+          return 'Please enter a rejection reason.';
+        }
+        return null;
+      },
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      const rejectionReason = result.value;
+      const oldStatus = item.StatusId;
+
+      const payload = {
+        documentPageId: item.DocumentPageId,
+        documentId: item.DocumentId,
+        pageNumber: item.PageNumber,
+        extractedText:
+          this.editedTexts[item.DocumentPageId] ?? item.ExtractedText,
+        statusId: 7, // ← Rejected
+        userId: this.currentUserId,
+        rejectionReason: rejectionReason,
+        roleId: this.roleId,
+      };
+
+      this.savingRows[item.DocumentPageId] = true;
+      item.StatusId = 7; // optimistic update
+
+      this.service.saveDocumentPage(payload).subscribe({
+        next: () => {
+          this.savingRows[item.DocumentPageId] = false;
+          Swal.fire('Rejected', 'Page has been rejected.', 'warning');
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          item.StatusId = oldStatus; // rollback
+          this.savingRows[item.DocumentPageId] = false;
+          Swal.fire('Error', 'Rejection failed', 'error');
+        },
+      });
+    });
+  }
+
+  // 🔥 SAVE ROW (OPTIMISTIC UI)
+  saveRow(item: any) {
+    if (this.savingRows[item.DocumentPageId]) return;
+
+    const oldText = item.ExtractedText;
+    const oldStatus = item.StatusId;
+    const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    const userId = this.currentUserId;
+    this.roleId = userData?.roleId ?? 0;
+
+    const payload = {
       documentPageId: item.DocumentPageId,
-      documentId:     item.DocumentId,
-      pageNumber:     item.PageNumber,
-      extractedText:  this.editedTexts[item.DocumentPageId],
-      statusId:       item.StatusId,  
-      createdBy:      item.CreatedBy
+      documentId: item.DocumentId,
+      pageNumber: item.PageNumber,
+      extractedText: this.editedTexts[item.DocumentPageId],
+      statusId: this.getNextStatus(item.StatusId),
+      userId: this.currentUserId, // ← ADD
+      roleId: this.roleId, // ← ADD
+      rejectionReason: '', // ← ADD (empty for normal save)
     };
+
+    this.savingRows[item.DocumentPageId] = true;
+
+    // optimistic update
+    item.ExtractedText = payload.extractedText;
+    item.StatusId = payload.statusId;
+
+    this.service.saveDocumentPage(payload).subscribe({
+      next: () => {
+        this.savedRows[item.DocumentPageId] = true;
+        this.savingRows[item.DocumentPageId] = false;
+
+        setTimeout(() => {
+          this.savedRows[item.DocumentPageId] = false;
+        }, 2000);
+      },
+      error: () => {
+        item.ExtractedText = oldText;
+        item.StatusId = oldStatus;
+        this.savingRows[item.DocumentPageId] = false;
+
+        Swal.fire('Error', 'Save failed', 'error');
+      },
+    });
   }
 
-  saveRow(item: any): void {
-  if (this.savingRows[item.DocumentPageId]) return;
-
-  this.savingRows[item.DocumentPageId] = true;
-
-  const payload = this.buildPayload(item);
-
-  this.service.saveDocumentPage(payload).subscribe({
-    next: (res: any) => {
-
-      // ✅ IMPORTANT: use response data
-      const updated = res?.data || res; // adjust based on API
-
-      item.ExtractedText = updated.extractedText || this.editedTexts[item.DocumentPageId];
-
-      // 🔥 THIS FIXES YOUR ISSUE
-      item.StatusId = updated.statusId;  
-
-      this.savingRows[item.DocumentPageId] = false;
-      this.savedRows[item.DocumentPageId] = true;
-
-      setTimeout(() => {
-        this.savedRows[item.DocumentPageId] = false;
-        this.cdr.detectChanges();
-      }, 2000);
-
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      console.error('Save failed', err);
-      this.savingRows[item.DocumentPageId] = false;
-      this.cdr.detectChanges();
-    }
-  });
-}
-  saveAll(): void {
-    if (this.savingAll) return;
-    if (!this.pageList.length) return;
+  // 🔥 SAVE ALL
+  saveAll() {
+    if (!this.hasDirtyRows) return;
 
     this.savingAll = true;
-    const requests = this.pageList.map(item =>
-      this.service.saveDocumentPage(this.buildPayload(item))
+
+    const requests = this.pageList.map((item) =>
+      this.service.saveDocumentPage({
+        documentPageId: item.DocumentPageId,
+        documentId: item.DocumentId,
+        pageNumber: item.PageNumber,
+        extractedText: this.editedTexts[item.DocumentPageId],
+        statusId: this.getNextStatus(item.StatusId),
+        userId: this.currentUserId, // ← ADD
+        roleId: this.roleId, // ← ADD
+        rejectionReason: '', // ← ADD (empty for normal save)
+      }),
     );
 
     forkJoin(requests).subscribe({
       next: () => {
-        this.pageList.forEach(item => {
-          item.ExtractedText                  = this.editedTexts[item.DocumentPageId];
-          item.StatusId                       = this.isDirty(item) ? item.StatusId : item.StatusId;
-          this.savedRows[item.DocumentPageId] = true;
-        });
-
-        this.savingAll      = false;
-        this.saveAllSuccess = true;
-
-        setTimeout(() => {
-          this.saveAllSuccess = false;
-          this.pageList.forEach(item => {
-            this.savedRows[item.DocumentPageId] = false;
-          });
-          this.cdr.detectChanges();
-        }, 2500);
-
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Save all failed', err);
         this.savingAll = false;
-        this.cdr.detectChanges();
-      }
+        Swal.fire('Success', 'All changes saved', 'success');
+      },
+      error: () => {
+        this.savingAll = false;
+      },
     });
   }
-  get hasPrevious(): boolean { return this.currentPage > 1; }
-  get hasNext(): boolean     { return this.pageList.length === this.pageSize; }
 
-  goToPrevious(): void {
+  // 🔥 PAGINATION
+  get hasPrevious() {
+    return this.currentPage > 1;
+  }
+  get hasNext() {
+    return this.pageList.length === this.pageSize;
+  }
+
+  goToPrevious() {
     if (!this.hasPrevious) return;
     this.currentPage--;
     this.loadPages();
   }
 
-  goToNext(): void {
+  goToNext() {
     if (!this.hasNext) return;
     this.currentPage++;
     this.loadPages();
   }
 
-  close(): void   { this.modalRef.close(); }
-  dismiss(): void { this.modalRef.dismiss(); }
+  // 🔥 CLOSE WITH WARNING
+  close() {
+    if (this.hasDirtyRows) {
+      Swal.fire({
+        title: 'Unsaved changes',
+        showCancelButton: true,
+      }).then((res) => {
+        if (res.isConfirmed) this.modalRef.close();
+      });
+    } else {
+      this.modalRef.close();
+    }
+  }
+
+  // 🔥 AUTO UNLOCK
+  ngOnDestroy() {
+    if (this.documentId) {
+      this.service
+        .manageLock(this.documentId, this.currentUserId, 'UNLOCK')
+        .subscribe();
+    }
+  }
+
+  // 🔥 CTRL + S
+  @HostListener('document:keydown.control.s', ['$event'])
+  handleSave(event: KeyboardEvent) {
+    event.preventDefault();
+    this.saveAll();
+  }
 }

@@ -1,0 +1,112 @@
+<div class="seva-content">
+  <div class="seva-card">
+    <div class="seva-card__header">
+      <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
+      <h2 class="seva-card__title">💡 Suggestions</h2>
+      <span class="seva-card__subtitle" *ngIf="documentName">
+        for &nbsp;<strong>{{ documentName }}</strong>
+      </span>
+    </div>
+  </div>
+
+  <div class="om-loader" *ngIf="isLoading">
+    <div class="om-loader__ring">
+      <span class="om-loader__symbol">ॐ</span>
+    </div>
+    <p class="om-loader__text">Loading suggestions, please wait…</p>
+  </div>
+
+  <div
+    class="not-found-box"
+    *ngIf="!isLoading && loaded && suggestions.length === 0"
+  >
+    🪷 No suggestions found for this document page.
+  </div>
+
+  <div class="seva-card" *ngIf="!isLoading && suggestions.length > 0">
+    <div class="seva-card__header"></div>
+
+    <div class="seva-card__body">
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>Document</th>
+            <th>Suggestion</th>
+            <th>Creator</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let s of suggestions">
+            <!-- Document Name -->
+            <td>
+              {{ s.documentname || "Doc #" + s.documentid }}
+            </td>
+
+            <!-- Suggestion -->
+            <td>
+              {{ s.suggestiontext }}
+            </td>
+
+            <!-- Creator -->
+            <td>
+              {{ s.creator_name }}
+            </td>
+
+            <!-- Actions -->
+            <td>
+              <!-- View -->
+              <button
+                class="btn btn-sm btn-primary me-2"
+                (click)="openViewModal(s)"
+              >
+                🔍 View
+              </button>
+
+              <!-- ✅ Resolved -->
+              <button
+                class="btn btn-sm btn-success me-2"
+                (click)="reviewSuggestion(s, 'Resolved')"
+              >
+                ✔ Resolve
+              </button>
+
+              <!-- ❌ Not Resolved -->
+              <button
+                class="btn btn-sm btn-danger"
+                (click)="reviewSuggestion(s, 'Rejected')"
+              >
+                ✖ Reject
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination d-flex justify-content-start align-items-center gap-2 mt-3">
+
+  <button
+    class="btn btn-sm btn-outline-primary"
+    (click)="goToPrevious()"
+    [disabled]="!hasPrevious">
+    Previous
+  </button>
+
+  <span class="mx-2">Page {{ currentPage }}</span>
+
+  <button
+    class="btn btn-sm btn-outline-primary"
+    (click)="goToNext()"
+    [disabled]="!hasNext">
+    Next
+  </button>
+
+</div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── FOOTER ─── -->
+<div class="seva-footer">
+  🪷 &nbsp; Jai Shri Krishna &nbsp; • &nbsp; सेवा परमो धर्मः &nbsp; 🪷
+</div>

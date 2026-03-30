@@ -1,0 +1,47 @@
+<div class="modal-header">
+  <h4 class="modal-title">📄 {{ documentName }}</h4>
+  <button type="button" class="btn-close" (click)="activeModal.dismiss()"></button>
+</div>
+
+<div class="modal-body">
+
+  <!-- Loader -->
+  <div *ngIf="isLoading" class="text-center">
+    Loading suggestion pages...
+  </div>
+
+  <!-- Table -->
+  <table class="table table-bordered" *ngIf="!isLoading">
+    <thead>
+      <tr>
+        <th>Extracted Text</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      <tr *ngFor="let p of suggestionPages">
+
+        <td>
+          <textarea
+            class="form-control"
+            rows="15"
+            [(ngModel)]="p.extractedtext">
+          </textarea>
+        </td>
+
+      </tr>
+    </tbody>
+  </table>
+
+</div>
+
+<!-- ✅ Footer Save -->
+<div class="modal-footer">
+  <button class="btn btn-secondary" (click)="activeModal.dismiss()">
+    Cancel
+  </button>
+
+  <button class="btn btn-primary" (click)="saveAll()">
+    Save
+  </button>
+</div>

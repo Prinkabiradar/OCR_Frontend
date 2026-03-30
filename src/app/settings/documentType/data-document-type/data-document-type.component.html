@@ -41,7 +41,7 @@
           <tr>
             <th>#</th>
             <th>Document Type Name</th>
-            <th>View More</th>
+            <th *ngIf="roleId === 5">View More</th>
             <th *ngIf="roleId !== 5">Edit</th>
             <th *ngIf="roleId !== 5">Delete</th>
           </tr>
@@ -88,9 +88,28 @@
   </div>
 
   <!-- Pagination -->
-  <div class="pagination d-flex justify-content-start align-items-center gap-2">
-    <button (click)="goToPrevious()" [disabled]="!hasPrevious">Previous</button>
-    <span class="mx-2">Page {{ currentPage }}</span>
-    <button (click)="goToNext()" [disabled]="!hasNext">Next</button>
-  </div>
+  <div class="table-footer">
+        <div class="entries">
+          Showing
+          <select>
+            <option>10</option>
+            <option>25</option>
+          </select>
+          entries
+        </div>
+
+        <div class="pagination">
+          <button (click)="goToDocPrevious()" [disabled]="!docHasPrevious">
+            Previous
+          </button>
+
+          <span class="page-number">
+            {{ currentPage }} / {{ totalPages }}
+          </span>
+
+          <button (click)="goToDocNext()" [disabled]="!docHasNext">Next</button>
+        </div>
+
+        <div class="total">Total Records: {{ totalRecords }}</div>
+      </div>
 </div>

@@ -92,5 +92,11 @@ gstrateMaster$ = this.gstrateMasterListSubject.asObservable();
 
   setDocumentData(data: any) { this.documentSubject.next(data); }
   clearDocumentData() { this.documentSubject.next(null); }
+
+  private ocrSubject = new BehaviorSubject<any>(null);
+  ocr$ = this.ocrSubject.asObservable();
+
+  setOCRData(data: any) { this.ocrSubject.next(data); }
+  clearOCRData() { this.ocrSubject.next(null); }
      
 }

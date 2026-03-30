@@ -6,6 +6,9 @@ import { NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { OcrPageModalComponent } from '../ocr-page-modal/ocr-page-modal.component';
 import { environment } from 'src/environments/environment';
 import { EventEmitter, Output } from '@angular/core';
+import Swal from 'sweetalert2';
+import { SharedDataService } from '../../shared-data.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-ocr-data',
@@ -26,7 +29,13 @@ export class OcrDataComponent implements OnInit {
   saveAllSuccess: boolean = false;
 
   pageList: any[] = [];
+  currentLockedDocId: number | null = null;
+  loadingDocId: number | null = null;
 
+  totalRecords: number = 0;
+  totalPages: number = 0;
+
+  currentUserId: number = 0;
   roleId: number = 0;
   // ── STEP 2: Document List + Pagination ────────────────────
   documentList: any[] = [];
@@ -34,6 +43,8 @@ export class OcrDataComponent implements OnInit {
   docsError = '';
   docCurrentPage: number = 1;
   docPageSize: number = 10;
+  searchCriteria: string = '';
+  searchBy: string = '';
 
   @Output() statusUpdated = new EventEmitter<any>();
   // ── Modal ──────────────────────────────────────────────────
@@ -51,11 +62,17 @@ export class OcrDataComponent implements OnInit {
   constructor(
     private service: ServiceService,
     private cdr: ChangeDetectorRef,
+    private router: Router,
+    private _shareds: SharedDataService,
   ) {}
 
   ngOnInit(): void {
     this.documentTypeDropdown();
     this.loadDocuments();
+    const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    this.currentUserId = userData?.id ?? 0;
+    this.roleId = userData?.roleId ?? 0;
   }
 
   // STEP 1 — load document types into dropdown
@@ -89,6 +106,11 @@ export class OcrDataComponent implements OnInit {
     this.docsError = '';
     this.docCurrentPage = 1;
 
+    this.loadDocuments();
+  }
+  clearDropdown(): void {
+    this.selectedTypeId = 0;
+    this.docCurrentPage = 1;
     this.loadDocuments();
   }
 
@@ -133,6 +155,10 @@ export class OcrDataComponent implements OnInit {
         return 'Partially Approved';
       case 3:
         return 'Approved';
+        case 7:
+          return 'Rejected';
+          case 8:
+            return 'Suggestion';
       default:
         return `Reviewed (${statusId})`;
     }
@@ -141,24 +167,28 @@ export class OcrDataComponent implements OnInit {
   getStatusClass(statusId: number): string {
     switch (statusId) {
       case 0:
-        return 'badge-pending';
-      case 4:
-        return 'badge-partially-checked';
+        return 'badge-red';
+
       case 1:
-        return 'badge-Checked';
-      case 5:
-        return 'badge-Partially-verified';
+      case 4:
+        return 'badge-orange';
+
       case 2:
-        return 'badge-Verified';
-      case 6:
-        return 'badge-Partially-approved';
+      case 5:
+        return 'badge-yellow';
+
       case 3:
-        return 'badge-approved';
+      case 6:
+        return 'badge-green';
+
+        case 7: return 'badge-rejected';
+        
+        case 8: return 'badge-suggestion';
+
       default:
-        return 'badge-approved';
+        return 'badge-default';
     }
   }
-
   // fetch document list — 0-based offset
   loadDocuments(): void {
     //if (!this.selectedTypeId) return;
@@ -170,8 +200,10 @@ export class OcrDataComponent implements OnInit {
 
     const lsValue = localStorage.getItem(this.authLocalStorageToken);
     const userData = lsValue ? JSON.parse(lsValue) : null;
-    const userId = userData?.id ?? 0;
+    const userId = this.currentUserId;
     this.roleId = userData?.roleId ?? 0;
+    const searchCriteria = this.searchCriteria.trim();
+    const searchBy = this.searchBy;
 
     this.service
       .getDocumentsByTypeId(
@@ -179,12 +211,15 @@ export class OcrDataComponent implements OnInit {
         startIndex,
         this.docPageSize,
         this.roleId,
+        this.searchBy,
+        this.searchCriteria,
       )
       .subscribe({
         next: (res: any) => {
           const raw: any[] = Array.isArray(res)
             ? res
             : (res?.data ?? res?.Data ?? []);
+
           this.documentList = raw.map((d: any) => ({
             documentId: d.documentid ?? d.documentId ?? d.DocumentId,
             documentName: d.documentname ?? d.documentName ?? d.DocumentName,
@@ -198,7 +233,16 @@ export class OcrDataComponent implements OnInit {
             approvedByName:
               d.approvedby_name ?? d.approvedByName ?? d.ApprovedByName,
             approvedDate: d.approveddate ?? d.approveddate ?? d.ApprovedDate,
+            lockedBy: d.lockedby ?? d.lockedBy ?? d.LockedBy,
+            lockedByName: d.lockedby_name ?? d.lockedByName ?? d.LockedByName,
           }));
+
+          // ✅ IMPORTANT: get totalRecords from API
+          this.totalRecords = raw.length > 0 ? raw[0].totalrecords : 0;
+
+          // ✅ calculate total pages
+          this.totalPages = Math.ceil(this.totalRecords / this.docPageSize);
+
           this.loadingDocs = false;
           this.cdr.detectChanges();
         },
@@ -210,13 +254,17 @@ export class OcrDataComponent implements OnInit {
         },
       });
   }
+  goToAddDocument(): void {
+    this._shareds.clearOCRData();
+    this.router.navigate(['/settings/add-image']);
+  }
 
   // Doc list pagination
   get docHasPrevious(): boolean {
     return this.docCurrentPage > 1;
   }
   get docHasNext(): boolean {
-    return this.documentList.length === this.docPageSize;
+    return this.docCurrentPage < this.totalPages;
   }
 
   goToDocPrevious(): void {
@@ -230,13 +278,54 @@ export class OcrDataComponent implements OnInit {
     this.docCurrentPage++;
     this.loadDocuments();
   }
-
+  onSearchChange(): void {
+  const activeEl = document.activeElement as HTMLElement;
+  this.docCurrentPage = 1;
+  this.loadDocuments();
+  setTimeout(() => activeEl?.focus(), 0);
+}
   // STEP 3 — click View → pass documentId to modal and open it
   async onDocumentClick(doc: any): Promise<void> {
-    this.modalComponent.documentId = doc.documentId;
-    this.modalComponent.documentName = doc.documentName;
-    await this.modalComponent.open();
+    const userId = this.currentUserId;
+    this.loadingDocId = doc.documentId;
+
+    this.service.manageLock(doc.documentId, userId, 'LOCK').subscribe({
+      next: async () => {
+        this.currentLockedDocId = doc.documentId;
+
+        this.modalComponent.documentId = doc.documentId;
+        this.modalComponent.documentName = doc.documentName;
+
+        await this.modalComponent.open();
+
+        this.unlockDocument();
+        this.loadDocuments();
+        this.loadingDocId = null;
+      },
+
+      error: (err) => {
+        this.loadingDocId = null;
+
+        Swal.fire(
+          'Error',
+          err.error?.message || 'Document locked by another user',
+          'error',
+        );
+      },
+    });
   }
+  unlockDocument() {
+    if (!this.currentLockedDocId) return;
+
+    this.service
+      .manageLock(this.currentLockedDocId, this.currentUserId, 'UNLOCK')
+      .subscribe();
+
+    this.currentLockedDocId = null;
+  }
+  // ngOnDestroy(): void {
+  //   this.unlockDocument();
+  // }
 
   // For role 5: download and open the PDF in a new tab
   onViewPdf(doc: any): void {

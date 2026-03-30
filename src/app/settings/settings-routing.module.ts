@@ -20,6 +20,7 @@ import { DataDocumentComponent } from './document/data-document/data-document.co
 import { DataDocumentTypeComponent } from './documentType/data-document-type/data-document-type.component';
 import { PdfViewerModalComponent } from './PDF/pdf-viewer-modal/pdf-viewer-modal.component';
 import { DataSummaryComponent } from './Agent/data-summary/data-summary.component';
+import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion-list.component';
 
 
 
@@ -115,6 +116,10 @@ const routes: Routes = [
   {
     path: 'data-summary',
     component: DataSummaryComponent,
+  },
+  {
+    path: 'suggestion-list',
+    component: SuggestionListComponent,
   },
 
   { path: '', redirectTo: 'add-order', pathMatch: 'full' },

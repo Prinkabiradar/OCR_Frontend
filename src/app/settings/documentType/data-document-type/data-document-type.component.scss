@@ -36,3 +36,31 @@
   text-align: center;
   color: #6b7280;
 }
+
+.table-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+/* Pagination */
+.pagination button {
+  padding: 6px 10px;
+  margin: 0 5px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 6px;
+}
+
+.page-number {
+  font-weight: bold;
+}
+
+/* Empty */
+.empty {
+  text-align: center;
+  padding: 20px;
+  color: #6b7280;
+}

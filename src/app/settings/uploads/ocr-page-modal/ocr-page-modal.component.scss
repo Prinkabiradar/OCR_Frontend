@@ -156,3 +156,105 @@ $radius: 10px;
     background: #f3f4f6;
   }
 }
+.ocr-header {
+  background: #8dabdc;
+  color: #080808;
+}
+
+.ocr-title {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.ocr-body {
+  background: #f8fafc;
+}
+
+.ocr-card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 15px;
+  margin-bottom: 15px;
+  border: 1px solid #e2e8f0;
+}
+
+.ocr-card-header {
+  margin-bottom: 10px;
+}
+
+.ocr-page-label {
+  font-weight: 600;
+  color: #5e96e5;
+}
+
+.ocr-textarea {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  padding: 10px;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 350px;
+}
+
+.ocr-textarea.edited {
+  border-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.ocr-card-footer {
+  margin-top: 10px;
+}
+
+.ocr-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* STATUS COLORS */
+.badge-red { background: #fee2e2; color: #b91c1c; }
+.badge-orange { background: #ffedd5; color: #c2410c; }
+.badge-yellow { background: #fef9c3; color: #a16207; }
+.badge-green { background: #dcfce7; color: #166534; }
+
+.ocr-state-center {
+  text-align: center;
+  padding: 40px;
+}
+
+.empty-icon {
+  font-size: 40px;
+}
+
+.ocr-footer {
+  border-top: 1px solid #e5e7eb;
+}
+.top-bar {
+  margin-bottom: 15px;
+}
+
+.search-box input {
+  height: 38px;
+}
+
+.filter-box ng-select2 {
+  width: 100%;
+}
+.badge-rejected {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.suggestion-box {
+  background: #fff3cd;
+  border-left: 4px solid #ffc107;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 6px;
+}
+
+.alert-warning {
+  border-radius: 8px;
+}

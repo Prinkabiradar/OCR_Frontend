@@ -20,12 +20,73 @@ export class AgentAddComponent implements OnInit {
   selectedPageIndex: number = 0;
 
   pages: any[] = [];
+  documentDropdown: any[] = [];
+selectedDocumentId: number = 0;
+selectedDocumentName: string = '';
 
   summaryId        : number    = 0; 
   summaryFromCache = false;
   summaryUpdatedAt: Date | null = null;
   isSavingSummary  = false;
   summaryDirty     = false; 
+
+  // Suggestion modal
+showSuggestionModal = false;
+suggestionText      = '';
+isSavingSuggestion  = false;
+
+openSuggestionModal() {
+  this.suggestionText     = '';
+  this.showSuggestionModal = true;
+}
+
+closeSuggestionModal() {
+  this.showSuggestionModal = false;
+  this.suggestionText      = '';
+}
+
+onOverlayClick(event: MouseEvent) {
+  if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
+    this.closeSuggestionModal();
+  }
+}
+
+saveSuggestion() {
+  if (!this.suggestionText.trim()) return;
+  this.isSavingSuggestion = true;
+  this.cd.detectChanges();
+
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const userData = lsValue ? JSON.parse(lsValue) : null;
+  const createdBy = userData?.id ?? 0;
+
+  // Get current page details from the active page
+  const currentPage = this.currentDocPage;
+  const documentId     = this.selectedDocumentId;
+  const pageNumber     = currentPage?.pageNumber ?? 0;
+  const documentPageId = currentPage?.documentPageId ?? currentPage?.id ?? 0;
+
+  this.service.saveSuggestion(
+    0,              // new suggestion, so ID = 0
+    documentId,
+    pageNumber,
+    documentPageId,
+    this.suggestionText.trim(),
+    createdBy
+  ).subscribe({
+    next: () => {
+      this.isSavingSuggestion = false;
+      this.closeSuggestionModal();
+      Swal.fire({ icon: 'success', title: 'Thanks!', text: 'Suggestion submitted successfully.' });
+      this.cd.detectChanges();
+    },
+    error: () => {
+      this.isSavingSuggestion = false;
+      this.cd.detectChanges();
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to submit suggestion.' });
+    }
+  });
+}
 
   // ✅ Pages list — exactly like roleList$
   pageList$: Observable<any[]>;
@@ -76,7 +137,42 @@ export class AgentAddComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadVoices();
+     this.loadDocumentsDropdown();
   }
+
+  loadDocumentsDropdown(search: string = '') {
+  this.service.dropdownAll(search, '1', '4', '0').subscribe({
+    next: (res: any[]) => {
+      console.log('Dropdown API Response:', res);  // 👈 ADD THIS
+
+      this.documentDropdown = res.map(x => ({
+  id: x.id.toString(),   // ng-select2 prefers string
+  text: x.text           // ✅ FIXED
+}));
+
+      this.cd.detectChanges();
+    },
+    error: (err) => {
+      console.error('Dropdown API Error:', err);  // 👈 ADD THIS
+    }
+  });
+}
+onDocumentSelect(event: any) {
+  console.log('Selected Value:', event);
+
+  // event is ID, not object
+  this.selectedDocumentId = Number(event);
+
+  // find full object from dropdown
+  const selected = this.documentDropdown.find(x => x.id == this.selectedDocumentId);
+
+  this.selectedDocumentName = selected?.text || '';
+
+  // pass to search
+  this.userQuestion = this.selectedDocumentName;
+
+  console.log('Selected Name:', this.selectedDocumentName);
+}
   get indianVoices() {
     const indianLangs = ['en-IN', 'hi', 'bn', 'ta', 'te', 'kn', 'ml', 'gu', 'pa'];
     return this.availableVoices.filter(v => indianLangs.some(l => v.lang.startsWith(l)));
@@ -145,7 +241,7 @@ export class AgentAddComponent implements OnInit {
 
   // ✅ Search button / Enter key / Voice
   askQuestion() {
-    if (!this.userQuestion.trim()) return;
+    if (!this.userQuestion?.trim()) return;
     this.currentPage = 1;
     this.AgentGET();
   }
