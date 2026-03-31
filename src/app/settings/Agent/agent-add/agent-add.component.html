@@ -121,14 +121,18 @@
           </div>
         </div>
         <div class="summary-panel__body">
-          <!-- Editable textarea instead of <pre> -->
-          <textarea
-            class="form-control summary-textarea"
-            rows="10"
-            [(ngModel)]="summary"
-            readonly
-            placeholder="Summary will appear here…"
-          ></textarea>
+          <div class="agent-editor-wrap agent-editor-wrap--readonly">
+            <!-- <ngx-editor-menu
+              [editor]="summaryEditor"
+              [toolbar]="editorToolbar">
+            </ngx-editor-menu> -->
+            <ngx-editor
+              [editor]="summaryEditor"
+              [(ngModel)]="summary"
+              (ngModelChange)="onSummaryEdit()"
+              placeholder="Summary will appear here…">
+            </ngx-editor>
+          </div>
         </div>
       </div>
 
@@ -151,7 +155,13 @@
               🔊 Read Page
             </button>
           </div>
-          <pre class="page-text">{{ currentDocPage.extractedText }}</pre>
+          <div class="page-editor-wrap">
+            <ngx-editor
+              [editor]="pageTextEditor"
+              [ngModel]="pageTextContent"
+              placeholder="Page text will appear here…">
+            </ngx-editor>
+          </div>
         </div>
 
         <!-- Local Prev / Next -->
