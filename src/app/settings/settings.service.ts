@@ -134,7 +134,7 @@ export class ServiceService {
     });
 
     return this.http.post<any[]>(
-      environment.BaseUrl + 'api/Roles/RolesInsertUpdate',
+      environment.BaseUrl + 'api/RoleAccess/InsertUpdateRole',
       roles,
       { headers },
     );
@@ -292,7 +292,7 @@ export class ServiceService {
       .set('searchBy', searchBy)
       .set('searchCriteria', searchCriteria);
 
-    return this.http.get<any[]>(environment.BaseUrl + 'api/Roles/RolesGET', {
+    return this.http.get<any[]>(environment.BaseUrl + 'api/RoleAccess/GETRoles', {
       headers: headers,
       params: params,
     });

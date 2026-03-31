@@ -73,11 +73,12 @@
             [toolbar]="pageToolbar">
           </ngx-editor-menu>
           <ngx-editor
-            [editor]="getOrCreateEditor(item.DocumentPageId)"
-            [(ngModel)]="editedTexts[item.DocumentPageId]"
-            (ngModelChange)="onEditorChange(item, $event)"
-            placeholder="Extracted text will appear here…">
-          </ngx-editor>
+  [editor]="getOrCreateEditor(item.DocumentPageId)"
+  [(ngModel)]="editedTexts[item.DocumentPageId]"
+  (ngModelChange)="onEditorChange(item, $event)"
+  [disabled]="!canEdit(item)"
+  placeholder="Extracted text will appear here…">
+</ngx-editor>
         </div>
 
         <!-- 🔹 FOOTER -->
@@ -86,10 +87,10 @@
   <!-- LEFT: Reject Button -->
   <div class="footer-left">
     <button
-      class="btn btn-danger btn-sm"
-      (click)="rejectRow(item)"
-      [disabled]="savingRows[item.DocumentPageId]"
-    >
+  class="btn btn-danger btn-sm"
+  (click)="rejectRow(item)"
+  [disabled]="savingRows[item.DocumentPageId] || !canEdit(item)"
+>
       ✕ Reject
     </button>
   </div>
@@ -105,10 +106,10 @@
   <!-- RIGHT: Save Button -->
   <div class="footer-right">
     <button
-      class="btn btn-success btn-sm"
-      (click)="saveRow(item)"
-      [disabled]="savingRows[item.DocumentPageId]"
-    >
+  class="btn btn-success btn-sm"
+  (click)="saveRow(item)"
+  [disabled]="savingRows[item.DocumentPageId] || !canEdit(item)"
+>
       <span *ngIf="!savingRows[item.DocumentPageId]">Save</span>
       <span *ngIf="savingRows[item.DocumentPageId]">
         <span class="spinner-border spinner-border-sm"></span> Saving...
