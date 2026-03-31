@@ -965,4 +965,56 @@ reviewSuggestion(model: any) {
     { headers }
   );
 }
+userAdd(users: any): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+  const headers = new HttpHeaders({
+    'Content-Type': 'application/json',
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  return this.http.post<any[]>(
+    environment.BaseUrl + 'api/UserAdd/insert-update',
+    users,
+    { headers },
+  );
+}
+
+UsersGET(
+  userId:number,
+  startIndex: number,
+  pageSize: number,
+  searchBy: string,
+  searchCriteria: string,
+): Observable<any[]> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  if (!lsValue) {
+    return new Observable<any[]>((observer) => {
+      observer.next([]);
+      observer.complete();
+    });
+  }
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
+  });
+
+  const params = new HttpParams()
+    .set('userId', userId.toString())
+    .set('startIndex', startIndex.toString())
+    .set('pageSize', pageSize.toString())
+    .set('searchBy', searchBy)
+    .set('searchCriteria', searchCriteria);
+
+  return this.http.get<any[]>(environment.BaseUrl + 'api/UserAdd/UsersGET', {
+    headers: headers,
+    params: params,
+  });
+}
 }

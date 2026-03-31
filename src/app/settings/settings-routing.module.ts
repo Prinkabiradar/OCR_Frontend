@@ -22,6 +22,8 @@ import { PdfViewerModalComponent } from './PDF/pdf-viewer-modal/pdf-viewer-modal
 import { DataSummaryComponent } from './Agent/data-summary/data-summary.component';
 import { SummaryAddComponent } from './Agent/summary-add/summary-add.component';
 import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion-list.component';
+import { UserAddComponent } from './user/user-add/user-add.component';
+import { UserDataComponent } from './user/user-data/user-data.component';
 
 
 
@@ -124,6 +126,14 @@ const routes: Routes = [
   {
     path: 'suggestion-list',
     component: SuggestionListComponent,
+  },
+  {
+    path: 'user-add',
+    component: UserAddComponent,
+  },
+  {
+    path: 'user-data',
+    component: UserDataComponent,
   },
 
   { path: '', redirectTo: 'add-order', pathMatch: 'full' },

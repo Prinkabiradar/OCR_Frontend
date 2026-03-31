@@ -86,13 +86,17 @@
                 {{ (element.UpdatedBy && (element.UpdatedBy | json) !== '{}') ? element.UpdatedBy : 'NA' }}
               </td>
               <td>
-                {{ element.UpdatedAt ? (element.UpdatedAt | date:'dd-MM-yyyy') : 'NA' }}
+                {{ element.UpdatedAt && (element.UpdatedAt | json) !== '{}' 
+                  ? (element.UpdatedAt | date:'dd-MM-yyyy') 
+                  : 'NA' }}
               </td>
               <td>
                 {{ (element.ApprovedBy &&(element.ApprovedBy | json) !== '{}')? element.ApprovedBy : 'NA' }}
               </td>
               <td>
-                {{ element.ApprovedAt ? (element.ApprovedAt | date:'dd-MM-yyyy') : 'NA' }}
+                {{ element.ApprovedAt && (element.ApprovedAt | json) !== '{}' 
+                  ? (element.ApprovedAt | date:'dd-MM-yyyy') 
+                  : 'NA' }}              
               </td>
               <td>
                 <span
