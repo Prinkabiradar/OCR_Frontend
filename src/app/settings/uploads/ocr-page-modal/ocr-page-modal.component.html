@@ -81,42 +81,42 @@
         </div>
 
         <!-- 🔹 FOOTER -->
-        <div
-          class="ocr-card-footer d-flex justify-content-between align-items-center"
-        >
-          <!-- STATUS FLOW -->
-          <div class="ocr-status-flow" *ngIf="isDirty(item)">
-            <small class="text-muted">
-              Next:
-              <strong>{{
-                getStatusLabel(getNextStatus(item.StatusId))
-              }}</strong>
-            </small>
-          </div>
+        <div class="ocr-card-footer d-flex align-items-center">
 
-          <div class="d-flex gap-2">
-            <!-- SAVE BUTTON -->
-            <button
-              class="btn btn-success btn-sm"
-              (click)="saveRow(item)"
-              [disabled]="savingRows[item.DocumentPageId]"
-            >
-              <span *ngIf="!savingRows[item.DocumentPageId]">Save</span>
-              <span *ngIf="savingRows[item.DocumentPageId]">
-                <span class="spinner-border spinner-border-sm"></span> Saving...
-              </span>
-            </button>
+  <!-- LEFT: Reject Button -->
+  <div class="footer-left">
+    <button
+      class="btn btn-danger btn-sm"
+      (click)="rejectRow(item)"
+      [disabled]="savingRows[item.DocumentPageId]"
+    >
+      ✕ Reject
+    </button>
+  </div>
 
-            <!-- ← ADD: REJECT BUTTON (role 2 or 3 only, not already rejected) -->
-            <button
-              class="btn btn-danger btn-sm"
-              (click)="rejectRow(item)"
-              [disabled]="savingRows[item.DocumentPageId]"
-            >
-              ✕ Reject
-            </button>
-          </div>
-        </div>
+  <!-- CENTER: Status -->
+  <div class="footer-center" *ngIf="isDirty(item)">
+    <small class="text-muted">
+      Next:
+      <strong>{{ getStatusLabel(getNextStatus(item.StatusId)) }}</strong>
+    </small>
+  </div>
+
+  <!-- RIGHT: Save Button -->
+  <div class="footer-right">
+    <button
+      class="btn btn-success btn-sm"
+      (click)="saveRow(item)"
+      [disabled]="savingRows[item.DocumentPageId]"
+    >
+      <span *ngIf="!savingRows[item.DocumentPageId]">Save</span>
+      <span *ngIf="savingRows[item.DocumentPageId]">
+        <span class="spinner-border spinner-border-sm"></span> Saving...
+      </span>
+    </button>
+  </div>
+
+</div>
       </div>
     </div>
   </div>

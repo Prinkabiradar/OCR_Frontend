@@ -375,50 +375,64 @@ error: () => {
 
   // 🔥 SAVE ROW (OPTIMISTIC UI)
   saveRow(item: any) {
-    if (this.savingRows[item.DocumentPageId]) return;
+  if (this.savingRows[item.DocumentPageId]) return;
 
-    const oldText = item.ExtractedText;
-    const oldStatus = item.StatusId;
-    const lsValue = localStorage.getItem(this.authLocalStorageToken);
-    const userData = lsValue ? JSON.parse(lsValue) : null;
-    const userId = this.currentUserId;
-    this.roleId = userData?.roleId ?? 0;
+  const oldText = item.ExtractedText;
+  const oldStatus = item.StatusId;
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const userData = lsValue ? JSON.parse(lsValue) : null;
+  const userId = this.currentUserId;
+  this.roleId = userData?.roleId ?? 0;
 
-    const payload = {
-      documentPageId: item.DocumentPageId,
-      documentId: item.DocumentId,
-      pageNumber: item.PageNumber,
-      extractedText: this.editedTexts[item.DocumentPageId],
-      statusId: this.getNextStatus(item.StatusId),
-      userId: this.currentUserId, // ← ADD
-      roleId: this.roleId, // ← ADD
-      rejectionReason: '', // ← ADD (empty for normal save)
-    };
+  const payload = {
+    documentPageId: item.DocumentPageId,
+    documentId: item.DocumentId,
+    pageNumber: item.PageNumber,
+    extractedText: this.editedTexts[item.DocumentPageId],
+    statusId: this.getNextStatus(item.StatusId),
+    userId: this.currentUserId,
+    roleId: this.roleId,
+    rejectionReason: '',
+  };
 
-    this.savingRows[item.DocumentPageId] = true;
+  this.savingRows[item.DocumentPageId] = true;
 
-    // optimistic update
-    item.ExtractedText = payload.extractedText;
-    item.StatusId = payload.statusId;
+  // optimistic update
+  item.ExtractedText = payload.extractedText;
+  item.StatusId = payload.statusId;
 
-    this.service.saveDocumentPage(payload).subscribe({
-      next: () => {
-        this.savedRows[item.DocumentPageId] = true;
-        this.savingRows[item.DocumentPageId] = false;
+  this.service.saveDocumentPage(payload).subscribe({
+    next: () => {
+      this.savedRows[item.DocumentPageId] = true;
+      this.savingRows[item.DocumentPageId] = false;
 
-        setTimeout(() => {
-          this.savedRows[item.DocumentPageId] = false;
-        }, 2000);
-      },
-      error: () => {
-        item.ExtractedText = oldText;
-        item.StatusId = oldStatus;
-        this.savingRows[item.DocumentPageId] = false;
+      // ✅ SUCCESS SWAL
+      Swal.fire({
+        icon: 'success',
+        title: 'Saved Successfully',
+        text: `Page ${item.PageNumber} has been saved.`,
+        timer: 1500,
+        showConfirmButton: false
+      });
 
-        Swal.fire('Error', 'Save failed', 'error');
-      },
-    });
-  }
+      setTimeout(() => {
+        this.savedRows[item.DocumentPageId] = false;
+      }, 2000);
+    },
+
+    error: () => {
+      item.ExtractedText = oldText;
+      item.StatusId = oldStatus;
+      this.savingRows[item.DocumentPageId] = false;
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Save failed'
+      });
+    },
+  });
+}
 
   // 🔥 SAVE ALL
   saveAll() {
@@ -472,16 +486,16 @@ error: () => {
 
   // 🔥 CLOSE WITH WARNING
   close() {
-    if (this.hasDirtyRows) {
-      Swal.fire({
-        title: 'Unsaved changes',
-        showCancelButton: true,
-      }).then((res) => {
-        if (res.isConfirmed) this.modalRef.close();
-      });
-    } else {
+    // if (this.hasDirtyRows) {
+    //   Swal.fire({
+    //     title: 'Unsaved changes',
+    //     showCancelButton: true,
+    //   }).then((res) => {
+    //     if (res.isConfirmed) this.modalRef.close();
+    //   });
+    // } else {
       this.modalRef.close();
-    }
+    // }
   }
 
   // 🔥 AUTO UNLOCK

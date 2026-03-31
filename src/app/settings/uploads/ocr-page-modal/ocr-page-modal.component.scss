@@ -258,3 +258,31 @@ $radius: 10px;
 .alert-warning {
   border-radius: 8px;
 }
+.ocr-card-footer {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-height: 40px;
+}
+
+/* Left (Reject) */
+.footer-left {
+  flex: 1;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* Center (Status text) */
+.footer-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+/* Right (Save) */
+.footer-right {
+  flex: 1;
+  display: flex;
+  justify-content: flex-end;
+}
