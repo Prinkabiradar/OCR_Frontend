@@ -4,6 +4,7 @@ import { ServiceService, OcrJobStatus, OcrFileResult } from '../../settings.serv
 import { Options } from 'select2';
 import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-add-image',
@@ -69,6 +70,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private service: ServiceService,
     private cd: ChangeDetectorRef,
+    private router: Router, 
   ) {}
 
   ngOnInit(): void {
@@ -700,6 +702,18 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.isDocumentTypeSaved = true;
         Swal.fire({ icon: 'success', title: 'Saved!', text: `Document Type saved. ID = ${newId}`, confirmButtonText: 'OK' });
         this.cd.detectChanges();
+      },
+      error: (err) => {
+        let errorMessage = 'Could not save Document Type. Please try again.';
+            if (errorMessage.includes('Document with same name already exists')) {
+      errorMessage = 'Document with same name already exists';
+    }
+        Swal.fire({
+          icon: 'error',
+          title: 'Save Failed',
+          text:errorMessage,
+          confirmButtonText: 'OK'
+        });
       }
     });
   }
@@ -721,6 +735,14 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.isDocumentSaved = true;
         Swal.fire({ icon: 'success', title: 'Saved!', text: `Document saved.`, confirmButtonText: 'OK' });
         this.cd.detectChanges();
+      },
+      error: (err) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Save Failed',
+          text: err?.error?.message || 'Could not save Document. Please try again.',
+          confirmButtonText: 'OK'
+        });
       }
     });
   }
@@ -735,10 +757,26 @@ export class AddImageComponent implements OnInit, OnDestroy {
       PageNumber: page.pageNumber, ExtractedText: page.extractedText, StatusId: 0, CreatedBy: 1 }).subscribe({
       next: () => {
         this.savedPages.add(index);
-        Swal.fire({ icon: 'success', title: 'Saved!', text: `Page ${page.pageNumber} saved.`, confirmButtonText: 'OK' });
-        const next = this.pages.controls.findIndex((_, idx) => idx > index && !this.savedPages.has(idx));
-        if (next !== -1) this.goToPage(next);
+        Swal.fire({ icon: 'success', title: 'Saved!', text: `Page ${page.pageNumber} saved.`, confirmButtonText: 'OK' })
+        .then(() => {
+          const isLastPage = index === this.pages.controls.length - 1;  // ← check if last
+          if (isLastPage) {
+            this.router.navigate(['/settings/ocr-data']);  // ← navigate if last page
+          }else {
+            // your existing logic — go to next unsaved page
+            const next = this.pages.controls.findIndex((_, idx) => idx > index && !this.savedPages.has(idx));
+            if (next !== -1) this.goToPage(next);
+          }
         this.cd.detectChanges();
+        });
+      },
+      error: (err) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Page Save Failed',
+          text: err?.error?.message || `Could not save Page ${page.pageNumber}. Please try again.`,
+          confirmButtonText: 'OK'
+        });
       }
     });
   }
@@ -753,8 +791,20 @@ export class AddImageComponent implements OnInit, OnDestroy {
       Swal.fire({ icon: 'info', title: 'Info', text: 'All pages already saved!', confirmButtonText: 'OK' });
       return;
     }
-    for (const i of unsaved) await this.savePageAsync(i);
-    Swal.fire({ icon: 'success', title: 'Done!', text: 'All pages saved!', confirmButtonText: 'OK' });
+    try {
+      for (const i of unsaved) await this.savePageAsync(i);
+      Swal.fire({ icon: 'success', title: 'Done!', text: 'All pages saved!', confirmButtonText: 'OK' })
+    .then(() => {
+      this.router.navigate(['/settings/ocr-data']);  // ← navigate after OK
+    });
+  } catch (err: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Bulk Save Failed',
+        text: err?.error?.message || 'One or more pages could not be saved. Please check and retry.',
+        confirmButtonText: 'OK'
+      });
+    }
     this.cd.detectChanges();
   }
 

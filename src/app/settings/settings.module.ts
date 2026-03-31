@@ -65,6 +65,8 @@ import { ViewSummaryComponent } from './Agent/view-summary/view-summary.componen
 import { NgxEditorModule } from 'ngx-editor';
 import { SummaryAddComponent } from './Agent/summary-add/summary-add.component';
 import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion-list.component';
+import { UserAddComponent } from './user/user-add/user-add.component';
+import { UserDataComponent } from './user/user-data/user-data.component';
 
 
 
@@ -108,6 +110,8 @@ import { SuggestionListComponent } from './suggestion/suggestion-list/suggestion
         ViewSummaryComponent,
         SummaryAddComponent,
         SuggestionListComponent,
+        UserAddComponent,
+        UserDataComponent,
         
 
   ],

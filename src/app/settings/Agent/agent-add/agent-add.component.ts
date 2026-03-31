@@ -1,15 +1,16 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { ServiceService } from '../../settings.service';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import Swal from 'sweetalert2';
+import { Editor, Toolbar } from 'ngx-editor';
 
 @Component({
   selector: 'app-agent-add',
   templateUrl: './agent-add.component.html',
   styleUrls: ['./agent-add.component.scss']
 })
-export class AgentAddComponent implements OnInit {
+export class AgentAddComponent implements OnInit,OnDestroy  {
 
   // ✅ Pagination — exactly like RolesDataComponent
   totalPages   : number = 0;
@@ -35,9 +36,62 @@ showSuggestionModal = false;
 suggestionText      = '';
 isSavingSuggestion  = false;
 
+summaryEditor: Editor;
+suggestionEditor: Editor;
+pageTextEditor: Editor;
+
+editorToolbar: Toolbar = [
+  ['bold', 'italic', 'underline', 'strike'],
+  ['ordered_list', 'bullet_list'],
+  [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+  ['blockquote'],
+  ['align_left', 'align_center', 'align_right'],
+  ['format_clear'],
+];
+private preserveLines(text: string): string {
+  if (!text) return '';
+  if (text.trim().startsWith('<')) return text;
+
+  return text
+    .split('\n')
+    .map(line => {
+      const trimmed = line.trimEnd();
+      if (!trimmed) return '<p><br></p>';
+      if (trimmed.startsWith('### ')) return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
+      if (trimmed.startsWith('## '))  return `<h2>${this.inlineFormat(trimmed.slice(3))}</h2>`;
+      if (trimmed.startsWith('# '))   return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
+      if (trimmed.startsWith('* ') || trimmed.startsWith('- '))
+        return `<p>${this.inlineFormat(trimmed.slice(2))}</p>`;
+      return `<p>${this.inlineFormat(trimmed)}</p>`;
+    })
+    .join('');
+}
+
+private inlineFormat(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>');
+}
+
+ngOnInit(): void {
+  this.pageTextEditor   = new Editor(); 
+  this.summaryEditor    = new Editor();
+  this.suggestionEditor = new Editor();
+  this.loadVoices();
+  this.loadDocumentsDropdown();
+}
+ngOnDestroy(): void {
+  this.summaryEditor?.destroy();
+  this.suggestionEditor?.destroy();
+  this.pageTextEditor?.destroy();
+}
+
 openSuggestionModal() {
   this.suggestionText     = '';
   this.showSuggestionModal = true;
+  // this.suggestionEditor?.destroy();
+  // this.suggestionEditor = new Editor();
+  // this.cd.detectChanges();
 }
 
 closeSuggestionModal() {
@@ -135,10 +189,7 @@ saveSuggestion() {
     this.setupSpeechRecognition();
   }
 
-  ngOnInit(): void {
-    this.loadVoices();
-     this.loadDocumentsDropdown();
-  }
+
 
   loadDocumentsDropdown(search: string = '') {
   this.service.dropdownAll(search, '1', '4', '0').subscribe({
@@ -255,16 +306,29 @@ onDocumentSelect(event: any) {
   get absolutePageNumber(): number {
     return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
   }
+
+  recreatePageEditor() {
+    this.pageTextEditor?.destroy();
+    this.pageTextEditor = new Editor();
+    this.cd.detectChanges();
+  }
+  
+  // Converts raw extractedText to HTML for the editor
+  get pageTextContent(): string {
+    const raw = this.currentDocPage?.extractedText || '';
+    return this.preserveLines(raw);
+  }
+
   prevDocPage() {
     if (this.selectedPageIndex > 0) {
       this.selectedPageIndex--;
+      this.recreatePageEditor();           // ← add
     } else if (this.currentPage > 1) {
-      // reached start of batch — fetch previous batch, go to last item
       this.currentPage--;
       this.AgentGET();
-      // after load, jump to last item in that batch
       setTimeout(() => {
         this.selectedPageIndex = this.pages.length - 1;
+        this.recreatePageEditor();         // ← add
         this.cd.detectChanges();
       }, 500);
     }
@@ -274,11 +338,12 @@ onDocumentSelect(event: any) {
   nextDocPage() {
     if (this.selectedPageIndex < this.pages.length - 1) {
       this.selectedPageIndex++;
+      this.recreatePageEditor();           // ← add
     } else if (this.currentPage < this.totalPages) {
-      // reached end of batch — fetch next batch automatically
       this.currentPage++;
       this.selectedPageIndex = 0;
       this.AgentGET();
+      this.recreatePageEditor();           // ← add
     }
     this.cd.detectChanges();
   }
@@ -317,8 +382,9 @@ onDocumentSelect(event: any) {
     const userId =  userData?.id ?? 0;
   
     this.service.summarizeDocument(this.documentName).subscribe({
-      next: (res: any) => {
-        this.summary          = res.summary.summary;
+      next: (res: any) => { 
+        const raw: string = res.summary.summary || '';
+        this.summary          = this.preserveLines(raw);
         this.summaryId        = res.summary.summaryId ?? 0;
         this.summaryFromCache = res.summary.fromCache;   // false = Gemini, true = DB
         this.summaryUpdatedAt = res.summary.updatedAt ? new Date(res.summary.updatedAt) : null;

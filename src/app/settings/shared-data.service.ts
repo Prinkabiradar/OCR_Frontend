@@ -99,4 +99,16 @@ gstrateMaster$ = this.gstrateMasterListSubject.asObservable();
   setOCRData(data: any) { this.ocrSubject.next(data); }
   clearOCRData() { this.ocrSubject.next(null); }
      
+  // user related
+  private userSubject = new BehaviorSubject<any>(null);
+  user$ = this.userSubject.asObservable();
+
+  setUserData(Data: any) {
+    this.userSubject.next(Data);
+  }
+
+  clearUserData() {
+    this.userSubject.next(null);
+  }
+
 }

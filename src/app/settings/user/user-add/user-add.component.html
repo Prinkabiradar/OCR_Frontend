@@ -1,0 +1,208 @@
+<div class="card mb-5 mb-xl-10">
+    <div
+      class="card-header border-0 cursor-pointer"
+      role="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#kt_user_profile_details"
+      aria-expanded="true"
+      aria-controls="kt_user_profile_details"
+    >
+      <div class="card-title m-0">
+        <h3 class="fw-bolder m-0">User</h3>
+      </div>
+    </div>
+  
+    <div id="kt_user_profile_details" class="collapse show">
+      <form class="form" [formGroup]="userForm" (ngSubmit)="onSubmit()">
+        <div class="card-body border-top p-9">
+  
+          <!-- First Name -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">First Name</label>
+            <div class="col-lg-8 fv-row">
+              <input
+                type="text"
+                class="form-control form-control-solid form-control-sm"
+                placeholder="Please Enter First Name"
+                formControlName="firstName"
+              />
+              <div *ngIf="isSubmitted || (userForm.get('firstName')?.touched && userForm.get('firstName')?.invalid)" class="text-danger">
+                <div *ngIf="userForm.get('firstName')?.hasError('required')">First Name is required</div>
+                <div *ngIf="userForm.get('firstName')?.hasError('maxlength')">First Name cannot exceed 50 characters</div>
+                <div *ngIf="userForm.get('firstName')?.hasError('specialChars')">First Name cannot contain special characters</div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Middle Name -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label fs-6">Middle Name</label>
+            <div class="col-lg-8 fv-row">
+              <input
+                type="text"
+                class="form-control form-control-solid form-control-sm"
+                placeholder="Please Enter Middle Name"
+                formControlName="middleName"
+              />
+              <div *ngIf="isSubmitted || (userForm.get('middleName')?.touched && userForm.get('middleName')?.invalid)" class="text-danger">
+                <div *ngIf="userForm.get('middleName')?.hasError('maxlength')">Middle Name cannot exceed 50 characters</div>
+                <div *ngIf="userForm.get('middleName')?.hasError('specialChars')">Middle Name cannot contain special characters</div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Last Name -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">Last Name</label>
+            <div class="col-lg-8 fv-row">
+              <input
+                type="text"
+                class="form-control form-control-solid form-control-sm"
+                placeholder="Please Enter Last Name"
+                formControlName="lastName"
+              />
+              <div *ngIf="isSubmitted || (userForm.get('lastName')?.touched && userForm.get('lastName')?.invalid)" class="text-danger">
+                <div *ngIf="userForm.get('lastName')?.hasError('required')">Last Name is required</div>
+                <div *ngIf="userForm.get('lastName')?.hasError('maxlength')">Last Name cannot exceed 50 characters</div>
+                <div *ngIf="userForm.get('lastName')?.hasError('specialChars')">Last Name cannot contain special characters</div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Mobile -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">Mobile</label>
+            <div class="col-lg-8 fv-row">
+              <input
+                type="text"
+                class="form-control form-control-solid form-control-sm"
+                placeholder="Please Enter Mobile Number"
+                formControlName="mobile"
+              />
+              <div *ngIf="isSubmitted || (userForm.get('mobile')?.touched && userForm.get('mobile')?.invalid)" class="text-danger">
+                <div *ngIf="userForm.get('mobile')?.hasError('required')">Mobile is required</div>
+                <div *ngIf="userForm.get('mobile')?.hasError('pattern')">Mobile must be a valid 10-digit number</div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Email -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">Email</label>
+            <div class="col-lg-8 fv-row">
+              <input
+                type="email"
+                class="form-control form-control-solid form-control-sm"
+                placeholder="Please Enter Email"
+                formControlName="email"
+              />
+              <div *ngIf="isSubmitted || (userForm.get('email')?.touched && userForm.get('email')?.invalid)" class="text-danger">
+                <div *ngIf="userForm.get('email')?.hasError('required')">Email is required</div>
+                <div *ngIf="userForm.get('email')?.hasError('email')">Please enter a valid email address</div>
+                <div *ngIf="userForm.get('email')?.hasError('maxlength')">Email cannot exceed 100 characters</div>
+              </div>
+            </div>
+          </div>
+  
+          <!-- Username -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label required fs-6">Username</label>
+            <div class="col-lg-8 fv-row">
+              <input
+                type="text"
+                class="form-control form-control-solid form-control-sm"
+                placeholder="Please Enter Username"
+                formControlName="userName"
+                autocomplete="off"
+              />
+              <div *ngIf="isSubmitted || (userForm.get('userName')?.touched && userForm.get('userName')?.invalid)" class="text-danger">
+                <div *ngIf="userForm.get('userName')?.hasError('required')">Username is required</div>
+                <div *ngIf="userForm.get('userName')?.hasError('maxlength')">Username cannot exceed 50 characters</div>
+              </div>
+            </div>
+          </div>
+  
+  <!-- Password -->
+        <div class="row mb-6">
+          <label class="col-lg-4 col-form-label fs-6"
+            [class.required]="!isEditMode">Password</label>
+          <div class="col-lg-8 fv-row">
+            <input
+              type="password"
+              class="form-control form-control-solid form-control-sm"
+              [placeholder]="isEditMode ? 'Leave blank to keep current password' : 'Please Enter Password'"
+              formControlName="userPass"
+              autocomplete="new-password"
+            />
+            <div *ngIf="isSubmitted || (userForm.get('userPass')?.touched && userForm.get('userPass')?.invalid)" class="text-danger">
+              <div *ngIf="userForm.get('userPass')?.hasError('required')">Password is required</div>
+              <div *ngIf="userForm.get('userPass')?.hasError('minlength')">Password must be at least 6 characters</div>
+              <div *ngIf="userForm.get('userPass')?.hasError('maxlength')">Password cannot exceed 100 characters</div>
+            </div>
+            <small *ngIf="isEditMode" class="text-muted">Leave blank to keep the existing password</small>
+          </div>
+        </div>
+  
+<!-- Role -->
+<div class="row mb-6">
+  <label class="col-lg-4 col-form-label required fs-6">Role</label>
+  <div class="col-lg-8 fv-row">
+
+    <ng-select2
+      [data]="roledata"
+      [options]="roleoptions"
+      [value]="roleValue"
+      (valueChanged)="onRoleChange($event)"
+      style="width: 100%"
+    >
+    </ng-select2>
+
+    <div
+      *ngIf="isSubmitted || (userForm.get('roleId')?.touched && userForm.get('roleId')?.invalid)"
+      class="text-danger mt-1"
+    >
+      <div *ngIf="userForm.get('roleId')?.hasError('required')">
+        Role is required
+      </div>
+    </div>
+
+  </div>
+</div>
+  
+          <!-- Is Active -->
+          <div class="row mb-6">
+            <label class="col-lg-4 col-form-label fs-6">Is Active</label>
+            <div class="col-lg-8 fv-row d-flex align-items-center">
+              <div class="form-check form-switch form-check-custom form-check-solid">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  formControlName="isActive"
+                  id="isActiveToggle"
+                />
+                <label class="form-check-label" for="isActiveToggle">Active</label>
+              </div>
+            </div>
+          </div>
+  
+        </div>
+  
+        <!-- Footer Buttons -->
+        <div class="card-footer d-flex justify-content-end py-6 px-9">
+          <button type="button" [routerLink]="['/settings/user-data']" class="btn btn-secondary">
+            Cancel
+          </button>&nbsp;&nbsp;&nbsp;
+          <button type="submit" class="btn btn-primary" [disabled]="!userForm.valid || isLoading">
+            <ng-container *ngIf="!isLoading">Save Changes</ng-container>
+            <ng-container *ngIf="isLoading">
+              <span class="indicator-progress" style="display: block;">
+                Please wait...
+                <span class="spinner-border spinner-border-sm align-middle ms-2"></span>
+              </span>
+            </ng-container>
+          </button>
+        </div>
+  
+      </form>
+    </div>
+  </div>

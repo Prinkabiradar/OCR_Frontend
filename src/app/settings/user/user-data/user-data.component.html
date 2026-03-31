@@ -1,0 +1,175 @@
+<div class="card">
+    <!--begin::Card header-->
+    <div class="card-header">
+      <div class="card-title">
+        <div class="d-flex align-items-center position-relative my-1">
+          <i class="ki-duotone ki-magnifier fs-3 position-absolute ms-5">
+            <span class="path1"></span><span class="path2"></span>
+          </i>
+          <input
+            type="text"
+            data-kt-customer-table-filter="search"
+            (input)="onSearch($event.target)"
+            class="form-control form-control-solid w-250px ps-12"
+            placeholder="Search User"
+          />
+        </div>
+      </div>
+  
+      <div class="card-toolbar">
+        <div class="my-1 me-4"></div>
+        <a
+          href="#"
+          class="btn btn-sm btn-primary my-1"
+          [routerLink]="['/settings/user-add']"
+        >
+          Add User
+        </a>
+      </div>
+    </div>
+    <!--end::Card header-->
+  
+    <!--begin::Card body-->
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table
+          class="table align-middle table-row-bordered table-row-solid gy-4"
+          id="kt_users_table"
+        >
+          <thead class="text-start fw-bold fs-7 text-uppercase gs-0">
+            <tr>
+              <th class="w-50px ps-9">#</th>
+              <th class="min-w-175px">Full Name</th>
+              <th class="min-w-125px">Username</th>
+              <th class="min-w-125px">Mobile</th>
+              <th class="min-w-175px">Email</th>
+              <th class="min-w-100px">Role</th>
+              <th class="min-w-120px">Created Date</th>
+              <th class="min-w-80px">Status</th>
+              <th class="min-w-50px">Edit</th>
+              <th class="min-w-100px pe-0">Change Status</th>
+            </tr>
+          </thead>
+  
+          <tbody
+            class="fw-semibold text-gray-600"
+            *ngIf="userList$ | async as tabledata"
+          >
+            <!-- Empty state -->
+            <tr *ngIf="tabledata.length === 0">
+              <td colspan="10" class="text-center text-warning py-5">
+                No User records available. Add Users to see records.
+              </td>
+            </tr>
+  
+            <tr *ngFor="let element of tabledata; let i = index">
+  
+              <!-- # -->
+              <td class="ps-9">
+                {{ (currentPage - 1) * itemsPerPage + i + 1 }}
+              </td>
+  
+              <!-- Full Name — safely handles middlename as {} or null -->
+              <td>
+                <span class="text-gray-800 fw-bold">
+                  {{ element.firstname }}
+                  <ng-container *ngIf="getMiddleName(element.middlename) as mid">
+                    {{ mid }}
+                  </ng-container>
+                  {{ element.lastname }}
+                </span>
+              </td>
+  
+              <!-- Username -->
+              <td>{{ element.username }}</td>
+  
+              <!-- Mobile -->
+              <td>{{ element.mobile }}</td>
+  
+              <!-- Email -->
+              <td>
+                <a
+                  [href]="'mailto:' + element.email"
+                  class="text-hover-primary text-gray-600"
+                >
+                  {{ element.email }}
+                </a>
+              </td>
+  
+              <!-- Role -->
+              <td>
+                <span class="badge badge-light-info py-2 px-3 fs-7">
+                  Role {{ element.roleid }}
+                </span>
+              </td>
+  
+              <!-- Created Date -->
+              <td>{{ element.createddate | date: 'dd MMM yyyy' }}</td>
+  
+              <!-- Status Badge -->
+              <td>
+                <span
+                  class="badge py-3 px-4 fs-7"
+                  [ngClass]="element.isactive ? 'badge-light-success' : 'badge-light-danger'"
+                >
+                  {{ element.isactive ? 'Active' : 'Inactive' }}
+                </span>
+              </td>
+  
+              <!-- Edit -->
+              <td>
+                <button
+                  type="button"
+                  (click)="edit(element)"
+                  class="btn btn-sm btn-icon btn-light-primary"
+                >
+                  <i class="ki-duotone ki-pencil fs-5">
+                    <span class="path1"></span>
+                    <span class="path2"></span>
+                  </i>
+                </button>
+              </td>
+  
+              <!-- Change Status Toggle -->
+              <!-- <td>
+                <div class="form-check form-switch form-check-solid d-flex">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    [checked]="element.isactive"
+                    (change)="delete(element, $event)"
+                  />
+                </div>
+              </td> -->
+              <td>
+                <button
+                  class="btn btn-sm btn-light-danger"
+                  (click)="confirmDelete(element)"
+                >
+                  <i class="bi bi-trash"></i> Delete
+                </button>
+              </td>
+  
+            </tr>
+          </tbody>
+  
+          <tfoot class="fw-semibold text-gray-600">
+            <tr>
+              <td colspan="10" class="ps-9">
+                <app-pagination-data
+                  [currentPage]="currentPage"
+                  [totalPages]="totalPages"
+                  [totalRecords]="totalRecords"
+                  [pageSize]="itemsPerPage"
+                  (pageChange)="onPageChange($event)"
+                  (pageSizeChange)="onPageSizeChange($event)"
+                ></app-pagination-data>
+              </td>
+            </tr>
+          </tfoot>
+  
+        </table>
+      </div>
+    </div>
+    <!--end::Card body-->
+  </div>
