@@ -437,6 +437,11 @@ error: () => {
   }
 
   rejectRow(item: any) {
+    if (!this.canEdit(item)) {
+    Swal.fire('Not Allowed', 'You cannot reject this page.', 'warning');
+    return;
+    }
+
     if (this.savingRows[item.DocumentPageId]) return;
 
     Swal.fire({
@@ -492,6 +497,11 @@ error: () => {
 
   // 🔥 SAVE ROW (OPTIMISTIC UI)
   saveRow(item: any) {
+    if (!this.canEdit(item)) {
+    Swal.fire('Not Allowed', 'You cannot edit this page at this stage.', 'warning');
+    return;
+  }
+
   if (this.savingRows[item.DocumentPageId]) return;
 
   const oldText = item.ExtractedText;
@@ -549,6 +559,20 @@ error: () => {
       });
     },
   });
+}
+
+canEdit(item: any): boolean {
+  // ❌ Role 1 cannot edit if Verified or Approved
+  if (this.roleId === 1 && (item.StatusId === 2 || item.StatusId === 3)) {
+    return false;
+  }
+
+  // ❌ Role 2 cannot edit if Approved
+  if (this.roleId === 2 && item.StatusId === 3) {
+    return false;
+  }
+
+  return true; // ✅ allowed otherwise
 }
 
   // 🔥 SAVE ALL

@@ -133,7 +133,7 @@ export class RolesDataComponent implements OnInit {
     }
  
     this._service
-      .inactivateRecordForAll(4, data.RoleId, this.userId)
+      .DeleteForAll(4, data.RoleId, this.userId)
       .subscribe(
         (response: any) => {
           data.IsActive = newStatus;
@@ -152,7 +152,7 @@ export class RolesDataComponent implements OnInit {
           console.error('API Error:', error);
           Swal.fire('Error!', error?.message || 'An error occurred.', 'error');
  
-          window.location.reload(); // Reload the page to revert changes
+         // window.location.reload(); // Reload the page to revert changes
         }
       );
   }
