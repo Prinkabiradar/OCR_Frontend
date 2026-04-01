@@ -155,10 +155,10 @@ export class OcrDataComponent implements OnInit {
         return 'Partially Approved';
       case 3:
         return 'Approved';
-        case 7:
-          return 'Rejected';
-          case 8:
-            return 'Suggestion';
+      case 7:
+        return 'Rejected';
+      case 8:
+        return 'Suggestion';
       default:
         return `Reviewed (${statusId})`;
     }
@@ -181,9 +181,11 @@ export class OcrDataComponent implements OnInit {
       case 6:
         return 'badge-green';
 
-        case 7: return 'badge-rejected';
-        
-        case 8: return 'badge-suggestion';
+      case 7:
+        return 'badge-rejected';
+
+      case 8:
+        return 'badge-suggestion';
 
       default:
         return 'badge-default';
@@ -278,12 +280,23 @@ export class OcrDataComponent implements OnInit {
     this.docCurrentPage++;
     this.loadDocuments();
   }
+
+  onDocPageChange(page: number): void {
+    this.docCurrentPage = page;
+    this.loadDocuments();
+  }
+
+  onDocPageSizeChange(size: number): void {
+    this.docPageSize = size;
+    this.docCurrentPage = 1;
+    this.loadDocuments();
+  }
   onSearchChange(): void {
-  const activeEl = document.activeElement as HTMLElement;
-  this.docCurrentPage = 1;
-  this.loadDocuments();
-  setTimeout(() => activeEl?.focus(), 0);
-}
+    const activeEl = document.activeElement as HTMLElement;
+    this.docCurrentPage = 1;
+    this.loadDocuments();
+    setTimeout(() => activeEl?.focus(), 0);
+  }
   // STEP 3 — click View → pass documentId to modal and open it
   async onDocumentClick(doc: any): Promise<void> {
     const userId = this.currentUserId;

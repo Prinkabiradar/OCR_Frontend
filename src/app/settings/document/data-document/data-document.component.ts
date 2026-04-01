@@ -14,8 +14,13 @@ import { SharedDataService } from '../../shared-data.service';
 export class DataDocumentComponent implements OnInit {
 
   isLoading: boolean = false;
-  currentPage: number = 1;
+
+  // ── Pagination ─────────────────────────────────────────────
+  currentPage: number = 1;        // used in HTML for row numbering {{ (currentPage - 1) * pageSize + i + 1 }}
+  docCurrentPage: number = 1;     // used in HTML for pagination component [currentPage]="docCurrentPage"
   pageSize: number = 10;
+  totalPages: number = 1;         // used in HTML [totalPages]="totalPages"
+
   searchBy: string = '';
   searchCriteria: string = '';
   searchTimeout: any;
@@ -29,7 +34,7 @@ export class DataDocumentComponent implements OnInit {
     private service: ServiceService,
     private cdRef: ChangeDetectorRef,
     private router: Router,
-        private _shareds: SharedDataService
+    private _shareds: SharedDataService
   ) {
     this.documents$ = this.documentsSubject.asObservable();
   }
@@ -38,26 +43,17 @@ export class DataDocumentComponent implements OnInit {
     this.fetchDocuments();
   }
 
-  // ── Pagination ─────────────────────────────────────────────
-  get hasPrevious(): boolean { return this.currentPage > 1; }
-  get hasNext(): boolean { return this.documentsSubject.getValue().length === this.pageSize; }
-
-  goToPrevious(): void {
-    if (!this.hasPrevious) return;
-    this.currentPage--;
-    this.fetchDocuments();
-  }
-
-  goToNext(): void {
-    if (!this.hasNext) return;
-    this.currentPage++;
+  // ── Pagination handler (pageChange event from app-pagination-data) ──
+  onDocPageChange(page: number): void {
+    this.docCurrentPage = page;
+    this.currentPage = page;      // keep both in sync for row numbering
     this.fetchDocuments();
   }
 
   // ── Fetch ──────────────────────────────────────────────────
   fetchDocuments(): void {
     this.isLoading = true;
-    const startIndex = (this.currentPage - 1) * this.pageSize;
+    const startIndex = (this.docCurrentPage - 1) * this.pageSize;
 
     this.service.getDocuments(
       startIndex,
@@ -67,7 +63,13 @@ export class DataDocumentComponent implements OnInit {
     ).subscribe({
       next: (response: any) => {
         const items: any[] = response?.items ?? response ?? [];
+        const totalRecords: number = response?.totalCount ?? response?.total ?? response?.totalRecords ?? 0;
+
         this.documentsSubject.next(items);
+        this.totalPages = totalRecords > 0
+          ? Math.ceil(totalRecords / this.pageSize)
+          : 1;
+
         this.isLoading = false;
         this.cdRef.detectChanges();
       },
@@ -82,6 +84,7 @@ export class DataDocumentComponent implements OnInit {
   // ── Search ─────────────────────────────────────────────────
   search(): void {
     this.currentPage = 1;
+    this.docCurrentPage = 1;
     this.fetchDocuments();
   }
 
@@ -90,6 +93,7 @@ export class DataDocumentComponent implements OnInit {
     if (this.searchTimeout) clearTimeout(this.searchTimeout);
     this.searchTimeout = setTimeout(() => {
       this.currentPage = 1;
+      this.docCurrentPage = 1;
       this.fetchDocuments();
     }, 500);
   }
@@ -104,9 +108,9 @@ export class DataDocumentComponent implements OnInit {
   }
 
   goToEdit(item: any): void {
-  this._shareds.setDocumentData(item);
-  this.router.navigate(['/settings/add-document']);
-}
+    this._shareds.setDocumentData(item);
+    this.router.navigate(['/settings/add-document']);
+  }
 
   // ── Delete ─────────────────────────────────────────────────
   confirmDelete(item: any): void {

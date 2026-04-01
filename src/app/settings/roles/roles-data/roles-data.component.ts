@@ -133,7 +133,7 @@ export class RolesDataComponent implements OnInit {
     }
  
     this._service
-      .DeleteForAll(4, data.RoleId, this.userId)
+      .DeleteForAll(5, data.RoleId, this.userId)
       .subscribe(
         (response: any) => {
           data.IsActive = newStatus;

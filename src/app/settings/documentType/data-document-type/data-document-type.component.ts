@@ -15,6 +15,7 @@ export class DataDocumentTypeComponent implements OnInit {
 
   isLoading: boolean = false;
   currentPage: number = 1;
+  docCurrentPage: number = 1;      // ← added
   pageSize: number = 10;
   searchBy: string = '';
   searchCriteria: string = '';
@@ -22,7 +23,8 @@ export class DataDocumentTypeComponent implements OnInit {
 
   totalRecords: number = 0;
   totalPages: number = 0;
-  roleId: number = 0; 
+  roleId: number = 0;
+
   private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
 
   documents$: Observable<any[]>;
@@ -57,7 +59,28 @@ export class DataDocumentTypeComponent implements OnInit {
     this.fetchDocuments();
   }
 
-  
+  get docHasPrevious(): boolean { return this.currentPage > 1; }
+  get docHasNext(): boolean { return this.currentPage < this.totalPages; }
+
+  goToDocPrevious(): void {
+    if (!this.docHasPrevious) return;
+    this.currentPage--;
+    this.fetchDocuments();
+  }
+
+  goToDocNext(): void {
+    if (!this.docHasNext) return;
+    this.currentPage++;
+    this.fetchDocuments();
+  }
+
+  // ── Page change from pagination component ──────────────────
+  onDocPageChange(page: number): void {   // ← added
+    this.docCurrentPage = page;
+    this.currentPage = page;              // keep in sync for row numbering
+    this.fetchDocuments();
+  }
+
   // ── Fetch ──────────────────────────────────────────────────
   fetchDocuments(): void {
     this.isLoading = true;
@@ -78,12 +101,10 @@ export class DataDocumentTypeComponent implements OnInit {
       next: (response: any) => {
         const items: any[] = response?.items ?? response ?? [];
         this.documentsSubject.next(items);
+        this.totalRecords = items.length > 0 ? items[0].totalrecords : 0;
+        this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
         this.isLoading = false;
         this.cdRef.detectChanges();
-        this.totalRecords = items.length > 0 ? items[0].totalrecords : 0;
-
-  // ✅ calculate total pages
-  this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
       },
       error: (err) => {
         this.isLoading = false;
@@ -93,28 +114,10 @@ export class DataDocumentTypeComponent implements OnInit {
     });
   }
 
-  get docHasPrevious(): boolean {
-    return this.currentPage > 1;
-  }
-  get docHasNext(): boolean {
-  return this.currentPage < this.totalPages;
-}
-
-goToDocPrevious(): void {
-    if (!this.docHasPrevious) return;
-    this.currentPage--;
-    this.fetchDocuments();
-  }
-
-  goToDocNext(): void {
-    if (!this.docHasNext) return;
-    this.currentPage++;
-    this.fetchDocuments();
-  }
-
   // ── Search ─────────────────────────────────────────────────
   search(): void {
     this.currentPage = 1;
+    this.docCurrentPage = 1;
     this.fetchDocuments();
   }
 
@@ -123,6 +126,7 @@ goToDocPrevious(): void {
     if (this.searchTimeout) clearTimeout(this.searchTimeout);
     this.searchTimeout = setTimeout(() => {
       this.currentPage = 1;
+      this.docCurrentPage = 1;
       this.fetchDocuments();
     }, 500);
   }
@@ -140,6 +144,10 @@ goToDocPrevious(): void {
   goToEdit(item: any): void {
     this._shareds.setDocumentTypeData(item);
     this.router.navigate(['/settings/add-documentType']);
+  }
+
+  goToViewMore(item: any): void {
+    this.router.navigate(['/settings/ocr-data']);
   }
 
   // ── Delete ─────────────────────────────────────────────────
@@ -160,15 +168,12 @@ goToDocPrevious(): void {
     });
   }
 
-  goToViewMore(item: any): void {
-  this.router.navigate(['/settings/ocr-data']);
-}
   deleteDocument(item: any): void {
     const id = item.documentTypeId ?? item.DocumentTypeId ?? item.id;
 
     const lsValue = localStorage.getItem(this.authLocalStorageToken);
-    const userId = lsValue ? JSON.parse(lsValue)?.id ?? 0 : 0;
     const userData = lsValue ? JSON.parse(lsValue) : null;
+    const userId = userData?.id ?? 0;
     this.roleId = userData?.roleId ?? 0;
 
     this.service.DeleteForAll(3, id, userId).subscribe({

@@ -12,13 +12,10 @@
           class="form-control w-250px"
           placeholder="Search documents..."
         />
-        <button class="btn btn-light-primary btn-sm" (click)="search()">
-          <i class="bi bi-search"></i> Search
-        </button>
       </div>
 
       <button class="btn btn-primary btn-sm" (click)="goToAddDocument()">
-        <i class="bi bi-plus-circle"></i> Add
+        <i class="bi bi-plus-circle"></i> Add Document
       </button>
 
     </div>
@@ -74,14 +71,39 @@
   </div>
 
   <!-- Pagination -->
-  <div class="pagination d-flex justify-content-start align-items-center gap-2">
-    <button (click)="goToPrevious()" [disabled]="!hasPrevious">
-      Previous
-    </button>
-    <span class="mx-2">Page {{ currentPage }}</span>
-    <button (click)="goToNext()" [disabled]="!hasNext">
-      Next
-    </button>
-  </div>
+  <div class="pagination-wrapper">
+      <!-- LEFT -->
+      <div class="pagination-left">
+        <app-pagination-data
+          [currentPage]="docCurrentPage"
+          [totalPages]="totalPages"
+          (pageChange)="onDocPageChange($event)"
+        >
+        </app-pagination-data>
+      </div>
+
+      <!-- CENTER -->
+      <!-- <div class="pagination-center">
+    <select [(ngModel)]="docPageSize"
+            (change)="onDocPageSizeChange(docPageSize)">
+      <option [value]="5">5</option>
+      <option [value]="10">10</option>
+      <option [value]="20">20</option>
+    </select>
+  </div> -->
+
+      <!-- RIGHT -->
+      <!-- <div class="pagination-right">
+    Displaying
+    {{ (docCurrentPage - 1) * docPageSize + 1 }}
+    to
+    {{
+      docCurrentPage * docPageSize > totalRecords
+        ? totalRecords
+        : docCurrentPage * docPageSize
+    }}
+    of {{ totalRecords }} records
+  </div> -->
+    </div>
 
 </div>

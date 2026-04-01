@@ -3,9 +3,7 @@
   <div class="header text-center"></div>
 
   <!-- Loading -->
-  <div *ngIf="loadingDocs" class="loading">
-    Loading documents...
-  </div>
+  <div *ngIf="loadingDocs" class="loading">Loading documents...</div>
 
   <!-- Error -->
   <div *ngIf="docsError" class="error">
@@ -14,10 +12,8 @@
 
   <!-- Main Card -->
   <div class="card" *ngIf="!loadingDocs && !docsError">
-
     <!-- 🔍 Filter Section -->
     <div class="row top-bar align-items-center pb-5">
-
       <!-- Search -->
       <div class="col-md-3">
         <div class="search-box">
@@ -93,8 +89,7 @@
       </thead>
 
       <tbody>
-        <tr *ngFor="let doc of documentList; let i = index">
-
+        <tr *ngFor="let doc of documentList; let i = index" class="ocr-table">
           <td>{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</td>
 
           <td>
@@ -107,9 +102,7 @@
 
           <td *ngIf="roleId !== 5">
             {{
-              doc.createdDate
-                ? (doc.createdDate | date: "mediumDate")
-                : "NA"
+              doc.createdDate ? (doc.createdDate | date: "mediumDate") : "NA"
             }}
           </td>
 
@@ -119,9 +112,7 @@
 
           <td *ngIf="roleId === 2 || roleId === 3">
             {{
-              doc.updatedDate
-                ? (doc.updatedDate | date: "mediumDate")
-                : "NA"
+              doc.updatedDate ? (doc.updatedDate | date: "mediumDate") : "NA"
             }}
           </td>
 
@@ -131,9 +122,7 @@
 
           <td *ngIf="roleId === 3">
             {{
-              doc.approvedDate
-                ? (doc.approvedDate | date: "mediumDate")
-                : "NA"
+              doc.approvedDate ? (doc.approvedDate | date: "mediumDate") : "NA"
             }}
           </td>
 
@@ -146,9 +135,7 @@
 
           <!-- Action -->
           <td *ngIf="roleId !== 5">
-
             <ng-container *ngIf="canView(doc); else notAvailable">
-
               <button
                 class="btn btn-primary"
                 (click)="onDocumentClick(doc)"
@@ -163,7 +150,6 @@
               <span *ngIf="doc.lockedBy && doc.lockedBy !== currentUserId">
                 🔒 Locked by {{ doc.lockedByName || "Another user" }}
               </span>
-
             </ng-container>
 
             <ng-template #notAvailable>
@@ -178,7 +164,6 @@
                 —
               </span>
             </ng-template>
-
           </td>
 
           <!-- PDF View -->
@@ -191,7 +176,6 @@
               {{ loadingPages ? "Loading..." : "View PDF" }}
             </button>
           </td>
-
         </tr>
       </tbody>
     </table>
@@ -202,43 +186,43 @@
     </div>
 
     <!-- 📄 Pagination -->
-    <div class="table-footer">
-
-      <div class="entries">
-        Showing
-        <select>
-          <option>10</option>
-          <option>25</option>
-        </select>
-        entries
+    <div class="pagination-wrapper">
+      <!-- LEFT -->
+      <div class="pagination-left">
+        <app-pagination-data
+          [currentPage]="docCurrentPage"
+          [totalPages]="totalPages"
+          (pageChange)="onDocPageChange($event)"
+        >
+        </app-pagination-data>
       </div>
 
-      <div class="pagination">
-        <button (click)="goToDocPrevious()" [disabled]="!docHasPrevious">
-          Previous
-        </button>
+      <!-- CENTER -->
+      <!-- <div class="pagination-center">
+    <select [(ngModel)]="docPageSize"
+            (change)="onDocPageSizeChange(docPageSize)">
+      <option [value]="5">5</option>
+      <option [value]="10">10</option>
+      <option [value]="20">20</option>
+    </select>
+  </div> -->
 
-        <span class="page-number">
-          {{ docCurrentPage }} / {{ totalPages }}
-        </span>
-
-        <button (click)="goToDocNext()" [disabled]="!docHasNext">
-          Next
-        </button>
-      </div>
-
-      <div class="total">
-        Total Records: {{ totalRecords }}
-      </div>
-
+      <!-- RIGHT -->
+      <!-- <div class="pagination-right">
+    Displaying
+    {{ (docCurrentPage - 1) * docPageSize + 1 }}
+    to
+    {{
+      docCurrentPage * docPageSize > totalRecords
+        ? totalRecords
+        : docCurrentPage * docPageSize
+    }}
+    of {{ totalRecords }} records
+  </div> -->
     </div>
   </div>
 
   <!-- 📦 Modal -->
-  <app-ocr-page-modal
-    #ocrModal
-    [modalConfig]="modalConfig"
-  >
+  <app-ocr-page-modal #ocrModal [modalConfig]="modalConfig">
   </app-ocr-page-modal>
-
 </div>
