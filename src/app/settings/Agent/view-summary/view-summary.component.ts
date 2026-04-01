@@ -13,6 +13,8 @@ import { Editor, Toolbar } from 'ngx-editor';
 export class ViewSummaryComponent implements OnInit, OnDestroy {
   @Input() documentName: string;
   @Input() summaryId: number;
+  @Input() statusId: number = 0;      
+  @Input() currentRoleId: number = 0;
 
   editor: Editor;
   toolbar: Toolbar = [
@@ -43,7 +45,20 @@ export class ViewSummaryComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.editor.destroy(); // important: prevents memory leaks
   }
-
+  get isReadOnly(): boolean {
+    if ((this.statusId === 0 || this.statusId === 1) && (this.currentRoleId === 2 || this.currentRoleId === 3)) {
+      return true;
+    }
+    // statusId=2 → roleId 1 or 3 cannot edit
+    if (this.statusId === 2 && (this.currentRoleId === 1 || this.currentRoleId === 3)) {
+      return true;
+    }
+    // statusId=3 → roleId 1 or 2 cannot edit
+    if (this.statusId === 3 && (this.currentRoleId === 1 || this.currentRoleId === 2)) {
+      return true;
+    }
+    return false;
+  }
   getSummary() {
     this.loading = true;
     this.service.summarizeDocument(this.documentName).subscribe({

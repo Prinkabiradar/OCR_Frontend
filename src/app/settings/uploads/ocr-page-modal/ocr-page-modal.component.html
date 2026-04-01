@@ -1,13 +1,26 @@
 <ng-template #ocrPageModal let-modal>
   <!-- 🔷 HEADER -->
-  <div
-    class="modal-header ocr-header d-flex justify-content-between align-items-center"
-  >
+  <div class="modal-header ocr-header d-flex justify-content-between align-items-center">
+    <!-- LEFT SIDE -->
     <div>
       <h4 class="ocr-title mb-0">{{ documentName }}</h4>
       <small class="text-muted">OCR Review & Validation</small>
     </div>
-    <button class="btn-close" (click)="close()"></button>
+    <!-- RIGHT SIDE -->
+    <div class="d-flex align-items-center gap-2">  
+      <!-- Summary Button -->
+      <button 
+        class="btn btn-outline-primary btn-sm" 
+        (click)="summarizeDocument()" 
+        [disabled]="isSummarizing">        
+        <span *ngIf="!isSummarizing"> Summary</span>
+        <span *ngIf="isSummarizing">
+          <span class="spinner-border spinner-border-sm"></span> Loading…
+        </span>
+      </button> 
+      <!-- Close Button -->
+      <button class="btn-close" (click)="close()"></button>
+    </div>
   </div>
 
   <!-- 🔷 BODY -->
@@ -55,6 +68,59 @@
             ✖ Reject
           </button>
         </div>
+        <!-- ✅ SUMMARY PANEL — mirrors summary-add component -->
+<div class="summary-panel mt-3" *ngIf="showSummary && !isSummarizing">
+  
+  <!-- Header -->
+  <div class="summary-panel__header d-flex justify-content-between align-items-center p-2 border-bottom">
+    <div>
+      <strong>📋 {{ documentName }}</strong>
+      <span *ngIf="summaryFromCache" class="badge bg-secondary ms-2" style="font-size:0.7rem">
+        💾 Saved
+      </span>
+    </div>
+    <div class="d-flex gap-2">
+      <!-- <button class="btn btn-outline-primary btn-sm" (click)="speakText(summary)">
+        🔊 Read
+      </button>
+      <button class="btn btn-outline-danger btn-sm" [disabled]="!isSpeaking" (click)="stopSpeaking()">
+        ⏹ Stop
+      </button> -->
+      <button class="btn btn-outline-secondary btn-sm" (click)="showSummary = false">
+        ✖ Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Editor -->
+  <div class="ocr-editor-wrap p-2">
+    <ngx-editor-menu [editor]="summaryEditor" [toolbar]="summaryToolbar"></ngx-editor-menu>
+    <ngx-editor
+      style="border: none; min-height: 150px;"
+      [editor]="summaryEditor"
+      [(ngModel)]="summary"
+      (ngModelChange)="onSummaryEdit()"
+      placeholder="Summary will appear here…">
+    </ngx-editor>
+  </div>
+
+  <!-- Save Footer -->
+  <div class="d-flex justify-content-end p-2 border-top">
+    <button
+      class="btn btn-success btn-sm"
+      [disabled]="isSavingSummary || (!summaryDirty && summaryFromCache)"
+      (click)="saveSummary()">
+      {{ isSavingSummary ? '⏳ Saving…' : 'Save Summary' }}
+    </button>
+  </div>
+
+</div>
+
+<!-- Summarizing Loader -->
+<div *ngIf="isSummarizing" class="text-center py-3">
+  <div class="spinner-border text-primary spinner-border-sm"></div>
+  <p class="text-muted mt-1 mb-0">Generating summary…</p>
+</div>
         <!-- 🔹 CARD HEADER -->
         <div
           class="ocr-card-header d-flex justify-content-between align-items-center"
@@ -165,6 +231,7 @@
       <button class="btn btn-outline-secondary btn-sm" (click)="close()">
         Close
       </button>
+
     </div>
   </div>
 </ng-template>

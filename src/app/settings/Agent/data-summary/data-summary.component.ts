@@ -30,6 +30,9 @@ export class DataSummaryComponent {
   }
 
 ngOnInit(): void { 
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const userData = lsValue ? JSON.parse(lsValue) : null;
+  this.roleId = userData?.roleId ?? 0;
   this.SummaryDataGet();
 }
 
@@ -51,6 +54,7 @@ ngOnInit(): void {
   
    private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
    userId: number;
+   roleId: number = 0;
   
    @ViewChild('ocrModal') modalComponent!: ViewSummaryComponent;
    private modalRef: NgbModalRef;
@@ -72,6 +76,8 @@ ngOnInit(): void {
   
     modalRef.componentInstance.documentName = element.DocumentName;
     modalRef.componentInstance.summaryId = element.SummaryId;
+    modalRef.componentInstance.statusId = element.Status;      
+    modalRef.componentInstance.currentRoleId = this.roleId;
     modalRef.result.then((result) => {
       if (result === true) { 
         this.SummaryDataGet();

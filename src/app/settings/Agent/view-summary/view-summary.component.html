@@ -13,11 +13,11 @@
 
   <!-- Rich Text Editor -->
   <div *ngIf="!loading" class="editor-wrapper">
-    <ngx-editor-menu [editor]="editor" [toolbar]="toolbar"></ngx-editor-menu>
+    <ngx-editor-menu [editor]="editor" [toolbar]="toolbar"*ngIf="!isReadOnly"></ngx-editor-menu>
     <ngx-editor
       [editor]="editor"
       [(ngModel)]="editorContent"
-      [disabled]="false"
+      [disabled]="isReadOnly" 
       placeholder="Summary will appear here...">
     </ngx-editor>
   </div>
@@ -26,7 +26,7 @@
 
 <div class="modal-footer">
   <button class="btn btn-secondary" (click)="close()">Close</button>
-  <button class="btn btn-primary" [disabled]="loading" (click)="saveSummary()">
+  <button class="btn btn-primary" [disabled]="loading" (click)="saveSummary()"*ngIf="!isReadOnly">
     Save Summary
   </button>
 </div>

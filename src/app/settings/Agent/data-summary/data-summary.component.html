@@ -28,9 +28,10 @@
         <div class="my-1 me-4"></div>
   
         <a
-          href="#"
-          class="btn btn-sm btn-primary my-1"
-          [routerLink]="['/settings/summary-add']"
+        *ngIf="roleId === 1 || roleId === 5"
+        href="#"
+        class="btn btn-sm btn-primary my-1"
+        [routerLink]="['/settings/summary-add']"
         >
           Add Summary
         </a>

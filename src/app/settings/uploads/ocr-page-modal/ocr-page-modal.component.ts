@@ -62,6 +62,115 @@ export class OcrPageModalComponent implements OnDestroy {
     ['align_left', 'align_center', 'align_right'],
     ['format_clear'],
   ];
+  summaryEditor: Editor = new Editor();
+summaryToolbar: Toolbar = [
+  ['bold', 'italic', 'underline', 'strike'],
+  ['ordered_list', 'bullet_list'],
+  [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+  ['blockquote'],
+  ['align_left', 'align_center', 'align_right'],
+  ['format_clear'],
+];
+
+summary           : string  = '';
+summaryId         : number  = 0;
+summaryFromCache  : boolean = false;
+summaryDirty      : boolean = false;
+isSummarizing     : boolean = false;
+isSavingSummary   : boolean = false;
+showSummary       : boolean = false;
+isSpeaking        : boolean = false;
+summaryUpdatedAt  : Date | null = null;
+
+summarizeDocument() {
+  if (!this.documentName) return;
+  this.isSummarizing = true;
+  this.summary       = '';
+  this.showSummary   = false;
+  this.summaryDirty  = false;
+  this.summaryId     = 0;
+  this.cdr.detectChanges();
+
+  this.service.summarizeDocument(this.documentName).subscribe({
+    next: (res: any) => {
+      const raw: string = res.summary.summary || '';
+      this.summary          = this.markdownToHtml(raw);
+      this.summaryId        = res.summary.summaryId ?? 0;
+      this.summaryFromCache = res.summary.fromCache;
+      this.summaryUpdatedAt = res.summary.updatedAt ? new Date(res.summary.updatedAt) : null;
+      this.isSummarizing    = false;
+      this.showSummary      = true;
+      this.summaryDirty     = false;
+      this.cdr.detectChanges();
+    },
+    error: () => { this.isSummarizing = false; this.cdr.detectChanges(); }
+  });
+}
+
+private markdownToHtml(text: string): string {
+  if (text.trim().startsWith('<')) return text;
+  return text
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+    .replace(/^\* (.+)$/gm,    '<li>$1</li>')
+    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+    .replace(/\n{2,}/g, '</p><p>')
+    .replace(/^(?!<[hul\/])(.+)$/gm, '<p>$1</p>')
+    .replace(/<p><\/p>/g, '');
+}
+
+saveSummary() {
+  if (!this.documentName || !this.summary.trim()) return;
+  this.isSavingSummary = true;
+  this.cdr.detectChanges();
+
+  const lsValue  = localStorage.getItem(this.authLocalStorageToken);
+  const userData = lsValue ? JSON.parse(lsValue) : null;
+  const userId   = userData?.id     ?? 0;
+  const roleId   = userData?.roleId ?? 0;
+
+  this.service.saveSummary(this.documentName, this.summary, this.summaryId, userId, roleId).subscribe({
+    next: (res: any) => {
+      this.summaryId        = res.summaryId ?? this.summaryId;
+      this.summaryFromCache = true;
+      this.summaryUpdatedAt = res.updatedAt ? new Date(res.updatedAt) : null;
+      this.isSavingSummary  = false;
+      this.summaryDirty     = false;
+      this.cdr.detectChanges();
+      Swal.fire({ icon: 'success', title: 'Saved!', text: 'Summary saved successfully', timer: 1500, showConfirmButton: false });
+    },
+    error: () => {
+      this.isSavingSummary = false;
+      this.cdr.detectChanges();
+      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to save summary' });
+    }
+  });
+}
+
+onSummaryEdit() {
+  this.summaryDirty = true;
+}
+
+speakText(text: string) {
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang  = 'en-IN';
+  this.isSpeaking = true;
+  utterance.onend = () => { this.isSpeaking = false; this.cdr.detectChanges(); };
+  window.speechSynthesis.speak(utterance);
+  this.cdr.detectChanges();
+}
+
+stopSpeaking() {
+  window.speechSynthesis.cancel();
+  this.isSpeaking = false;
+  this.cdr.detectChanges();
+}
+
+
   private preserveLines(text: string): string {
     if (!text) return '';
     if (text.trim().startsWith('<')) return text; // already HTML
@@ -113,6 +222,14 @@ export class OcrPageModalComponent implements OnDestroy {
     this.editedTexts = {};
     this.savingRows = {};
     this.savedRows = {};
+    
+    this.summary        = '';
+    this.summaryId      = 0;
+    this.summaryFromCache = false;
+    this.summaryDirty   = false;
+    this.showSummary    = false;
+    this.isSummarizing  = false;
+    this.isSavingSummary = false;
   }
 
   // 🔥 LOAD DATA (FIXED PAGINATION)
@@ -502,7 +619,7 @@ error: () => {
   ngOnDestroy() {
     // Destroy all page editors
     Object.values(this.pageEditors).forEach(editor => editor.destroy());
-  
+    this.summaryEditor.destroy(); 
     if (this.documentId) {
       this.service.manageLock(this.documentId, this.currentUserId, 'UNLOCK').subscribe();
     }
