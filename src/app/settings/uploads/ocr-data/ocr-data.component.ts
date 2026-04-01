@@ -45,6 +45,7 @@ export class OcrDataComponent implements OnInit {
   docPageSize: number = 10;
   searchCriteria: string = '';
   searchBy: string = '';
+  searchTimeout: any;
 
   @Output() statusUpdated = new EventEmitter<any>();
   // ── Modal ──────────────────────────────────────────────────
@@ -291,11 +292,20 @@ export class OcrDataComponent implements OnInit {
     this.docCurrentPage = 1;
     this.loadDocuments();
   }
-  onSearchChange(): void {
-    const activeEl = document.activeElement as HTMLElement;
-    this.docCurrentPage = 1;
-    this.loadDocuments();
-    setTimeout(() => activeEl?.focus(), 0);
+  // onSearchChange(): void {
+  //   const activeEl = document.activeElement as HTMLElement;
+  //   this.docCurrentPage = 1;
+  //   this.loadDocuments();
+  //   setTimeout(() => activeEl?.focus(), 0);
+  // }
+  onSearchChange(value: string): void {
+    this.searchCriteria = value;
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.docCurrentPage = 1;
+      this.docCurrentPage = 1;
+      this.loadDocuments();
+    }, 500);
   }
   // STEP 3 — click View → pass documentId to modal and open it
   async onDocumentClick(doc: any): Promise<void> {

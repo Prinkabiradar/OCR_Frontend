@@ -22,7 +22,7 @@
             class="form-control uniform-control"
             placeholder="Search Document..."
             [(ngModel)]="searchCriteria"
-            (input)="onSearchChange()"
+            (ngModelChange)="onSearchChange($event)"
           />
         </div>
       </div>
@@ -58,18 +58,18 @@
           (click)="goToAddDocument()"
           *ngIf="roleId !== 5"
         >
-          <i class="fa fa-plus"></i> Add Document
+          <i class="bi bi-plus-circle"></i> Add Document
         </button>
       </div>
     </div>
 
     <!-- 📋 Table -->
     <table
-      class="table table-bordered text-center ocr-table"
+      class="table table-bordered ocr-table"
       *ngIf="documentList.length > 0"
     >
-      <thead>
-        <tr>
+      <thead class="table-light text-dark">
+        <tr style="text-align: center;">
           <th>#</th>
           <th>Document Name</th>
 
@@ -223,6 +223,10 @@
   </div>
 
   <!-- 📦 Modal -->
-  <app-ocr-page-modal #ocrModal [modalConfig]="modalConfig">
-  </app-ocr-page-modal>
+  <app-ocr-page-modal 
+  #ocrModal 
+  [modalConfig]="modalConfig"
+  [roleId]="roleId"
+  [currentUserId]="currentUserId">
+</app-ocr-page-modal>
 </div>

@@ -254,6 +254,7 @@ stopSpeaking() {
     PageNumber: x.pagenumber,
     ExtractedText: x.extractedtext,
     StatusId: x.statusid,
+    RejectionReason:x.rejectionreason,
 
     // ✅ Check it's a non-empty string (rejects {}, null, undefined)
     Suggestion: typeof x.suggestiontext === 'string' && x.suggestiontext.trim() !== ''
@@ -367,7 +368,14 @@ error: () => {
     return this.pageList.some((x) => this.isDirty(x));
   }
 
-  // 🔥 ROLE-BASED STATUS FLOW
+ get saveButtonLabel(): string {
+  switch (this.roleId) {
+    case 1: return '✔ Check';
+    case 2: return '✔ Verify';
+    case 3: return '✔ Approve';
+    default: return '✔ Save';
+  }
+}
   // 🔥 ROLE-BASED STATUS FLOW
   getNextStatus(statusId: number): number {
     switch (this.roleId) {
@@ -509,7 +517,7 @@ error: () => {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
   const userData = lsValue ? JSON.parse(lsValue) : null;
   const userId = this.currentUserId;
-  this.roleId = userData?.roleId ?? 0;
+  //this.roleId = userData?.roleId ?? 0;
 
   const payload = {
     documentPageId: item.DocumentPageId,
@@ -590,7 +598,7 @@ canEdit(item: any): boolean {
         statusId: this.getNextStatus(item.StatusId),
         userId: this.currentUserId, // ← ADD
         roleId: this.roleId, // ← ADD
-        rejectionReason: '', // ← ADD (empty for normal save)
+        rejectionReason: '', 
       }),
     );
 
