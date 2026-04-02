@@ -38,6 +38,7 @@ export class OcrPageModalComponent implements OnDestroy {
   savingRows: any = {};
   savedRows: any = {};
   savingAll: boolean = false;
+  selectedItem: any = null;
 
   private modalRef!: NgbModalRef;
   private saveTimeout: any;
@@ -211,6 +212,9 @@ stopSpeaking() {
       this.modalRef = this.modalService.open(this.modalContent, {
         size: 'xl',
         scrollable: true,
+        backdrop: 'static',
+        centered: true,
+        fullscreen: 'md-down',
       });
       this.modalRef.result.then(resolve, resolve);
     });
@@ -270,6 +274,7 @@ stopSpeaking() {
       : null,
   }));
 
+  this.selectedItem = this.pageList.length ? this.pageList[0] : null;
           const allSuggestionsRaw = safeRes.length > 0 ? safeRes[0]?.allsuggestions : null;
 
   if (typeof allSuggestionsRaw === 'string' && allSuggestionsRaw.trim() !== '') {
@@ -570,6 +575,9 @@ error: () => {
 }
 
 canEdit(item: any): boolean {
+   if (item.StatusId === 8 && this.roleId !== 3) {
+    return false;
+  }
   // ❌ Role 1 cannot edit if Verified or Approved
   if (this.roleId === 1 && (item.StatusId === 2 || item.StatusId === 3)) {
     return false;

@@ -317,3 +317,14 @@ $radius: 10px;
 .rejection-text {
   color: #7f1d1d;
 }
+.pagination-wrapper {
+  display: flex;
+  justify-content: center;   /* centers horizontally */
+  align-items: center;
+  margin-top: 10px;
+}
+.locked-editor {
+  opacity: 0.7;
+  pointer-events: none;
+  background-color: #f8f9fa;
+}
