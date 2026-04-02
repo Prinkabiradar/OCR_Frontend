@@ -83,7 +83,17 @@ $radius: 10px;
   border-color: $warning;
   background: #fffbeb;
 }
+.btn-primary {
+  border: none;
+  padding: 2px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
 
+.btn-primary:hover {
+  background: #1e40af;
+}
 // ── Footer ─────────────────────────────────
 .ocr-card-footer {
   display: flex;
@@ -157,7 +167,7 @@ $radius: 10px;
   }
 }
 .ocr-header {
-  background: #8dabdc;
+  background: #fff;
   color: #080808;
 }
 

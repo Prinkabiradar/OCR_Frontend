@@ -137,7 +137,7 @@
           <td *ngIf="roleId !== 5">
             <ng-container *ngIf="canView(doc); else notAvailable">
               <button
-                class="btn btn-primary"
+                class="btn btn-primary btn-sm"
                 (click)="onDocumentClick(doc)"
                 [disabled]="
                   (doc.lockedBy && doc.lockedBy !== currentUserId) ||

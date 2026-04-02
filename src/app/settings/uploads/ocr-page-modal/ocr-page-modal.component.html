@@ -1,18 +1,18 @@
 <ng-template #ocrPageModal let-modal>
-  <!-- 🔷 HEADER -->
+ 
   <div
     class="modal-header ocr-header d-flex justify-content-between align-items-center"
   >
-    <!-- LEFT SIDE -->
+    
     <div>
       <h4 class="ocr-title mb-0">{{ documentName }}</h4>
       <small class="text-muted">OCR Review & Validation</small>
     </div>
-    <!-- RIGHT SIDE -->
+     
     <div class="d-flex align-items-center gap-2">
-      <!-- Summary Button -->
+ 
       <button
-        class="btn btn-outline-primary btn-sm"
+        class="btn btn-primary btn-sm"
         (click)="summarizeDocument()"
         [disabled]="isSummarizing"
       >
