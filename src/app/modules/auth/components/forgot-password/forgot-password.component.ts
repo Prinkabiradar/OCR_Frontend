@@ -1,63 +1,183 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone, ChangeDetectorRef } from '@angular/core';
 import { FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { Observable, Subscription } from 'rxjs';
-import { AuthService } from '../../services/auth.service';
-import { first } from 'rxjs/operators';
+import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { environment } from 'src/environments/environment';
+import { firstValueFrom } from 'rxjs';
 
-enum ErrorStates {
-  NotSubmitted,
-  HasError,
-  NoError,
-}
+const API = `${environment.BaseUrl}api/Auth`;
+
+enum Step { Identify = 1, VerifyOtp, NewPassword, Done }
 
 @Component({
   selector: 'app-forgot-password',
   templateUrl: './forgot-password.component.html',
   styleUrls: ['./forgot-password.component.scss'],
 })
-export class ForgotPasswordComponent implements OnInit {
-  forgotPasswordForm: FormGroup;
-  errorState: ErrorStates = ErrorStates.NotSubmitted;
-  errorStates = ErrorStates;
-  isLoading$: Observable<boolean>;
+export class ForgotPasswordComponent implements OnInit, OnDestroy {
+  Step = Step;
+  currentStep = Step.Identify;
 
-  // private fields
-  private unsubscribe: Subscription[] = []; // Read more: => https://brianflove.com/2016/12/11/anguar-2-unsubscribe-observables/
-  constructor(private fb: FormBuilder, private authService: AuthService) {
-    this.isLoading$ = this.authService.isLoading$;
+  identifyForm: FormGroup;
+  otpForm: FormGroup;
+  resetForm: FormGroup;
+
+  isLoading = false;
+  errorMsg = '';
+
+  emailOrMobile = '';
+  userId = 0;
+
+  timerSeconds = 0;
+  canResend = false;
+  private timerRef: any;
+
+  constructor(
+    private fb: FormBuilder,
+    private http: HttpClient,
+    private router: Router,
+    private zone: NgZone,
+    private cdr: ChangeDetectorRef   // ← add this
+  ) {}
+
+  ngOnInit() {
+    this.identifyForm = this.fb.group({
+      emailOrMobile: ['', [Validators.required, Validators.minLength(3)]],
+    });
+
+    this.otpForm = this.fb.group({
+      otp: ['', [Validators.required, Validators.minLength(6), Validators.maxLength(6)]],
+    });
+
+    this.resetForm = this.fb.group(
+      {
+        newPassword: ['', [Validators.required, Validators.minLength(6)]],
+        confirmPassword: ['', [Validators.required]],
+      },
+      { validators: this.passwordMatchValidator }
+    );
   }
 
-  ngOnInit(): void {
-    this.initForm();
+  ngOnDestroy() { this.clearTimer(); }
+
+  async sendOtp() {
+    if (this.identifyForm.invalid) return;
+    this.emailOrMobile = this.identifyForm.value.emailOrMobile;
+    this.isLoading = true;
+    this.errorMsg = '';
+    this.cdr.detectChanges();   // force UI update immediately
+
+    try {
+      await firstValueFrom(
+        this.http.post(`${API}/send-otp`, { EmailOrMobile: this.emailOrMobile })
+      );
+      this.isLoading = false;
+      this.currentStep = Step.VerifyOtp;
+      this.startTimer();
+      this.cdr.detectChanges();  // force step change to render
+    } catch (err: any) {
+      this.isLoading = false;
+      this.errorMsg = err?.error?.message || 'No account found with this email or mobile.';
+      this.cdr.detectChanges();
+    }
   }
 
-  // convenience getter for easy access to form fields
-  get f() {
-    return this.forgotPasswordForm.controls;
+  async verifyOtp() {
+    if (this.otpForm.invalid) return;
+    this.isLoading = true;
+    this.errorMsg = '';
+    this.cdr.detectChanges();
+
+    try {
+      const res = await firstValueFrom(
+        this.http.post<{ success: boolean; userId: number }>(`${API}/verify-otp`, {
+          EmailOrMobile: this.emailOrMobile,
+          Otp: this.otpForm.value.otp,
+        })
+      );
+      this.isLoading = false;
+      this.userId = res.userId;
+      this.clearTimer();
+      this.currentStep = Step.NewPassword;
+      this.cdr.detectChanges();
+    } catch (err: any) {
+      this.isLoading = false;
+      this.errorMsg = err?.error?.message || 'Invalid or expired OTP.';
+      this.cdr.detectChanges();
+    }
   }
 
-  initForm() {
-    this.forgotPasswordForm = this.fb.group({
-      email: [
-        'admin@demo.com',
-        Validators.compose([
-          Validators.required,
-          Validators.email,
-          Validators.minLength(3),
-          Validators.maxLength(320), // https://stackoverflow.com/questions/386294/what-is-the-maximum-length-of-a-valid-email-address
-        ]),
-      ],
+  async resendOtp() {
+    this.otpForm.reset();
+    this.errorMsg = '';
+    try {
+      await firstValueFrom(
+        this.http.post(`${API}/send-otp`, { EmailOrMobile: this.emailOrMobile })
+      );
+      this.startTimer();
+      this.cdr.detectChanges();
+    } catch {
+      this.errorMsg = 'Failed to resend OTP.';
+      this.cdr.detectChanges();
+    }
+  }
+
+  async resetPassword() {
+    if (this.resetForm.invalid) return;
+    this.isLoading = true;
+    this.errorMsg = '';
+    this.cdr.detectChanges();
+
+    try {
+      await firstValueFrom(
+        this.http.post(`${API}/reset-password`, {
+          UserId: this.userId,
+          NewPassword: this.resetForm.value.newPassword,
+          ConfirmPassword: this.resetForm.value.confirmPassword,
+        })
+      );
+      this.isLoading = false;
+      this.currentStep = Step.Done;
+      this.cdr.detectChanges();
+    } catch (err: any) {
+      this.isLoading = false;
+      this.errorMsg = err?.error?.message || 'Failed to reset password.';
+      this.cdr.detectChanges();
+    }
+  }
+
+  goToLogin() { this.router.navigate(['/auth/login']); }
+
+  private startTimer() {
+    this.timerSeconds =300; //60;
+    this.canResend = false;
+    this.clearTimer();
+    // ← run timer INSIDE Angular zone so template updates every tick
+    this.zone.run(() => {
+      this.timerRef = setInterval(() => {
+        this.timerSeconds--;
+        if (this.timerSeconds <= 0) {
+          this.clearTimer();
+          this.canResend = true;
+        }
+        this.cdr.detectChanges();
+      }, 1000);
     });
   }
 
-  submit() {
-    this.errorState = ErrorStates.NotSubmitted;
-    const forgotPasswordSubscr = this.authService
-      .forgotPassword(this.f.email.value)
-      .pipe(first())
-      .subscribe((result: boolean) => {
-        this.errorState = result ? ErrorStates.NoError : ErrorStates.HasError;
-      });
-    this.unsubscribe.push(forgotPasswordSubscr);
+  get timerDisplay(): string {
+    const m = Math.floor(this.timerSeconds / 60);
+    const s = this.timerSeconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+  
+  private clearTimer() {
+    if (this.timerRef) { clearInterval(this.timerRef); this.timerRef = null; }
+  }
+
+  private passwordMatchValidator(g: FormGroup) {
+    const p = g.get('newPassword')?.value;
+    const c = g.get('confirmPassword')?.value;
+    return p === c ? null : { mismatch: true };
   }
 }
