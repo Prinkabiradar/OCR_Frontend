@@ -66,7 +66,7 @@
           [disabled]="isSummarizing"
           (click)="summarizeDocument()"
         >
-          {{ isSummarizing ? "⏳ Summarizing…" : "📋 Summarize" }}
+          {{ isSummarizing ? "⏳ Summarizing…" : "📋 Summary" }}
         </button>
         <button
           class="btn btn--outline-peacock btn--sm"
@@ -148,6 +148,16 @@
                 <!-- ← fixed -->
               </span>
             </div>
+             <!-- Suggestion Button -->
+          <div class="d-flex justify-content-start mt-2">
+  <button
+    class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2 shadow-sm"
+    (click)="openSuggestionModal()"
+  >
+    <i class="bi bi-lightbulb"></i>
+    Suggestion
+  </button>
+</div>
             <button
               class="btn btn--save-page btn--sm"
               (click)="speakText(currentDocPage.extractedText)"
@@ -186,11 +196,8 @@
           >
             Next Page →
           </button>
+         
 
-          <!-- Suggestion Button -->
-          <div>
-            <button (click)="openSuggestionModal()">💡 Suggestion</button>
-          </div>
         </div>
       </div>
 
@@ -247,7 +254,7 @@
               [disabled]="isSavingSuggestion || !suggestionText.trim()"
               (click)="saveSuggestion()"
             >
-              {{ isSavingSuggestion ? "⏳ Saving…" : "💾 Save" }}
+              {{ isSavingSuggestion ? "⏳ Saving…" : "Save" }}
             </button>
           </div>
         </div>

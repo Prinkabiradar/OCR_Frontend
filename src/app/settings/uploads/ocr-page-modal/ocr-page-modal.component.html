@@ -51,7 +51,7 @@
       <div *ngFor="let item of pageList" class="ocr-card shadow-sm">
         <!-- 💡 Suggestion -->
         <div
-          *ngIf="item.Suggestion && item.Suggestion.trim() !== ''"
+          *ngIf="item.StatusId === 8 && roleId === 3 && item.Suggestion && item.Suggestion.trim() !== ''"
           class="suggestion-box"
         >
           <strong>Suggestion:</strong>
@@ -79,13 +79,13 @@
           >
             <div>
               <strong>📋 {{ documentName }}</strong>
-              <span
+              <!-- <span
                 *ngIf="summaryFromCache"
                 class="badge bg-secondary ms-2"
                 style="font-size: 0.7rem"
               >
                 💾 Saved
-              </span>
+              </span> -->
             </div>
             <div class="d-flex gap-2">
               <!-- <button class="btn btn-outline-primary btn-sm" (click)="speakText(summary)">
@@ -94,6 +94,17 @@
       <button class="btn btn-outline-danger btn-sm" [disabled]="!isSpeaking" (click)="stopSpeaking()">
         ⏹ Stop
       </button> -->
+      <div class="d-flex justify-content-end p-2 border-top">
+            <button
+              class="btn btn-success btn-sm"
+              [disabled]="
+                isSavingSummary || (!summaryDirty && summaryFromCache)
+              "
+              (click)="saveSummary()"
+            >
+              {{ isSavingSummary ? "⏳ Saving…" : "Save Summary" }}
+            </button>
+          </div>
               <button
                 class="btn btn-outline-secondary btn-sm"
                 (click)="showSummary = false"
@@ -120,17 +131,7 @@
           </div>
 
           <!-- Save Footer -->
-          <div class="d-flex justify-content-end p-2 border-top">
-            <button
-              class="btn btn-success btn-sm"
-              [disabled]="
-                isSavingSummary || (!summaryDirty && summaryFromCache)
-              "
-              (click)="saveSummary()"
-            >
-              {{ isSavingSummary ? "⏳ Saving…" : "Save Summary" }}
-            </button>
-          </div>
+          
         </div>
 
         <!-- Summarizing Loader -->
@@ -143,55 +144,6 @@
           class="ocr-card-header d-flex justify-content-between align-items-center"
         >
           <span class="ocr-page-label">Page {{ item.PageNumber }}</span>
-
-          <span class="ocr-badge" [ngClass]="getStatusClass(item.StatusId)">
-            {{ getStatusLabel(item.StatusId) }}
-          </span>
-        </div>
-
-        <!-- ✍️ TEXT AREA -->
-        <div class="ocr-editor-wrap" [class.edited]="isDirty(item)">
-          <ngx-editor-menu
-            [editor]="getOrCreateEditor(item.DocumentPageId)"
-            [toolbar]="pageToolbar"
-          >
-          </ngx-editor-menu>
-          <ngx-editor
-            [editor]="getOrCreateEditor(item.DocumentPageId)"
-            [(ngModel)]="editedTexts[item.DocumentPageId]"
-            (ngModelChange)="onEditorChange(item, $event)"
-            [disabled]="!canEdit(item)"
-            placeholder="Extracted text will appear here…"
-          >
-          </ngx-editor>
-        </div>
-
-        <!-- 🔹 FOOTER -->
-        <div class="ocr-card-footer d-flex align-items-center">
-          <!-- LEFT: Reject Button -->
-          <div class="footer-left">
-            <button
-              class="btn btn-danger btn-sm"
-              (click)="rejectRow(item)"
-              [disabled]="
-                savingRows[item.DocumentPageId] ||
-                !canEdit(item) ||
-                item.StatusId === 3
-              "
-            >
-              ✕ Reject
-            </button>
-          </div>
-
-          <!-- CENTER: Status -->
-          <div class="footer-center" *ngIf="isDirty(item)">
-            <small class="text-muted">
-              Next:
-              <strong>{{
-                getStatusLabel(getNextStatus(item.StatusId))
-              }}</strong>
-            </small>
-          </div>
           <div
             *ngIf="item.StatusId === 7 && item.RejectionReason"
             class="rejection-reason-box"
@@ -200,26 +152,32 @@
             <span class="rejection-text">{{ item.RejectionReason }}</span>
           </div>
 
-          <!-- RIGHT: Save Button -->
-          <div class="footer-right">
-            <button
-              class="btn btn-success btn-sm"
-              (click)="saveRow(item)"
-              [disabled]="
-                savingRows[item.DocumentPageId] ||
-                !canEdit(item) ||
-                item.StatusId === 3
-              "
-            >
-              <span *ngIf="!savingRows[item.DocumentPageId]">{{
-                saveButtonLabel
-              }}</span>
-              <span *ngIf="savingRows[item.DocumentPageId]">
-                <span class="spinner-border spinner-border-sm"></span> Saving...
-              </span>
-            </button>
-          </div>
+          <span class="ocr-badge" [ngClass]="getStatusClass(item.StatusId)">
+            {{ getStatusLabel(item.StatusId) }}
+          </span>
         </div>
+
+        <!-- ✍️ TEXT AREA -->
+        <div
+  class="ocr-editor-wrap"
+  [class.edited]="isDirty(item)"
+  [ngClass]="{ 'locked-editor': !canEdit(item) }"
+>
+          <ngx-editor-menu
+            [editor]="getOrCreateEditor(item.DocumentPageId)"
+            [toolbar]="pageToolbar"
+          >
+          </ngx-editor-menu>
+          <ngx-editor
+  [editor]="getOrCreateEditor(item.DocumentPageId)"
+  [(ngModel)]="editedTexts[item.DocumentPageId]"
+  (ngModelChange)="onEditorChange(item, $event)"
+  [disabled]="!canEdit(item)"
+  placeholder="Extracted text will appear here…">
+</ngx-editor>
+        </div>
+
+        
       </div>
     </div>
   </div>
@@ -264,6 +222,33 @@
         </span>
 
       </button> -->
+      <button
+              class="btn btn-success btn-sm"
+              (click)="saveRow(selectedItem)"
+              [disabled]="
+                savingRows[selectedItem.DocumentPageId] ||
+                !canEdit(selectedItem) ||
+                selectedItem.StatusId === 3
+              "
+            >
+              <span *ngIf="!savingRows[selectedItem.DocumentPageId]">{{
+                saveButtonLabel
+              }}</span>
+              <span *ngIf="savingRows[selectedItem.DocumentPageId]">
+                <span class="spinner-border spinner-border-sm"></span> Saving...
+              </span>
+            </button>
+      <button
+              class="btn btn-danger btn-sm"
+              (click)="rejectRow(selectedItem)"
+              [disabled]="
+                savingRows[selectedItem.DocumentPageId] ||
+                !canEdit(selectedItem) ||
+                selectedItem.StatusId === 3
+              "
+            >
+              ✕ Reject
+            </button>
 
       <button class="btn btn-outline-secondary btn-sm" (click)="close()">
         Close
