@@ -187,25 +187,40 @@
     class="modal-footer ocr-footer d-flex justify-content-between align-items-center flex-wrap"
   >
     <!-- PAGINATION -->
-    <div class="d-flex align-items-center gap-2">
-      <button
-        class="btn btn-light btn-sm"
-        (click)="goToPrevious()"
-        [disabled]="!hasPrevious"
-      >
-        ← Previous
-      </button>
+    <div class="page-local-nav" style="text-align: center">
+          <button
+            class="btn btn--ghost btn--sm"
+            [disabled]="absolutePageNumber === 1"
+            (click)="goToPrevious()"
+          >
+          <a
+                  [href]=""
+                  class="text-hover-primary text-gray-600"
+                >
+            ← Prev Page
+            </a>
+          </button>
 
-      <span class="fw-semibold">Page {{ currentPage }}</span>
+          <span style="font-size: 0.85rem; opacity: 0.7">
+            Page {{ absolutePageNumber }} of {{ totalRecords }}
+            <!-- ← fixed -->
+          </span>
 
-      <button
-        class="btn btn-light btn-sm"
-        (click)="goToNext()"
-        [disabled]="!hasNext"
-      >
-        Next →
-      </button>
-    </div>
+          <button
+            class="btn btn--ghost btn--sm"
+            [disabled]="absolutePageNumber === totalRecords"
+            (click)="goToNext()"
+          >
+          <a
+                  [href]=""
+                  class="text-hover-primary text-gray-600"
+                >
+            Next Page →
+            </a>
+          </button>
+         
+
+        </div>
 
     <!-- ACTIONS -->
     <div class="d-flex gap-2">

@@ -155,17 +155,17 @@ $radius: 10px;
 }
 
 // ── Pagination ─────────────────────────────
-.ocr-nav-btn {
-  border: 1px solid $border;
-  background: #fff;
-  padding: 5px 10px;
-  border-radius: 6px;
-  cursor: pointer;
+// .ocr-nav-btn {
+//   border: 1px solid $border;
+//   background: #fff;
+//   padding: 5px 10px;
+//   border-radius: 6px;
+//   cursor: pointer;
 
-  &:hover {
-    background: #f3f4f6;
-  }
-}
+//   &:hover {
+//     background: #f3f4f6;
+//   }
+// }
 .ocr-header {
   background: #fff;
   color: #080808;
@@ -317,14 +317,51 @@ $radius: 10px;
 .rejection-text {
   color: #7f1d1d;
 }
-.pagination-wrapper {
-  display: flex;
-  justify-content: center;   /* centers horizontally */
-  align-items: center;
-  margin-top: 10px;
-}
+// .pagination-wrapper {
+//   display: flex;
+//   justify-content: center;   /* centers horizontally */
+//   align-items: center;
+//   margin-top: 10px;
+// }
 .locked-editor {
   opacity: 0.7;
   pointer-events: none;
   background-color: #f8f9fa;
+}
+/* Container spacing */
+.page-local-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Make button look like link */
+.nav-link-btn {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  color: #6c757d; /* normal grey */
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover = blue like hyperlink */
+.nav-link-btn:hover:not(:disabled) {
+  color: #0d6efd;   /* Bootstrap link blue */
+  text-decoration: underline;
+}
+
+/* Disabled state */
+.nav-link-btn:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+/* Page text */
+.page-info {
+  font-size: 0.85rem;
+  opacity: 0.7;
 }

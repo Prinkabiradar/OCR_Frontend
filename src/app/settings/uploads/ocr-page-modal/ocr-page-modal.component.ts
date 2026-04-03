@@ -33,6 +33,10 @@ export class OcrPageModalComponent implements OnDestroy {
   currentPage: number = 1;
   pageSize: number = 1;
   loading: boolean = false;
+  itemsPerPage          = 1;
+  totalRecords: number = 0;
+  selectedPageIndex: number = 0;
+
 
   editedTexts: any = {};
   savingRows: any = {};
@@ -259,7 +263,9 @@ stopSpeaking() {
     ExtractedText: x.extractedtext,
     StatusId: x.statusid,
     RejectionReason:x.rejectionreason,
+    totalRecords: x.totalrecords,
 
+    
     // ✅ Check it's a non-empty string (rejects {}, null, undefined)
     Suggestion: typeof x.suggestiontext === 'string' && x.suggestiontext.trim() !== ''
       ? x.suggestiontext
@@ -273,7 +279,9 @@ stopSpeaking() {
       ? x.suggestionid
       : null,
   }));
-
+if (safeRes.length > 0) {
+    this.totalRecords = safeRes[0].totalrecords;
+  }
   this.selectedItem = this.pageList.length ? this.pageList[0] : null;
           const allSuggestionsRaw = safeRes.length > 0 ? safeRes[0]?.allsuggestions : null;
 
@@ -420,6 +428,8 @@ error: () => {
         return 'Partially Approved';
       case 7:
         return 'Rejected';
+        case 8:
+        return 'Suggestion';
       default:
         return 'Unknown';
     }
@@ -440,6 +450,8 @@ error: () => {
         return 'badge-green';
       case 7:
         return 'badge-rejected';
+        case 8:
+        return 'badge-suggestion';
       default:
         return 'badge-default';
     }
@@ -633,6 +645,9 @@ canEdit(item: any): boolean {
     if (!this.hasPrevious) return;
     this.currentPage--;
     this.loadPages();
+  }
+  get absolutePageNumber(): number {
+    return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
   }
 
   goToNext() {
