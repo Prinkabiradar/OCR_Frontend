@@ -3,7 +3,7 @@
   <div class="seva-card">
     <div class="seva-card__header">
       <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
-      <h2 class="seva-card__title">Search documents by name</h2>
+      <h2 class="seva-card__title">Search Documents</h2>
       <!-- <span class="seva-card__subtitle">Search sacred documents by name or voice</span> -->
     </div>
 
@@ -54,9 +54,9 @@
       <span class="seva-card__header-dot seva-card__header-dot--gold"></span>
       <div class="seva-card__header-title-block">
         <h2 class="seva-card__title">📄 {{ documentName }}</h2>
-        <span *ngIf="detectedLang" class="lang-badge"
-          >🌐 {{ detectedLang }}</span
-        >
+        <!-- <span *ngIf="detectedLang" class="lang-badge"
+          >🌐 {{ detectedLang }}</span 
+        > -->
       </div>
 
       <!-- Doc Actions -->
@@ -68,7 +68,7 @@
         >
           {{ isSummarizing ? "⏳ Summarizing…" : "📋 Summary" }}
         </button>
-        <button
+        <!-- <button
           class="btn btn--outline-peacock btn--sm"
           [disabled]="isSpeaking"
           (click)="speakText(fullText)"
@@ -81,7 +81,7 @@
           (click)="stopSpeaking()"
         >
           ⏹ Stop
-        </button>
+        </button> -->
       </div>
     </div>
 
@@ -106,12 +106,12 @@
             </span>
           </div>
           <div class="summary-panel__actions">
-            <button
+            <!-- <button
               class="btn btn--outline-peacock btn--sm"
               (click)="speakText(summary)"
             >
               🔊 Read Summary
-            </button>
+            </button> -->
             <button
               class="btn btn--ghost btn--sm"
               (click)="showSummary = false"
@@ -158,12 +158,12 @@
     Suggestion
   </button>
 </div>
-            <button
+            <!-- <button
               class="btn btn--save-page btn--sm"
               (click)="speakText(currentDocPage.extractedText)"
             >
               🔊 Read Page
-            </button>
+            </button> -->
           </div>
           <div class="page-editor-wrap">
             <ngx-editor

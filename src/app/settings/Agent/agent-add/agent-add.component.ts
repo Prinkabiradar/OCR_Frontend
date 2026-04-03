@@ -192,7 +192,7 @@ saveSuggestion() {
 
 
   loadDocumentsDropdown(search: string = '') {
-  this.service.dropdownAll(search, '1', '4', '0').subscribe({
+  this.service.dropdownAll(search, '1', '6', '0').subscribe({
     next: (res: any[]) => {
       console.log('Dropdown API Response:', res);  // 👈 ADD THIS
 
