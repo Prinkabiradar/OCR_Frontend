@@ -4,6 +4,7 @@ import { SocialNetworksModel } from './social-networks.model';
 
 export class UserModel extends AuthModel {
   id: number;
+  userName:string;
   username: string;
   password: string;
   fullname: string;
@@ -52,7 +53,7 @@ export class UserModel extends AuthModel {
   setUser(_user: unknown) {
     const user = _user as UserModel;
     this.id = user.id;
-    this.username = user.username || '';
+    this.username = user.userName ||user.username || '';
     this.password = user.password || '';
     this.fullname = user.fullname || '';
     this.email = user.email || '';
