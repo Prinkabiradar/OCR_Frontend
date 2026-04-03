@@ -508,7 +508,7 @@ error: () => {
       this.service.saveDocumentPage(payload).subscribe({
         next: () => {
           this.savingRows[item.DocumentPageId] = false;
-          Swal.fire('Rejected', 'Page has been rejected.', 'warning');
+          //Swal.fire('Rejected', 'Page has been rejected.', 'warning');
           this.cdr.detectChanges();
         },
         error: () => {

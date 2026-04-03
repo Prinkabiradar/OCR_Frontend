@@ -346,6 +346,14 @@ export class OcrDataComponent implements OnInit {
 
     this.currentLockedDocId = null;
   }
+  formatDate(value: any): string {
+  if (!value) return 'NA';
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return 'NA';
+  // Guard against SQL default min dates
+  if (date.getFullYear() <= 1900) return 'NA';
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
   // ngOnDestroy(): void {
   //   this.unlockDocument();
   // }
