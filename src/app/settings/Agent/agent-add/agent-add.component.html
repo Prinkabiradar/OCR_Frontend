@@ -9,28 +9,28 @@
 
     <div class="seva-card__body">
       <!-- Search Row -->
-      <div class=" row search-row" style="width: 100%">
+      <div class="row search-row" style="width: 100%">
         <div class="col-6">
-        <ng-select2
-          [data]="documentDropdown"
-          [options]="{
-            placeholder: 'Select Document',
-            width: '100%',
-          }"
-          (valueChanged)="onDocumentSelect($event)"
-        >
-        </ng-select2>
+          <ng-select2
+            [data]="documentDropdown"
+            [options]="{
+              placeholder: 'Select Document',
+              width: '100%',
+            }"
+            (valueChanged)="onDocumentSelect($event)"
+          >
+          </ng-select2>
         </div>
 
         <div class="col-1"></div>
         <div class="col-2">
-        <button
-          class="btn btn--primary"
-          [disabled]="isLoading || !selectedDocumentName"
-          (click)="askQuestion()"
-        >
-          🔍 Search
-        </button>
+          <button
+            class="btn btn--primary"
+            [disabled]="isLoading || !selectedDocumentName"
+            (click)="askQuestion()"
+          >
+            🔍 Search
+          </button>
         </div>
       </div>
 
@@ -130,7 +130,8 @@
               [editor]="summaryEditor"
               [(ngModel)]="summary"
               (ngModelChange)="onSummaryEdit()"
-              placeholder="Summary will appear here…">
+              placeholder="Summary will appear here…"
+            >
             </ngx-editor>
           </div>
         </div>
@@ -148,16 +149,16 @@
                 <!-- ← fixed -->
               </span>
             </div>
-             <!-- Suggestion Button -->
-          <div class="d-flex justify-content-start mt-2">
-  <button
-    class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2 shadow-sm"
-    (click)="openSuggestionModal()"
-  >
-    <i class="bi bi-lightbulb"></i>
-    Suggestion
-  </button>
-</div>
+            <!-- Suggestion Button -->
+            <div class="d-flex justify-content-start mt-2" *ngIf="roleId === 5 || roleId === 4">
+              <button
+                class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2 shadow-sm"
+                (click)="openSuggestionModal()"
+              >
+                <i class="bi bi-lightbulb"></i>
+                Suggestion
+              </button>
+            </div>
             <!-- <button
               class="btn btn--save-page btn--sm"
               (click)="speakText(currentDocPage.extractedText)"
@@ -169,7 +170,8 @@
             <ngx-editor
               [editor]="pageTextEditor"
               [ngModel]="pageTextContent"
-              placeholder="Page text will appear here…">
+              placeholder="Page text will appear here…"
+            >
             </ngx-editor>
           </div>
         </div>
@@ -196,8 +198,6 @@
           >
             Next Page →
           </button>
-         
-
         </div>
       </div>
 
@@ -249,7 +249,7 @@
             >
               Cancel
             </button>
-            <button 
+            <button
               class="btn btn--primary btn--sm"
               [disabled]="isSavingSuggestion || !suggestionText.trim()"
               (click)="saveSuggestion()"

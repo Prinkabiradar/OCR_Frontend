@@ -1,6 +1,10 @@
 import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, FormControl } from '@angular/forms';
-import { ServiceService, OcrJobStatus, OcrFileResult } from '../../settings.service';
+import {
+  ServiceService,
+  OcrJobStatus,
+  OcrFileResult,
+} from '../../settings.service';
 import { Options } from 'select2';
 import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
@@ -9,30 +13,43 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-add-image',
   templateUrl: './add-image.component.html',
-  styleUrls: ['./add-image.component.scss']
+  styleUrls: ['./add-image.component.scss'],
 })
 export class AddImageComponent implements OnInit, OnDestroy {
-
   // ── File selection
   selectedFiles: File[] = [];
   uploading = false;
-  readonly SUPPORTED_EXTENSIONS  = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.pdf','.tiff','.tif'];
-  readonly SUPPORTED_MIME_TYPES  = [
-    'image/jpeg', 'image/png', 'image/webp',
-    'image/gif',  'application/pdf','image/tiff','image/tif'
+  readonly SUPPORTED_EXTENSIONS = [
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.webp',
+    '.gif',
+    '.pdf',
+    '.tiff',
+    '.tif',
   ];
-  
+  readonly SUPPORTED_MIME_TYPES = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/gif',
+    'application/pdf',
+    'image/tiff',
+    'image/tif',
+  ];
+
   rejectedFiles: { name: string; extension: string; reason: string }[] = [];
 
   pageEditor: Editor;
   pageToolbar: Toolbar = [
-  ['bold', 'italic', 'underline', 'strike'],
-  ['ordered_list', 'bullet_list'],
-  [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
-  ['blockquote'],
-  ['align_left', 'align_center', 'align_right'],
-  ['format_clear'],
-];
+    ['bold', 'italic', 'underline', 'strike'],
+    ['ordered_list', 'bullet_list'],
+    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+    ['blockquote'],
+    ['align_left', 'align_center', 'align_right'],
+    ['format_clear'],
+  ];
 
   // ── Job tracking
   currentJobId: string | null = null;
@@ -70,7 +87,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private service: ServiceService,
     private cd: ChangeDetectorRef,
-    private router: Router, 
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -81,11 +98,11 @@ export class AddImageComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.pageEditor.destroy(); 
+    this.pageEditor.destroy();
     this.stopPolling();
     this.stopElapsedTimer();
   }
- 
+
   checkForActiveJob() {
     const saved = this.service.getActiveJob();
     if (!saved) return;
@@ -95,11 +112,11 @@ export class AddImageComponent implements OnInit, OnDestroy {
       next: (status: OcrJobStatus) => {
         if (status.status === 'Queued' || status.status === 'Processing') {
           // Job still running — resume progress screen
-          this.currentJobId   = saved.jobId;
-          this.jobStatus      = status;
-          this.jobStartedAt   = saved.startedAt;
-          this.screenState    = 'processing';
-          this.uploading      = true;
+          this.currentJobId = saved.jobId;
+          this.jobStatus = status;
+          this.jobStartedAt = saved.startedAt;
+          this.screenState = 'processing';
+          this.uploading = true;
           this.updateProgress(status);
           this.startPolling(saved.jobId);
           this.startElapsedTimer(saved.startedAt);
@@ -111,79 +128,84 @@ export class AddImageComponent implements OnInit, OnDestroy {
             text: `Your OCR job (${status.processed_files}/${status.total_files} files done) is still running.`,
             confirmButtonText: 'OK',
             timer: 4000,
-            timerProgressBar: true
+            timerProgressBar: true,
           });
-
         } else if (status.status === 'Completed') {
           // Completed while user was away — load results directly
           this.currentJobId = saved.jobId;
           this.service.clearActiveJob();
           this.loadResults(saved.jobId);
-
         } else if (status.status === 'Failed') {
           this.service.clearActiveJob();
           Swal.fire({
             icon: 'error',
             title: 'Previous Job Failed',
             text: status.error_message || 'The previous OCR job failed.',
-            confirmButtonText: 'OK'
+            confirmButtonText: 'OK',
           });
         }
       },
       error: () => {
         // Job not found or API error — clear stale localStorage
         this.service.clearActiveJob();
-      }
+      },
     });
   }
- 
 
   onFileSelect(event: any) {
     const files: FileList = event.target.files;
     const accepted: File[] = [];
     const rejected: { name: string; extension: string; reason: string }[] = [];
-  
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const ext  = this.getExtension(file.name);
+      const ext = this.getExtension(file.name);
       const mime = file.type.toLowerCase();
-  
-      if (this.SUPPORTED_EXTENSIONS.includes(ext) && this.SUPPORTED_MIME_TYPES.includes(mime)) {
+
+      if (
+        this.SUPPORTED_EXTENSIONS.includes(ext) &&
+        this.SUPPORTED_MIME_TYPES.includes(mime)
+      ) {
         accepted.push(file);
       } else {
         rejected.push({
-          name:      file.name,
+          name: file.name,
           extension: ext || '(no extension)',
-          reason:    this.getRejectionReason(ext, mime)
+          reason: this.getRejectionReason(ext, mime),
         });
       }
     }
-   // ── Sort accepted files by name ascending before adding ──
-   accepted.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-     
-    this.selectedFiles.push(...accepted); 
+    // ── Sort accepted files by name ascending before adding ──
+    accepted.sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }),
+    );
+
+    this.selectedFiles.push(...accepted);
     this.rejectedFiles.push(...rejected);
-  
+
     event.target.value = null;
     this.cd.detectChanges();
-  
+
     // ── Show Swal only if there are rejections
     if (rejected.length > 0) {
       this.showRejectedFilesAlert(rejected, accepted.length);
     }
   }
-  
+
   // ── Getter — upload is blocked if ANY rejected file still exists
   get hasRejectedFiles(): boolean {
     return this.rejectedFiles.length > 0;
   }
-  
+
   // ── Remove a rejected file from the rejected list
   removeRejectedFile(index: number) {
     this.rejectedFiles.splice(index, 1);
     this.cd.detectChanges();
   }
-  
+
   // ── Remove accepted file (your existing method — unchanged)
   removeFile(index: number) {
     this.selectedFiles.splice(index, 1);
@@ -194,38 +216,41 @@ export class AddImageComponent implements OnInit, OnDestroy {
     const parts = filename.toLowerCase().split('.');
     return parts.length > 1 ? '.' + parts[parts.length - 1] : '';
   }
-  
+
   private getRejectionReason(ext: string, mime: string): string {
     const unsupportedMap: Record<string, string> = {
-      '.bmp':  'BMP format is not supported by Gemini OCR',
+      '.bmp': 'BMP format is not supported by Gemini OCR',
       // '.tiff': 'TIFF format is not supported by Gemini OCR',
       // '.tif':  'TIFF format is not supported by Gemini OCR',
-      '.svg':  'SVG is a vector format — OCR cannot extract text from it',
+      '.svg': 'SVG is a vector format — OCR cannot extract text from it',
       '.heic': 'HEIC/HEIF format is not supported by Gemini OCR',
       '.heif': 'HEIC/HEIF format is not supported by Gemini OCR',
       '.docx': 'Word documents must be converted to PDF first',
-      '.doc':  'Word documents must be converted to PDF first',
+      '.doc': 'Word documents must be converted to PDF first',
       '.xlsx': 'Excel files are not supported — export as PDF first',
-      '.xls':  'Excel files are not supported — export as PDF first',
-      '.txt':  'Plain text files do not need OCR — paste text directly',
-      '.csv':  'CSV files are not supported by OCR',
-      '.mp4':  'Video files are not supported by OCR',
-      '.avi':  'Video files are not supported by OCR',
-      '.mov':  'Video files are not supported by OCR',
+      '.xls': 'Excel files are not supported — export as PDF first',
+      '.txt': 'Plain text files do not need OCR — paste text directly',
+      '.csv': 'CSV files are not supported by OCR',
+      '.mp4': 'Video files are not supported by OCR',
+      '.avi': 'Video files are not supported by OCR',
+      '.mov': 'Video files are not supported by OCR',
       '.pptx': 'PowerPoint files must be converted to PDF first',
-      '.ppt':  'PowerPoint files must be converted to PDF first',
+      '.ppt': 'PowerPoint files must be converted to PDF first',
     };
-  
+
     if (unsupportedMap[ext]) return unsupportedMap[ext];
-    if (!mime || mime === 'application/octet-stream') return 'Unknown file type — cannot process';
+    if (!mime || mime === 'application/octet-stream')
+      return 'Unknown file type — cannot process';
     return `File type "${ext}" is not supported by Gemini OCR`;
   }
-  
+
   private showRejectedFilesAlert(
     rejected: { name: string; extension: string; reason: string }[],
-    acceptedCount: number
+    acceptedCount: number,
   ) {
-    const rows = rejected.map(f => `
+    const rows = rejected
+      .map(
+        (f) => `
       <tr>
         <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0">
           <span style="font-size:13px">📄 ${f.name}</span>
@@ -237,16 +262,19 @@ export class AddImageComponent implements OnInit, OnDestroy {
         <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;
                    font-size:12px;color:#666">${f.reason}</td>
       </tr>
-    `).join('');
-  
-    const acceptedMsg = acceptedCount > 0
-      ? `<p style="color:#27ae60;font-size:13px;margin-top:12px">
+    `,
+      )
+      .join('');
+
+    const acceptedMsg =
+      acceptedCount > 0
+        ? `<p style="color:#27ae60;font-size:13px;margin-top:12px">
            ✅ <strong>${acceptedCount}</strong> valid file(s) were added successfully.
          </p>`
-      : `<p style="color:#e74c3c;font-size:13px;margin-top:12px">
+        : `<p style="color:#e74c3c;font-size:13px;margin-top:12px">
            ⚠️ No valid files were added.
          </p>`;
-  
+
     Swal.fire({
       icon: 'warning',
       title: `${rejected.length} File(s) Not Supported`,
@@ -276,9 +304,10 @@ export class AddImageComponent implements OnInit, OnDestroy {
             ✅ Supported formats:
           </p>
           <div style="display:flex;flex-wrap:wrap;gap:6px">
-            ${this.SUPPORTED_EXTENSIONS.map(e =>
-              `<code style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;
-                            border-radius:4px;font-size:12px">${e}</code>`
+            ${this.SUPPORTED_EXTENSIONS.map(
+              (e) =>
+                `<code style="background:#e8f5e9;color:#2e7d32;padding:2px 8px;
+                            border-radius:4px;font-size:12px">${e}</code>`,
             ).join('')}
           </div>
         </div>
@@ -286,53 +315,54 @@ export class AddImageComponent implements OnInit, OnDestroy {
         ${acceptedMsg}
       `,
       confirmButtonText: 'Got it',
-      width: '600px'
+      width: '600px',
     });
   }
 
- 
   uploadFiles() {
     if (this.selectedFiles.length === 0 || this.uploading) return;
 
-      // Double-check — re-validate all selected files before sending
-  const stillInvalid = this.selectedFiles.filter(f => {
-    const ext = this.getExtension(f.name);
-    return !this.SUPPORTED_EXTENSIONS.includes(ext);
-  });
+    // Double-check — re-validate all selected files before sending
+    const stillInvalid = this.selectedFiles.filter((f) => {
+      const ext = this.getExtension(f.name);
+      return !this.SUPPORTED_EXTENSIONS.includes(ext);
+    });
 
-  if (stillInvalid.length > 0) {
-    Swal.fire({
-      icon: 'error',
-      title: 'Invalid Files Detected',
-      html: `Please remove these unsupported files before uploading:<br><br>
-             ${stillInvalid.map(f =>
-               `<code style="display:block;margin:4px 0;background:#fff0f0;
+    if (stillInvalid.length > 0) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Invalid Files Detected',
+        html: `Please remove these unsupported files before uploading:<br><br>
+             ${stillInvalid
+               .map(
+                 (f) =>
+                   `<code style="display:block;margin:4px 0;background:#fff0f0;
                              color:#c0392b;padding:3px 8px;border-radius:4px">
                   ${f.name}
-                </code>`
-             ).join('')}`,
-      confirmButtonText: 'OK'
-    });
-    return;
-  }
-
+                </code>`,
+               )
+               .join('')}`,
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
 
     const formData = new FormData();
-    this.selectedFiles.forEach(file => formData.append('files', file));
+    this.selectedFiles.forEach((file) => formData.append('files', file));
 
-    this.uploading      = true;
-    this.currentJobId   = null;
-    this.jobStatus      = null;
+    this.uploading = true;
+    this.currentJobId = null;
+    this.jobStatus = null;
     this.pollingMessage = 'Uploading files to server…';
     this.progressPercent = 0;
-    this.elapsedSeconds  = 0;
-    this.screenState    = 'processing'; 
+    this.elapsedSeconds = 0;
+    this.screenState = 'processing';
     this.cd.detectChanges();
 
     this.service.uploadOcrImages(formData).subscribe({
       next: (res) => {
-        this.currentJobId  = res.jobId;
-        this.jobStartedAt  = new Date().toISOString();
+        this.currentJobId = res.jobId;
+        this.jobStartedAt = new Date().toISOString();
         this.pollingMessage = 'Files uploaded. OCR processing started…';
 
         // Persist to localStorage so user can navigate away
@@ -342,20 +372,20 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.cd.detectChanges();
       },
       error: (err) => {
-        this.uploading      = false;
-        this.screenState    = 'upload';
+        this.uploading = false;
+        this.screenState = 'upload';
         this.pollingMessage = '';
         Swal.fire({
           icon: 'error',
           title: 'Upload Failed',
           text: err?.error?.message || 'Something went wrong while uploading.',
-          confirmButtonText: 'OK'
+          confirmButtonText: 'OK',
         });
         this.cd.detectChanges();
-      }
+      },
     });
   }
- 
+
   startPolling(jobId: string) {
     this.stopPolling();
 
@@ -371,23 +401,22 @@ export class AddImageComponent implements OnInit, OnDestroy {
             this.stopElapsedTimer();
             this.service.clearActiveJob();
             this.loadResults(jobId);
-
           } else if (status.status === 'Failed') {
             this.stopPolling();
             this.stopElapsedTimer();
             this.service.clearActiveJob();
-            this.uploading   = false;
+            this.uploading = false;
             this.screenState = 'upload';
             Swal.fire({
               icon: 'error',
               title: 'OCR Processing Failed',
               text: status.error_message || 'Job failed during processing.',
-              confirmButtonText: 'OK'
+              confirmButtonText: 'OK',
             });
             this.cd.detectChanges();
           }
         },
-        error: (err) => console.warn('Polling error (will retry):', err)
+        error: (err) => console.warn('Polling error (will retry):', err),
       });
     }, 3000);
   }
@@ -400,17 +429,17 @@ export class AddImageComponent implements OnInit, OnDestroy {
   }
 
   updateProgress(status: OcrJobStatus) {
-    this.progressPercent = status.total_files > 0
-      ? Math.round((status.processed_files / status.total_files) * 100)
-      : 0;
+    this.progressPercent =
+      status.total_files > 0
+        ? Math.round((status.processed_files / status.total_files) * 100)
+        : 0;
 
     switch (status.status) {
       case 'Queued':
         this.pollingMessage = 'Job is queued — waiting for worker…';
         break;
       case 'Processing':
-        this.pollingMessage =
-          `Processing ${status.processed_files} of ${status.total_files} files (${this.progressPercent}%)`;
+        this.pollingMessage = `Processing ${status.processed_files} of ${status.total_files} files (${this.progressPercent}%)`;
         break;
       case 'Completed':
         this.pollingMessage = '✅ All files processed! Loading results…';
@@ -418,7 +447,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
         break;
     }
   }
- 
+
   startElapsedTimer(startedAt: string) {
     this.stopElapsedTimer();
     const start = new Date(startedAt).getTime();
@@ -444,8 +473,10 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   get estimatedRemaining(): string {
     if (!this.jobStatus || this.jobStatus.processed_files === 0) return '—';
-    const rate    = this.elapsedSeconds / this.jobStatus.processed_files; // sec per file
-    const remaining = Math.round(rate * (this.jobStatus.total_files - this.jobStatus.processed_files));
+    const rate = this.elapsedSeconds / this.jobStatus.processed_files; // sec per file
+    const remaining = Math.round(
+      rate * (this.jobStatus.total_files - this.jobStatus.processed_files),
+    );
     if (remaining <= 0) return 'Almost done…';
     const m = Math.floor(remaining / 60);
     const s = remaining % 60;
@@ -455,14 +486,14 @@ export class AddImageComponent implements OnInit, OnDestroy {
   private preserveLines(text: string): string {
     // If already HTML, return as-is
     if (text.trim().startsWith('<')) return text;
-  
+
     return text
       .split('\n')
-      .map(line => {
+      .map((line) => {
         const trimmed = line.trimEnd();
-  
+
         if (!trimmed) return '<p><br></p>';
-  
+
         if (trimmed.startsWith('### '))
           return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
         if (trimmed.startsWith('## '))
@@ -471,54 +502,60 @@ export class AddImageComponent implements OnInit, OnDestroy {
           return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
         if (trimmed.startsWith('* ') || trimmed.startsWith('- '))
           return `<p>${this.inlineFormat(trimmed.slice(2))}</p>`;
-  
+
         return `<p>${this.inlineFormat(trimmed)}</p>`;
       })
       .join('');
   }
-  
+
   private inlineFormat(text: string): string {
     return text
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>');
   }
- 
+
   loadResults(jobId: string) {
     this.service.getOcrJobResults(jobId).subscribe({
       next: (results: OcrFileResult[]) => {
         const parsed: any[] = [];
         const typeVotes: Record<string, number> = {};
         const nameVotes: Record<string, number> = {};
-  
+
         results.forEach((fileResult, index) => {
           try {
             const geminiObj = JSON.parse(fileResult.ocr_text);
-            const rawText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  
+            const rawText =
+              geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
             let extractedText = rawText;
             let suggestedType = '';
             let suggestedName = '';
-  
+
             try {
               // Gemini sometimes wraps JSON in ```json ... ``` — strip it
-              const clean = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+              const clean = rawText
+                .replace(/^```json\s*/i, '')
+                .replace(/```\s*$/, '')
+                .trim();
               const structured = JSON.parse(clean);
-              extractedText = structured.extracted_text        ?? rawText;
+              extractedText = structured.extracted_text ?? rawText;
               suggestedType = (structured.suggested_document_type ?? '').trim();
               suggestedName = (structured.suggested_document_name ?? '').trim();
             } catch {
               // fallback to raw text
             }
-  
+
             // Vote counting
-            if (suggestedType) typeVotes[suggestedType] = (typeVotes[suggestedType] ?? 0) + 1;
-            if (suggestedName) nameVotes[suggestedName] = (nameVotes[suggestedName] ?? 0) + 1;
-              // REPLACE with:
-              parsed.push({ 
-                fileName: fileResult.file_name, 
-                extractedText: this.preserveLines(extractedText),  // ← convert here
-                pageNumber: index + 1 
-              });
+            if (suggestedType)
+              typeVotes[suggestedType] = (typeVotes[suggestedType] ?? 0) + 1;
+            if (suggestedName)
+              nameVotes[suggestedName] = (nameVotes[suggestedName] ?? 0) + 1;
+            // REPLACE with:
+            parsed.push({
+              fileName: fileResult.file_name,
+              extractedText: this.preserveLines(extractedText), // ← convert here
+              pageNumber: index + 1,
+            });
           } catch {
             parsed.push({
               fileName: fileResult.file_name || `File ${index + 1}`,
@@ -527,34 +564,38 @@ export class AddImageComponent implements OnInit, OnDestroy {
             });
           }
         });
-  
+
         // Pick winner by most votes
         const bestType = this.topVote(typeVotes);
         const bestName = this.topVote(nameVotes);
-  
+
         this.ocrResults = parsed;
         this.buildEditableForm(parsed, bestType, bestName);
         this.currentPageIndex = 0;
-        this.uploading   = false;
+        this.uploading = false;
         this.screenState = 'edit';
         this.cd.detectChanges();
       },
       error: () => {
-        this.uploading   = false;
+        this.uploading = false;
         this.screenState = 'upload';
-        Swal.fire({ icon: 'error', title: 'Load Failed', text: 'Could not load OCR results.', confirmButtonText: 'OK' });
+        Swal.fire({
+          icon: 'error',
+          title: 'Load Failed',
+          text: 'Could not load OCR results.',
+          confirmButtonText: 'OK',
+        });
         this.cd.detectChanges();
-      }
+      },
     });
   }
-  
+
   private topVote(votes: Record<string, number>): string {
     const entries = Object.entries(votes);
     if (!entries.length) return '';
-    return entries.reduce((a, b) => b[1] > a[1] ? b : a)[0];
+    return entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
   }
 
- 
   dismissAndContinue() {
     Swal.fire({
       icon: 'info',
@@ -562,38 +603,39 @@ export class AddImageComponent implements OnInit, OnDestroy {
       html: `Your OCR job is still processing.<br><br>
              <strong>Come back to this screen anytime</strong> — 
              the progress will resume automatically.`,
-      confirmButtonText: 'Got it!'
+      confirmButtonText: 'Got it!',
     }).then(() => {
       // Navigate away — user's choice handled by router
       // For now just go back to upload screen (progress persists in localStorage)
       this.stopPolling();
       this.stopElapsedTimer();
       this.screenState = 'upload';
-      this.uploading   = false;
+      this.uploading = false;
       this.cd.detectChanges();
     });
   }
 
- 
   buildEditableForm(results: any[], suggestedType = '', suggestedName = '') {
     const pagesArray = this.fb.array<FormGroup>([]);
     results.forEach((r, i) => {
-      pagesArray.push(this.fb.group({
-        fileName:      new FormControl(r.fileName),
-        pageNumber:    new FormControl(i + 1),
-        extractedText: new FormControl(r.extractedText)
-      }));
+      pagesArray.push(
+        this.fb.group({
+          fileName: new FormControl(r.fileName),
+          pageNumber: new FormControl(i + 1),
+          extractedText: new FormControl(r.extractedText),
+        }),
+      );
     });
 
     this.editForm = this.fb.group({
       documentTypeId: new FormControl(null),
-      documentId:     new FormControl(null),
-      documentType:   new FormControl(suggestedType),
-      documentName:   new FormControl(suggestedName),
-      pages:          pagesArray
+      documentId: new FormControl(null),
+      documentType: new FormControl(suggestedType),
+      documentName: new FormControl(suggestedName),
+      pages: pagesArray,
     });
 
-    this.editForm.get('documentTypeId')?.valueChanges.subscribe(value => {
+    this.editForm.get('documentTypeId')?.valueChanges.subscribe((value) => {
       if (value) {
         this.editForm.get('documentType')?.setValue('', { emitEvent: false });
         this.isDocumentTypeSaved = true;
@@ -606,16 +648,18 @@ export class AddImageComponent implements OnInit, OnDestroy {
       this.cd.detectChanges();
     });
 
-    this.editForm.get('documentType')?.valueChanges.subscribe(value => {
+    this.editForm.get('documentType')?.valueChanges.subscribe((value) => {
       if (value?.trim()) {
-        this.editForm.get('documentTypeId')?.setValue(null, { emitEvent: false });
+        this.editForm
+          .get('documentTypeId')
+          ?.setValue(null, { emitEvent: false });
         this.isDocumentTypeSaved = false;
         this.documentTypeId = 0;
       }
       this.cd.detectChanges();
     });
 
-    this.editForm.get('documentId')?.valueChanges.subscribe(value => {
+    this.editForm.get('documentId')?.valueChanges.subscribe((value) => {
       if (value) {
         this.editForm.get('documentName')?.setValue('', { emitEvent: false });
         this.isDocumentSaved = true;
@@ -627,7 +671,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       this.cd.detectChanges();
     });
 
-    this.editForm.get('documentName')?.valueChanges.subscribe(value => {
+    this.editForm.get('documentName')?.valueChanges.subscribe((value) => {
       if (value?.trim()) {
         this.editForm.get('documentId')?.setValue(null, { emitEvent: false });
         this.isDocumentSaved = false;
@@ -653,7 +697,9 @@ export class AddImageComponent implements OnInit, OnDestroy {
     const total = this.pages.controls.length;
     if (total <= 7) return true;
     const cur = this.currentPageIndex;
-    return i === 0 || i === total - 1 || i === cur || i === cur - 1 || i === cur + 1;
+    return (
+      i === 0 || i === total - 1 || i === cur || i === cur - 1 || i === cur + 1
+    );
   }
 
   shouldShowEllipsisBefore(i: number): boolean {
@@ -666,23 +712,41 @@ export class AddImageComponent implements OnInit, OnDestroy {
   }
 
   documentTyperopdown() {
-    this.service.dropdownAll('', '1', '3', '0').subscribe(
-      (response) => {
-        this.documentTypedata = [{ id: '', text: '' },
-          ...response.map((item: any) => ({ id: item.id.toString(), text: item.text }))];
-        this.documentTypeoptions = { data: this.documentTypedata,
-          width: '100%', placeholder: 'Select Document Type', allowClear: true };
-        this.cd.detectChanges();
-      });
+    this.service.dropdownAll('', '1', '3', '0').subscribe((response) => {
+      this.documentTypedata = [
+        { id: '', text: '' },
+        ...response.map((item: any) => ({
+          id: item.id.toString(),
+          text: item.text,
+        })),
+      ];
+      this.documentTypeoptions = {
+        data: this.documentTypedata,
+        width: '100%',
+        placeholder: 'Select Document Type',
+        allowClear: true,
+      };
+      this.cd.detectChanges();
+    });
   }
 
   documentropdown() {
-    this.service.dropdownAll('', '1', '1', this.documentTypeId?.toString() || '0').subscribe(
-      (response) => {
-        this.documentdata = [{ id: '', text: '' },
-          ...response.map((item: any) => ({ id: item.id.toString(), text: item.text }))];
-        this.documentoptions = { data: this.documentdata,
-          width: '100%', placeholder: 'Select Document Name', allowClear: true };
+    this.service
+      .dropdownAll('', '1', '1', this.documentTypeId?.toString() || '0')
+      .subscribe((response) => {
+        this.documentdata = [
+          { id: '', text: '' },
+          ...response.map((item: any) => ({
+            id: item.id.toString(),
+            text: item.text,
+          })),
+        ];
+        this.documentoptions = {
+          data: this.documentdata,
+          width: '100%',
+          placeholder: 'Select Document Name',
+          allowClear: true,
+        };
         this.cd.detectChanges();
       });
   }
@@ -690,119 +754,204 @@ export class AddImageComponent implements OnInit, OnDestroy {
   saveDocumentType() {
     const formValue = this.editForm.getRawValue();
     if (!formValue.documentType?.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please enter a Document Type name.', confirmButtonText: 'OK' });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation',
+        text: 'Please enter a Document Type name.',
+        confirmButtonText: 'OK',
+      });
       return;
     }
-    this.service.saveDocumentTypeJson({ documentTypeId: 0,
-      documentTypeName: formValue.documentType.trim(), isActive: true, createdBy: 1 }).subscribe({
-      next: (res: any) => {
-        const newId = res.documentTypeId || res.DocumentTypeId;
-        if (!newId) { Swal.fire({ icon: 'error', title: 'Failed', text: 'Save failed.', confirmButtonText: 'OK' }); return; }
-        this.documentTypeId = newId;
-        this.isDocumentTypeSaved = true;
-        Swal.fire({ icon: 'success', title: 'Saved!', text: `Document Type saved. ID = ${newId}`, confirmButtonText: 'OK' });
-        this.cd.detectChanges();
-      },
-      error: (err) => {
-        let errorMessage = 'Could not save Document Type. Please try again.';
-            if (errorMessage.includes('Document with same name already exists')) {
-      errorMessage = 'Document with same name already exists';
-    }
-        Swal.fire({
-          icon: 'error',
-          title: 'Save Failed',
-          text:errorMessage,
-          confirmButtonText: 'OK'
-        });
-      }
-    });
+    this.service
+      .saveDocumentTypeJson({
+        documentTypeId: 0,
+        documentTypeName: formValue.documentType.trim(),
+        isActive: true,
+        createdBy: 1,
+      })
+      .subscribe({
+        next: (res: any) => {
+          const newId = res.documentTypeId || res.DocumentTypeId;
+          if (!newId) {
+            Swal.fire({
+              icon: 'error',
+              title: 'Failed',
+              text: 'Save failed.',
+              confirmButtonText: 'OK',
+            });
+            return;
+          }
+          this.documentTypeId = newId;
+          this.isDocumentTypeSaved = true;
+          Swal.fire({
+            icon: 'success',
+            title: 'Saved!',
+            text: `Document Type saved. ID = ${newId}`,
+            confirmButtonText: 'OK',
+          });
+          this.cd.detectChanges();
+        },
+        error: (err: any) => {
+          //this.saving = false;
+
+          const errorMessage = err?.error?.message || 'Failed to save Document Type';
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage,
+          });
+        },
+      });
   }
 
   saveDocument() {
     if (!this.documentTypeId) {
-      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please save or select a Document Type first.', confirmButtonText: 'OK' });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation',
+        text: 'Please save or select a Document Type first.',
+        confirmButtonText: 'OK',
+      });
       return;
     }
     const formValue = this.editForm.getRawValue();
     if (!formValue.documentName?.trim()) {
-      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please enter a Document Name.', confirmButtonText: 'OK' });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation',
+        text: 'Please enter a Document Name.',
+        confirmButtonText: 'OK',
+      });
       return;
     }
-    this.service.saveDocument({ DocumentId: 0, DocumentTypeId: this.documentTypeId,
-      DocumentName: formValue.documentName.trim(), TotalPages: this.pages.length, CreatedBy: 1 }).subscribe({
-      next: (res: any) => {
-        this.documentId = res.documentId || res.DocumentId;
-        this.isDocumentSaved = true;
-        Swal.fire({ icon: 'success', title: 'Saved!', text: `Document saved.`, confirmButtonText: 'OK' });
-        this.cd.detectChanges();
-      },
-      error: (err) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Save Failed',
-          text: err?.error?.message || 'Could not save Document. Please try again.',
-          confirmButtonText: 'OK'
-        });
-      }
-    });
+    this.service
+      .saveDocument({
+        DocumentId: 0,
+        DocumentTypeId: this.documentTypeId,
+        DocumentName: formValue.documentName.trim(),
+        TotalPages: this.pages.length,
+        CreatedBy: 1,
+      })
+      .subscribe({
+        next: (res: any) => {
+          this.documentId = res.documentId || res.DocumentId;
+          this.isDocumentSaved = true;
+          Swal.fire({
+            icon: 'success',
+            title: 'Saved!',
+            text: `Document saved.`,
+            confirmButtonText: 'OK',
+          });
+          this.cd.detectChanges();
+        },
+        error: (err: any) => {
+          const errorMessage = err?.error?.message || 'Failed to save Document';
+
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage,
+          });
+        },
+      });
   }
 
   savePage(index: number) {
     if (!this.documentId) {
-      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please save the Document first.', confirmButtonText: 'OK' });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation',
+        text: 'Please save the Document first.',
+        confirmButtonText: 'OK',
+      });
       return;
     }
     const page = this.pages.at(index).value;
-    this.service.saveDocumentPage({ DocumentPageId: 0, DocumentId: this.documentId,
-      PageNumber: page.pageNumber, ExtractedText: page.extractedText, StatusId: 0, CreatedBy: 1 }).subscribe({
-      next: () => {
-        this.savedPages.add(index);
-        Swal.fire({ icon: 'success', title: 'Saved!', text: `Page ${page.pageNumber} saved.`, confirmButtonText: 'OK' })
-        .then(() => {
-          const isLastPage = index === this.pages.controls.length - 1;  // ← check if last
-          if (isLastPage) {
-            this.router.navigate(['/settings/ocr-data']);  // ← navigate if last page
-          }else {
-            // your existing logic — go to next unsaved page
-            const next = this.pages.controls.findIndex((_, idx) => idx > index && !this.savedPages.has(idx));
-            if (next !== -1) this.goToPage(next);
-          }
-        this.cd.detectChanges();
-        });
-      },
-      error: (err) => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Page Save Failed',
-          text: err?.error?.message || `Could not save Page ${page.pageNumber}. Please try again.`,
-          confirmButtonText: 'OK'
-        });
-      }
-    });
+    this.service
+      .saveDocumentPage({
+        DocumentPageId: 0,
+        DocumentId: this.documentId,
+        PageNumber: page.pageNumber,
+        ExtractedText: page.extractedText,
+        StatusId: 0,
+        CreatedBy: 1,
+      })
+      .subscribe({
+        next: () => {
+          this.savedPages.add(index);
+          Swal.fire({
+            icon: 'success',
+            title: 'Saved!',
+            text: `Page ${page.pageNumber} saved.`,
+            confirmButtonText: 'OK',
+          }).then(() => {
+            const isLastPage = index === this.pages.controls.length - 1; // ← check if last
+            if (isLastPage) {
+              this.router.navigate(['/settings/ocr-data']); // ← navigate if last page
+            } else {
+              // your existing logic — go to next unsaved page
+              const next = this.pages.controls.findIndex(
+                (_, idx) => idx > index && !this.savedPages.has(idx),
+              );
+              if (next !== -1) this.goToPage(next);
+            }
+            this.cd.detectChanges();
+          });
+        },
+        error: (err) => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Page Save Failed',
+            text:
+              err?.error?.message ||
+              `Could not save Page ${page.pageNumber}. Please try again.`,
+            confirmButtonText: 'OK',
+          });
+        },
+      });
   }
 
   async saveAllRemainingPages() {
     if (!this.documentId) {
-      Swal.fire({ icon: 'warning', title: 'Validation', text: 'Please save the Document first.', confirmButtonText: 'OK' });
+      Swal.fire({
+        icon: 'warning',
+        title: 'Validation',
+        text: 'Please save the Document first.',
+        confirmButtonText: 'OK',
+      });
       return;
     }
-    const unsaved = this.pages.controls.map((_, i) => i).filter(i => !this.savedPages.has(i));
+    const unsaved = this.pages.controls
+      .map((_, i) => i)
+      .filter((i) => !this.savedPages.has(i));
     if (!unsaved.length) {
-      Swal.fire({ icon: 'info', title: 'Info', text: 'All pages already saved!', confirmButtonText: 'OK' });
+      Swal.fire({
+        icon: 'info',
+        title: 'Info',
+        text: 'All pages already saved!',
+        confirmButtonText: 'OK',
+      });
       return;
     }
     try {
       for (const i of unsaved) await this.savePageAsync(i);
-      Swal.fire({ icon: 'success', title: 'Done!', text: 'All pages saved!', confirmButtonText: 'OK' })
-    .then(() => {
-      this.router.navigate(['/settings/ocr-data']);  // ← navigate after OK
-    });
-  } catch (err: any) {
+      Swal.fire({
+        icon: 'success',
+        title: 'Done!',
+        text: 'All pages saved!',
+        confirmButtonText: 'OK',
+      }).then(() => {
+        this.router.navigate(['/settings/ocr-data']); // ← navigate after OK
+      });
+    } catch (err: any) {
       Swal.fire({
         icon: 'error',
         title: 'Bulk Save Failed',
-        text: err?.error?.message || 'One or more pages could not be saved. Please check and retry.',
-        confirmButtonText: 'OK'
+        text:
+          err?.error?.message ||
+          'One or more pages could not be saved. Please check and retry.',
+        confirmButtonText: 'OK',
       });
     }
     this.cd.detectChanges();
@@ -811,11 +960,24 @@ export class AddImageComponent implements OnInit, OnDestroy {
   private savePageAsync(index: number): Promise<void> {
     return new Promise((resolve, reject) => {
       const page = this.pages.at(index).value;
-      this.service.saveDocumentPage({ DocumentPageId: 0, DocumentId: this.documentId,
-        PageNumber: page.pageNumber, ExtractedText: page.extractedText, StatusId: 0, CreatedBy: 1, RejectionReason: page.rejectionreason }).subscribe({
-        next: () => { this.savedPages.add(index); this.cd.detectChanges(); resolve(); },
-        error: (err) => reject(err)
-      });
+      this.service
+        .saveDocumentPage({
+          DocumentPageId: 0,
+          DocumentId: this.documentId,
+          PageNumber: page.pageNumber,
+          ExtractedText: page.extractedText,
+          StatusId: 0,
+          CreatedBy: 1,
+          RejectionReason: page.rejectionreason,
+        })
+        .subscribe({
+          next: () => {
+            this.savedPages.add(index);
+            this.cd.detectChanges();
+            resolve();
+          },
+          error: (err) => reject(err),
+        });
     });
   }
   removePage(index: number) {
@@ -828,33 +990,33 @@ export class AddImageComponent implements OnInit, OnDestroy {
       confirmButtonText: 'Yes, Remove',
       cancelButtonText: 'Cancel',
       confirmButtonColor: '#d33',
-      cancelButtonColor: '#6c757d'
+      cancelButtonColor: '#6c757d',
     }).then((result) => {
       if (result.isConfirmed) {
         this.pages.removeAt(index);
-  
+
         // Fix savedPages — shift all indexes above removed one down by 1
         const updated = new Set<number>();
-        this.savedPages.forEach(i => {
+        this.savedPages.forEach((i) => {
           if (i < index) updated.add(i);
           else if (i > index) updated.add(i - 1);
           // i === index is dropped (it's removed)
         });
         this.savedPages = updated;
-  
+
         // Adjust currentPageIndex if needed
         if (this.currentPageIndex >= this.pages.controls.length) {
           this.currentPageIndex = Math.max(0, this.pages.controls.length - 1);
         }
-  
+
         this.cd.detectChanges();
-  
+
         Swal.fire({
           icon: 'success',
           title: 'Removed',
           text: `Page ${index + 1} has been removed.`,
           timer: 1500,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
       }
     });
