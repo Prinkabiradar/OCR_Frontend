@@ -1,10 +1,6 @@
 import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, FormControl } from '@angular/forms';
-import {
-  ServiceService,
-  OcrJobStatus,
-  OcrFileResult,
-} from '../../settings.service';
+import { ServiceService, OcrJobStatus, OcrFileResult } from '../../settings.service';
 import { Options } from 'select2';
 import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
@@ -319,6 +315,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     });
   }
 
+
   uploadFiles() {
     if (this.selectedFiles.length === 0 || this.uploading) return;
 
@@ -513,6 +510,107 @@ export class AddImageComponent implements OnInit, OnDestroy {
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>');
   }
+ 
+  // loadResults(jobId: string) {
+  //   this.service.getOcrJobResults(jobId).subscribe({
+  //     next: (results: OcrFileResult[]) => {
+  //       const parsed: any[] = [];
+  //       const typeVotes: Record<string, number> = {};
+  //       const nameVotes: Record<string, number> = {};
+  
+  //       results.forEach((fileResult, index) => {
+  //         try {
+  //           const geminiObj = JSON.parse(fileResult.ocr_text);
+  //           const rawText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  
+  //           let extractedText = rawText;
+  //           let suggestedType = '';
+  //           let suggestedName = '';
+
+  //           try {
+  //             // Gemini sometimes wraps JSON in ```json ... ``` — strip it
+  //             const clean = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+  //             const structured = JSON.parse(clean);
+  //             extractedText = structured.extracted_text ?? rawText;
+  //             suggestedType = (structured.suggested_document_type ?? '').trim();
+  //             suggestedName = (structured.suggested_document_name ?? '').trim();
+  //           } catch {
+  //             // fallback to raw text
+  //           }
+  
+  //           // Vote counting
+  //           if (suggestedType) typeVotes[suggestedType] = (typeVotes[suggestedType] ?? 0) + 1;
+  //           if (suggestedName) nameVotes[suggestedName] = (nameVotes[suggestedName] ?? 0) + 1;
+  //             // REPLACE with:
+  //             parsed.push({ 
+  //               fileName: fileResult.file_name, 
+  //               extractedText: this.preserveLines(extractedText),  // ← convert here
+  //               pageNumber: index + 1 
+  //             });
+  //         } catch {
+  //           errorFiles.push({
+  //             name: fileResult.file_name || `File ${index + 1}`,
+  //             message: 'Failed to parse OCR response'
+  //           });
+  //         }
+  //       });
+  
+  //       // Pick winner by most votes
+  //       const bestType = this.topVote(typeVotes);
+  //       const bestName = this.topVote(nameVotes);
+  
+  //       this.ocrResults = parsed;
+  //       this.buildEditableForm(parsed, bestType, bestName);
+  //       this.currentPageIndex = 0;
+  //       this.uploading = false;
+  //       this.screenState = 'edit';
+  //       this.cd.detectChanges();
+  //     };
+
+  //     if (errorFiles.length > 0 && parsed.length > 0) {
+  //       const rows = errorFiles.map(f => `
+  //         <tr>
+  //           <td style="padding:6px 10px;font-size:13px;border-bottom:1px solid #f0f0f0">📄 ${f.name}</td>
+  //           <td style="padding:6px 10px;font-size:12px;color:#c0392b;border-bottom:1px solid #f0f0f0">
+  //             ${f.message}
+  //           </td>
+  //         </tr>`).join('');
+
+  //       Swal.fire({
+  //         icon: 'warning',
+  //         title: `${errorFiles.length} File(s) Failed`,
+  //         html: `
+  //           <p style="font-size:14px;color:#555;margin-bottom:12px">
+  //             The following files could not be processed and were skipped:
+  //           </p>
+  //           <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+  //             <table style="width:100%;border-collapse:collapse">
+  //               <tbody>${rows}</tbody>
+  //             </table>
+  //           </div>
+  //           <p style="color:#27ae60;font-size:13px;margin-top:12px">
+  //             ✅ ${parsed.length} file(s) loaded successfully.
+  //           </p>`,
+  //         confirmButtonText: 'Continue with valid files',
+  //         width: '560px'
+  //       }).then(() => proceedToEdit()); // ← .then() instead of await
+  //     } else {
+  //       proceedToEdit(); // ← all succeeded, go directly
+  //     }
+  //     }},
+  //     error: () => {
+  //       this.uploading = false;
+  //       this.screenState = 'upload';
+  //       Swal.fire({
+  //         icon: 'error',
+  //         title: 'Load Failed',
+  //         text: 'Could not load OCR results.',
+  //         confirmButtonText: 'OK',
+  //       });
+  //       this.cd.detectChanges();
+  //     },
+  //   });
+  // }
 
   loadResults(jobId: string) {
     this.service.getOcrJobResults(jobId).subscribe({
@@ -520,73 +618,196 @@ export class AddImageComponent implements OnInit, OnDestroy {
         const parsed: any[] = [];
         const typeVotes: Record<string, number> = {};
         const nameVotes: Record<string, number> = {};
-
+        const errorFiles: { name: string; message: string }[] = [];
+  
         results.forEach((fileResult, index) => {
           try {
             const geminiObj = JSON.parse(fileResult.ocr_text);
-            const rawText =
-              geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
+  
+            // ── Detect top-level Gemini API error ──
+            if (geminiObj?.error) {
+              errorFiles.push({
+                name: fileResult.file_name || `File ${index + 1}`,
+                message: geminiObj.error.message || 'Unknown API error'
+              });
+              return;
+            }
+  
+            const rawText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  
             let extractedText = rawText;
             let suggestedType = '';
             let suggestedName = '';
-
+  
             try {
-              // Gemini sometimes wraps JSON in ```json ... ``` — strip it
-              const clean = rawText
-                .replace(/^```json\s*/i, '')
-                .replace(/```\s*$/, '')
-                .trim();
+              const clean = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
               const structured = JSON.parse(clean);
-              extractedText = structured.extracted_text ?? rawText;
+              extractedText = structured.extracted_text        ?? rawText;
               suggestedType = (structured.suggested_document_type ?? '').trim();
               suggestedName = (structured.suggested_document_name ?? '').trim();
             } catch {
               // fallback to raw text
             }
-
-            // Vote counting
-            if (suggestedType)
-              typeVotes[suggestedType] = (typeVotes[suggestedType] ?? 0) + 1;
-            if (suggestedName)
-              nameVotes[suggestedName] = (nameVotes[suggestedName] ?? 0) + 1;
-            // REPLACE with:
+  
+            if (suggestedType) typeVotes[suggestedType] = (typeVotes[suggestedType] ?? 0) + 1;
+            if (suggestedName) nameVotes[suggestedName] = (nameVotes[suggestedName] ?? 0) + 1;
+  
             parsed.push({
               fileName: fileResult.file_name,
-              extractedText: this.preserveLines(extractedText), // ← convert here
-              pageNumber: index + 1,
+              extractedText: this.preserveLines(extractedText),
+              pageNumber: index + 1
             });
+  
           } catch {
-            parsed.push({
-              fileName: fileResult.file_name || `File ${index + 1}`,
-              extractedText: '<p>Parse error</p>',
-              pageNumber: index + 1,
+            errorFiles.push({
+              name: fileResult.file_name || `File ${index + 1}`,
+              message: 'Failed to parse OCR response'
             });
           }
         });
+  
+        // ── Helper to proceed to edit screen ──
+        const proceedToEdit = () => {
+          const bestType = this.topVote(typeVotes);
+          const bestName = this.topVote(nameVotes);
+          this.ocrResults = parsed;
+          this.buildEditableForm(parsed, bestType, bestName);
+          this.currentPageIndex = 0;
+          this.uploading   = false;
+          this.screenState = 'edit';
+          this.cd.detectChanges();
+        };
+  
+        // ── All files failed — go back to upload screen ──
+        // if (errorFiles.length > 0 && parsed.length === 0) {
+        //   this.uploading   = false;
+        //   this.screenState = 'upload';
+  
+        //   const rows = errorFiles.map(f => `
+        //     <tr>
+        //       <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:13px">
+        //         📄 ${f.name}
+        //       </td>
+        //       <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;
+        //                  font-size:12px;color:#c0392b">
+        //         ${f.message}
+        //       </td>
+        //     </tr>`).join('');
+  
+        //   Swal.fire({
+        //     icon: 'error',
+        //     title: 'OCR Failed for All Files',
+        //     html: `
+        //       <p style="font-size:14px;color:#555;margin-bottom:12px">
+        //         None of the files could be processed:
+        //       </p>
+        //       <div style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+        //         <table style="width:100%;border-collapse:collapse">
+        //           <thead>
+        //             <tr style="background:#fafafa">
+        //               <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">File</th>
+        //               <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">Error</th>
+        //             </tr>
+        //           </thead>
+        //           <tbody>${rows}</tbody>
+        //         </table>
+        //       </div>`,
+        //     confirmButtonText: 'OK',
+        //     width: '580px'
+        //   });
+        //   this.cd.detectChanges();
+        //   return;
+        // }
+  
+        // ── Some files failed, some succeeded — warn then continue ──
+        // if (errorFiles.length > 0 && parsed.length > 0) {
+        //   const rows = errorFiles.map(f => `
+        //     <tr>
+        //       <td style="padding:6px 10px;font-size:13px;border-bottom:1px solid #f0f0f0">
+        //         📄 ${f.name}
+        //       </td>
+        //       <td style="padding:6px 10px;font-size:12px;color:#c0392b;border-bottom:1px solid #f0f0f0">
+        //         ${f.message}
+        //       </td>
+        //     </tr>`).join('');
+  
+        //   Swal.fire({
+        //     icon: 'warning',
+        //     title: `${errorFiles.length} File(s) Failed`,
+        //     html: `
+        //       <p style="font-size:14px;color:#555;margin-bottom:12px">
+        //         The following files could not be processed and were skipped:
+        //       </p>
+        //       <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+        //         <table style="width:100%;border-collapse:collapse">
+        //           <tbody>${rows}</tbody>
+        //         </table>
+        //       </div>
+        //       <p style="color:#27ae60;font-size:13px;margin-top:12px">
+        //         ✅ ${parsed.length} file(s) loaded successfully.
+        //       </p>`,
+        //     confirmButtonText: 'Continue with valid files',
+        //     width: '560px'
+        //   }).then(() => proceedToEdit());
+        //   return;
+        // }
+  
+        // ── All files failed — go back to upload screen ──
+        if (errorFiles.length > 0 && parsed.length === 0) {
+        this.uploading   = false;
+        this.screenState = 'upload';
 
-        // Pick winner by most votes
-        const bestType = this.topVote(typeVotes);
-        const bestName = this.topVote(nameVotes);
-
-        this.ocrResults = parsed;
-        this.buildEditableForm(parsed, bestType, bestName);
-        this.currentPageIndex = 0;
-        this.uploading = false;
-        this.screenState = 'edit';
+        Swal.fire({
+          icon: 'error',
+          title: 'OCR Failed',
+          html: `
+            <p style="font-size:14px;color:#555;">
+              All <strong>${errorFiles.length}</strong> file(s) could not be processed.
+            </p>
+            <p style="font-size:13px;color:#c0392b;margin-top:8px;">
+              ${errorFiles[0].message}
+            </p>`,
+          confirmButtonText: 'OK',
+          width: '460px'
+        });
         this.cd.detectChanges();
+        return;
+      }
+      // ── Some files failed, some succeeded — warn then continue ──
+      if (errorFiles.length > 0 && parsed.length > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: `${errorFiles.length} File(s) Failed`,
+          html: `
+            <p style="font-size:14px;color:#555;margin-bottom:8px;">
+              <strong>${errorFiles.length}</strong> file(s) could not be processed and were skipped.
+            </p>
+            <p style="font-size:13px;color:#c0392b;margin-bottom:8px;">
+              ${errorFiles[0].message}
+            </p>
+            <p style="color:#27ae60;font-size:13px;">
+              ✅ ${parsed.length} file(s) loaded successfully.
+            </p>`,
+          confirmButtonText: 'Continue with valid files',
+          width: '460px'
+        }).then(() => proceedToEdit());
+        return;
+      }
+
+        // ── All files succeeded ──
+        proceedToEdit();
       },
       error: () => {
-        this.uploading = false;
+        this.uploading   = false;
         this.screenState = 'upload';
         Swal.fire({
           icon: 'error',
           title: 'Load Failed',
           text: 'Could not load OCR results.',
-          confirmButtonText: 'OK',
+          confirmButtonText: 'OK'
         });
         this.cd.detectChanges();
-      },
+      }
     });
   }
 
@@ -595,6 +816,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     if (!entries.length) return '';
     return entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
   }
+
 
   dismissAndContinue() {
     Swal.fire({
@@ -614,6 +836,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       this.cd.detectChanges();
     });
   }
+
 
   buildEditableForm(results: any[], suggestedType = '', suggestedName = '') {
     const pagesArray = this.fb.array<FormGroup>([]);
