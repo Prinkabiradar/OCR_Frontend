@@ -679,79 +679,121 @@ export class AddImageComponent implements OnInit, OnDestroy {
         };
   
         // ── All files failed — go back to upload screen ──
-        if (errorFiles.length > 0 && parsed.length === 0) {
-          this.uploading   = false;
-          this.screenState = 'upload';
+        // if (errorFiles.length > 0 && parsed.length === 0) {
+        //   this.uploading   = false;
+        //   this.screenState = 'upload';
   
-          const rows = errorFiles.map(f => `
-            <tr>
-              <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:13px">
-                📄 ${f.name}
-              </td>
-              <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;
-                         font-size:12px;color:#c0392b">
-                ${f.message}
-              </td>
-            </tr>`).join('');
+        //   const rows = errorFiles.map(f => `
+        //     <tr>
+        //       <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:13px">
+        //         📄 ${f.name}
+        //       </td>
+        //       <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;
+        //                  font-size:12px;color:#c0392b">
+        //         ${f.message}
+        //       </td>
+        //     </tr>`).join('');
   
-          Swal.fire({
-            icon: 'error',
-            title: 'OCR Failed for All Files',
-            html: `
-              <p style="font-size:14px;color:#555;margin-bottom:12px">
-                None of the files could be processed:
-              </p>
-              <div style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
-                <table style="width:100%;border-collapse:collapse">
-                  <thead>
-                    <tr style="background:#fafafa">
-                      <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">File</th>
-                      <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">Error</th>
-                    </tr>
-                  </thead>
-                  <tbody>${rows}</tbody>
-                </table>
-              </div>`,
-            confirmButtonText: 'OK',
-            width: '580px'
-          });
-          this.cd.detectChanges();
-          return;
-        }
+        //   Swal.fire({
+        //     icon: 'error',
+        //     title: 'OCR Failed for All Files',
+        //     html: `
+        //       <p style="font-size:14px;color:#555;margin-bottom:12px">
+        //         None of the files could be processed:
+        //       </p>
+        //       <div style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+        //         <table style="width:100%;border-collapse:collapse">
+        //           <thead>
+        //             <tr style="background:#fafafa">
+        //               <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">File</th>
+        //               <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">Error</th>
+        //             </tr>
+        //           </thead>
+        //           <tbody>${rows}</tbody>
+        //         </table>
+        //       </div>`,
+        //     confirmButtonText: 'OK',
+        //     width: '580px'
+        //   });
+        //   this.cd.detectChanges();
+        //   return;
+        // }
   
         // ── Some files failed, some succeeded — warn then continue ──
-        if (errorFiles.length > 0 && parsed.length > 0) {
-          const rows = errorFiles.map(f => `
-            <tr>
-              <td style="padding:6px 10px;font-size:13px;border-bottom:1px solid #f0f0f0">
-                📄 ${f.name}
-              </td>
-              <td style="padding:6px 10px;font-size:12px;color:#c0392b;border-bottom:1px solid #f0f0f0">
-                ${f.message}
-              </td>
-            </tr>`).join('');
+        // if (errorFiles.length > 0 && parsed.length > 0) {
+        //   const rows = errorFiles.map(f => `
+        //     <tr>
+        //       <td style="padding:6px 10px;font-size:13px;border-bottom:1px solid #f0f0f0">
+        //         📄 ${f.name}
+        //       </td>
+        //       <td style="padding:6px 10px;font-size:12px;color:#c0392b;border-bottom:1px solid #f0f0f0">
+        //         ${f.message}
+        //       </td>
+        //     </tr>`).join('');
   
-          Swal.fire({
-            icon: 'warning',
-            title: `${errorFiles.length} File(s) Failed`,
-            html: `
-              <p style="font-size:14px;color:#555;margin-bottom:12px">
-                The following files could not be processed and were skipped:
-              </p>
-              <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
-                <table style="width:100%;border-collapse:collapse">
-                  <tbody>${rows}</tbody>
-                </table>
-              </div>
-              <p style="color:#27ae60;font-size:13px;margin-top:12px">
-                ✅ ${parsed.length} file(s) loaded successfully.
-              </p>`,
-            confirmButtonText: 'Continue with valid files',
-            width: '560px'
-          }).then(() => proceedToEdit());
-          return;
-        }
+        //   Swal.fire({
+        //     icon: 'warning',
+        //     title: `${errorFiles.length} File(s) Failed`,
+        //     html: `
+        //       <p style="font-size:14px;color:#555;margin-bottom:12px">
+        //         The following files could not be processed and were skipped:
+        //       </p>
+        //       <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+        //         <table style="width:100%;border-collapse:collapse">
+        //           <tbody>${rows}</tbody>
+        //         </table>
+        //       </div>
+        //       <p style="color:#27ae60;font-size:13px;margin-top:12px">
+        //         ✅ ${parsed.length} file(s) loaded successfully.
+        //       </p>`,
+        //     confirmButtonText: 'Continue with valid files',
+        //     width: '560px'
+        //   }).then(() => proceedToEdit());
+        //   return;
+        // }
   
+        // ── All files failed — go back to upload screen ──
+        if (errorFiles.length > 0 && parsed.length === 0) {
+        this.uploading   = false;
+        this.screenState = 'upload';
+
+        Swal.fire({
+          icon: 'error',
+          title: 'OCR Failed',
+          html: `
+            <p style="font-size:14px;color:#555;">
+              All <strong>${errorFiles.length}</strong> file(s) could not be processed.
+            </p>
+            <p style="font-size:13px;color:#c0392b;margin-top:8px;">
+              ${errorFiles[0].message}
+            </p>`,
+          confirmButtonText: 'OK',
+          width: '460px'
+        });
+        this.cd.detectChanges();
+        return;
+      }
+      // ── Some files failed, some succeeded — warn then continue ──
+      if (errorFiles.length > 0 && parsed.length > 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: `${errorFiles.length} File(s) Failed`,
+          html: `
+            <p style="font-size:14px;color:#555;margin-bottom:8px;">
+              <strong>${errorFiles.length}</strong> file(s) could not be processed and were skipped.
+            </p>
+            <p style="font-size:13px;color:#c0392b;margin-bottom:8px;">
+              ${errorFiles[0].message}
+            </p>
+            <p style="color:#27ae60;font-size:13px;">
+              ✅ ${parsed.length} file(s) loaded successfully.
+            </p>`,
+          confirmButtonText: 'Continue with valid files',
+          width: '460px'
+        }).then(() => proceedToEdit());
+        return;
+      }
+
         // ── All files succeeded ──
         proceedToEdit();
       },
@@ -768,7 +810,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       }
     });
   }
-  
+
   private topVote(votes: Record<string, number>): string {
     const entries = Object.entries(votes);
     if (!entries.length) return '';
