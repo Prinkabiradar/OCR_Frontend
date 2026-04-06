@@ -76,15 +76,15 @@
           <th *ngIf="roleId !== 5">Checked By</th>
           <th *ngIf="roleId !== 5">Checked Date</th>
 
-          <th *ngIf="roleId === 2 || roleId === 3">Verified By</th>
-          <th *ngIf="roleId === 2 || roleId === 3">Verified Date</th>
+          <th *ngIf="roleId === 2 || roleId === 3 || roleId === 4">Verified By</th>
+          <th *ngIf="roleId === 2 || roleId === 3 || roleId === 4">Verified Date</th>
 
-          <th *ngIf="roleId === 3">Approved By</th>
-          <th *ngIf="roleId === 3">Approved Date</th>
+          <th *ngIf="roleId === 3 || roleId === 4">Approved By</th>
+          <th *ngIf="roleId === 3 || roleId === 4">Approved Date</th>
 
           <th *ngIf="roleId !== 5">Status</th>
-          <th *ngIf="roleId !== 5">Action</th>
-          <th *ngIf="roleId === 5">View PDF</th>
+          <th *ngIf="roleId !== 5 && roleId !== 4">Action</th>
+          <th *ngIf="roleId === 5 || roleId === 4" width="100">View PDF</th>
         </tr>
       </thead>
 
@@ -101,29 +101,23 @@
           </td>
 
           <td *ngIf="roleId !== 5">
-            {{
-              doc.createdDate ? (doc.createdDate | date: "mediumDate") : "NA"
-            }}
+            {{ formatDate(doc.createdDate) }}
           </td>
 
-          <td *ngIf="roleId === 2 || roleId === 3">
+          <td *ngIf="roleId === 2 || roleId === 3 || roleId === 4">
             {{ doc.updatedByName?.trim() ? doc.updatedByName : "NA" }}
           </td>
 
-          <td *ngIf="roleId === 2 || roleId === 3">
-            {{
-              doc.updatedDate ? (doc.updatedDate | date: "mediumDate") : "NA"
-            }}
+          <td *ngIf="roleId === 2 || roleId === 3 || roleId === 4">
+            {{ formatDate(doc.updatedDate) }}
           </td>
 
-          <td *ngIf="roleId === 3">
+          <td *ngIf="roleId === 3 || roleId === 4">
             {{ doc.approvedByName?.trim() ? doc.approvedByName : "NA" }}
           </td>
 
-          <td *ngIf="roleId === 3">
-            {{
-              doc.approvedDate ? (doc.approvedDate | date: "mediumDate") : "NA"
-            }}
+          <td *ngIf="roleId === 3 || roleId === 4">
+            {{ formatDate(doc.approvedDate) }}
           </td>
 
           <!-- Status -->
@@ -134,7 +128,7 @@
           </td>
 
           <!-- Action -->
-          <td *ngIf="roleId !== 5">
+          <td *ngIf="roleId !== 5 && roleId !== 4">
             <ng-container *ngIf="canView(doc); else notAvailable">
               <button
                 class="btn btn-primary btn-sm"
@@ -167,9 +161,9 @@
           </td>
 
           <!-- PDF View -->
-          <td *ngIf="roleId === 5">
+          <td *ngIf="roleId === 5 || roleId === 4">
             <button
-              class="btn btn-light-primary"
+              class="btn btn-primary btn-sm"
               (click)="onViewPdf(doc)"
               [disabled]="loadingPages"
             >

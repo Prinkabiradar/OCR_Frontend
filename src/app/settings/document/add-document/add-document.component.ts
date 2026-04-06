@@ -9,10 +9,9 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-add-document',
   templateUrl: './add-document.component.html',
-  styleUrls: ['./add-document.component.scss']
+  styleUrls: ['./add-document.component.scss'],
 })
 export class AddDocumentComponent implements OnInit {
-
   documentForm!: FormGroup;
   saving = false;
   isEditMode = false;
@@ -27,7 +26,7 @@ export class AddDocumentComponent implements OnInit {
     private service: ServiceService,
     private cd: ChangeDetectorRef,
     private router: Router,
-    private _shareds: SharedDataService
+    private _shareds: SharedDataService,
   ) {}
 
   ngOnInit(): void {
@@ -37,11 +36,11 @@ export class AddDocumentComponent implements OnInit {
 
   initForm() {
     this.documentForm = this.fb.group({
-      documentId:     [0],
+      documentId: [0],
       documentTypeId: [null, Validators.required],
-      documentName:   ['', Validators.required],
-      totalPages:     [0],
-      createdBy:      [0]
+      documentName: ['', Validators.required],
+      totalPages: [0],
+      createdBy: [0],
     });
   }
 
@@ -51,7 +50,8 @@ export class AddDocumentComponent implements OnInit {
 
   // ── Dropdown + patch after ready ──────────────────────────
   documentTypeDropdown() {
-    this.service.dropdownAll(this.documentTypesearchTerm, '1', '3', '0')
+    this.service
+      .dropdownAll(this.documentTypesearchTerm, '1', '3', '0')
       .subscribe({
         next: (response) => {
           this.documentTypedata = response.map((item: any) => ({
@@ -67,23 +67,27 @@ export class AddDocumentComponent implements OnInit {
           };
 
           // ── patch AFTER dropdown is ready ─────────────────
-          this._shareds.document$.subscribe(data => {
-  if (data) {
-    this.isEditMode = true;
-    this.documentForm.patchValue({
-      documentId:     data.documentId     ?? data.DocumentId     ?? 0,
-      documentTypeId: (data.documentTypeId ?? data.DocumentTypeId ?? '').toString(), // ✅ string
-      documentName:   data.documentName   ?? data.DocumentName   ?? '',
-      totalPages:     data.totalPages     ?? data.TotalPages     ?? 0,
-      createdBy:      data.createdBy      ?? data.CreatedBy      ?? 0,
-    });
-    this.cd.detectChanges(); 
-  }
-});
+          this._shareds.document$.subscribe((data) => {
+            if (data) {
+              this.isEditMode = true;
+              this.documentForm.patchValue({
+                documentId: data.documentId ?? data.DocumentId ?? 0,
+                documentTypeId: (
+                  data.documentTypeId ??
+                  data.DocumentTypeId ??
+                  ''
+                ).toString(), // ✅ string
+                documentName: data.documentName ?? data.DocumentName ?? '',
+                totalPages: data.totalPages ?? data.TotalPages ?? 0,
+                createdBy: data.createdBy ?? data.CreatedBy ?? 0,
+              });
+              this.cd.detectChanges();
+            }
+          });
 
           this.cd.detectChanges();
         },
-        error: (error) => console.error('Error fetching data', error)
+        error: (error) => console.error('Error fetching data', error),
       });
   }
 
@@ -104,46 +108,34 @@ export class AddDocumentComponent implements OnInit {
           icon: 'success',
           title: 'Success',
           text: `Document ${this.isEditMode ? 'updated' : 'saved'} successfully!`,
-          confirmButtonText: 'OK'
+          confirmButtonText: 'OK',
         }).then(() => {
           this._shareds.clearDocumentData();
           this.router.navigate(['/settings/data-document']);
         });
       },
-      error: (err) => {
+      error: (err: any) => {
+        this.saving = false;
 
-    let message = 'Something went wrong';
+        const errorMessage = err?.error?.message || 'Failed to save Document';
 
-    if (err.error) {
-
-     
-      if (typeof err.error === 'string') {
-
-        if (err.error.includes('Document with same name already exists')) {
-          message = 'Document name already exists';
-        } else {
-          message = err.error;
-        }
-
-      } else if (err.error.message) {
-        message = err.error.message;
-      }
-
-    }
-
-    Swal.fire('Error', message, 'error');
-  }
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: errorMessage,
+        });
+      },
     });
   }
 
   // ── Reset ──────────────────────────────────────────────────
   resetForm() {
     this.documentForm.reset({
-      documentId:     0,
+      documentId: 0,
       documentTypeId: null,
-      documentName:   '',
-      totalPages:     0,
-      createdBy:      0
+      documentName: '',
+      totalPages: 0,
+      createdBy: 0,
     });
     this.isEditMode = false;
     this._shareds.clearDocumentData();

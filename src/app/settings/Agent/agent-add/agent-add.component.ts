@@ -30,6 +30,7 @@ selectedDocumentName: string = '';
   summaryUpdatedAt: Date | null = null;
   isSavingSummary  = false;
   summaryDirty     = false; 
+  roleId           : number    = 0; 
 
   // Suggestion modal
 showSuggestionModal = false;
@@ -79,6 +80,11 @@ ngOnInit(): void {
   this.suggestionEditor = new Editor();
   this.loadVoices();
   this.loadDocumentsDropdown();
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    const userId = userData?.id ?? 0;
+    const roleId = userData?.roleId ?? 0;
+    this.roleId = roleId;
 }
 ngOnDestroy(): void {
   this.summaryEditor?.destroy();
