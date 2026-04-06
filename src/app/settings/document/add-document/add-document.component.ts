@@ -140,4 +140,8 @@ export class AddDocumentComponent implements OnInit {
     this.isEditMode = false;
     this._shareds.clearDocumentData();
   }
+  ngOnDestroy(): void {
+    //this.docSub?.unsubscribe();
+    this._shareds.clearDocumentData(); 
+  }
 }
