@@ -40,6 +40,7 @@ isSavingSuggestion  = false;
 summaryEditor: Editor;
 suggestionEditor: Editor;
 pageTextEditor: Editor;
+pageTextContent: string = '';
 
 editorToolbar: Toolbar = [
   ['bold', 'italic', 'underline', 'strike'],
@@ -261,8 +262,8 @@ onDocumentSelect(event: any) {
         this.notFound     = response.pages.length === 0;
         this.pages        = response.pages;
         this.selectedPageIndex = 0;   
-      
         this.pageListSubject.next(response.pages);
+        this.updatePageContent(); 
       
         if (!this.notFound) {
           this.autoSelectVoice(response.fullText);
@@ -313,29 +314,32 @@ onDocumentSelect(event: any) {
     return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
   }
 
-  recreatePageEditor() {
-    this.pageTextEditor?.destroy();
-    this.pageTextEditor = new Editor();
-    this.cd.detectChanges();
-  }
+  // recreatePageEditor() {
+  //   this.pageTextEditor?.destroy();
+  //   this.pageTextEditor = new Editor();
+  //   this.cd.detectChanges();
+  // }
   
   // Converts raw extractedText to HTML for the editor
-  get pageTextContent(): string {
+  // get pageTextContent(): string {
+  //   const raw = this.currentDocPage?.extractedText || '';
+  //   return this.preserveLines(raw);
+  // }
+  private updatePageContent() {
     const raw = this.currentDocPage?.extractedText || '';
-    return this.preserveLines(raw);
+    this.pageTextContent = this.preserveLines(raw);
+    this.cd.detectChanges();
   }
-
   prevDocPage() {
     if (this.selectedPageIndex > 0) {
       this.selectedPageIndex--;
-      this.recreatePageEditor();           // ← add
+      this.updatePageContent();   // ← replace recreatePageEditor()
     } else if (this.currentPage > 1) {
       this.currentPage--;
       this.AgentGET();
       setTimeout(() => {
         this.selectedPageIndex = this.pages.length - 1;
-        this.recreatePageEditor();         // ← add
-        this.cd.detectChanges();
+        this.updatePageContent();
       }, 500);
     }
     this.cd.detectChanges();
@@ -344,12 +348,12 @@ onDocumentSelect(event: any) {
   nextDocPage() {
     if (this.selectedPageIndex < this.pages.length - 1) {
       this.selectedPageIndex++;
-      this.recreatePageEditor();           // ← add
+      this.updatePageContent();   // ← replace recreatePageEditor()
     } else if (this.currentPage < this.totalPages) {
       this.currentPage++;
       this.selectedPageIndex = 0;
       this.AgentGET();
-      this.recreatePageEditor();           // ← add
+      // updatePageContent() will be called inside AgentGET's next() callback
     }
     this.cd.detectChanges();
   }
