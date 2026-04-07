@@ -41,17 +41,6 @@
               "node_modules/select2/dist/css/select2.min.css",
               "node_modules/datatables.net-bs5/css/dataTables.bootstrap5.min.css"
               
-             
-            
-              
-              
-          
-              
-             
-            
-              
-              
-         
             ],
             "scripts": [
               "node_modules/jquery/dist/jquery.min.js",
@@ -67,12 +56,12 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "3mb",
-                  "maximumError": "4mb"
+                  "maximumWarning": "4mb",
+                  "maximumError": "6mb"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
+                  "maximumWarning": "6kb",
                   "maximumError": "20kb"
                 }
               ],

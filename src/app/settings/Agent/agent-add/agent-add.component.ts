@@ -116,11 +116,9 @@ saveSuggestion() {
   if (!this.suggestionText.trim()) return;
   this.isSavingSuggestion = true;
   this.cd.detectChanges();
-
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
   const userData = lsValue ? JSON.parse(lsValue) : null;
   const createdBy = userData?.id ?? 0;
-
   // Get current page details from the active page
   const currentPage = this.currentDocPage;
   const documentId     = this.selectedDocumentId;

@@ -8,8 +8,8 @@ export const environment = {
   USERDATA_KEY: 'authf649fc9a5f55',
   isMockEnabled: true,
   apiUrl: 'api',
-  // BaseUrl: 'http://localhost:81/',
- BaseUrl: 'https://localhost:7238/',
+  BaseUrl: 'https://ocrapi.sharpflux.com/',
+ //BaseUrl: 'https://localhost:7238/',
  
   appThemeName: 'Myhris',
   appPurchaseUrl: 'https://1.envato.market/EA4JP',

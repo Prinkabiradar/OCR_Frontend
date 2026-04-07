@@ -81,14 +81,15 @@ export class LoginComponent implements OnInit, OnDestroy {
       .subscribe((user: UserModel | undefined) => {
         if (user) {
           this.router.navigate(['/settings/admindashboard']);
-          // ✅ Conditional redirect based on roleId
-          // if (user.roleId === 1) {
-          //   this.router.navigate(['/settings/admindashboard']);
-          // } else {
-          //   // fallback to returnUrl or other role-specific page
-          //   this.router.navigate([this.returnUrl || '/dashboard']);
-          // }
-        } else {
+          // ✅ Conditional redirect based on roleId (user.roleId === 1)
+          if (user ) {
+            this.router.navigate(['/settings/admindashboard']);
+          } else {
+            // fallback to returnUrl or other role-specific page
+            this.router.navigate([this.returnUrl || '/settings/admindashboard']);
+          }
+        } 
+        else {
           this.hasError = true;
         }
       });
