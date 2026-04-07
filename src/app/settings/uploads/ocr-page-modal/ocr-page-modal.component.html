@@ -1,16 +1,13 @@
 <ng-template #ocrPageModal let-modal>
- 
   <div
     class="modal-header ocr-header d-flex justify-content-between align-items-center"
   >
-    
     <div>
       <h4 class="ocr-title mb-0">{{ documentName }}</h4>
       <small class="text-muted">OCR Review & Validation</small>
     </div>
-     
+
     <div class="d-flex align-items-center gap-2">
- 
       <button
         class="btn btn-primary btn-sm"
         (click)="summarizeDocument()"
@@ -51,7 +48,12 @@
       <div *ngFor="let item of pageList" class="ocr-card shadow-sm">
         <!-- 💡 Suggestion -->
         <div
-          *ngIf="item.StatusId === 8 && roleId === 3 && item.Suggestion && item.Suggestion.trim() !== ''"
+          *ngIf="
+            item.StatusId === 8 &&
+            roleId === 3 &&
+            item.Suggestion &&
+            item.Suggestion.trim() !== ''
+          "
           class="suggestion-box"
         >
           <strong>Suggestion:</strong>
@@ -94,17 +96,17 @@
       <button class="btn btn-outline-danger btn-sm" [disabled]="!isSpeaking" (click)="stopSpeaking()">
         ⏹ Stop
       </button> -->
-      <div class="d-flex justify-content-end p-2 border-top">
-            <button
-              class="btn btn-success btn-sm"
-              [disabled]="
-                isSavingSummary || (!summaryDirty && summaryFromCache)
-              "
-              (click)="saveSummary()"
-            >
-              {{ isSavingSummary ? "⏳ Saving…" : "Save Summary" }}
-            </button>
-          </div>
+              <div class="d-flex justify-content-end p-2 border-top">
+                <button
+                  class="btn btn-success btn-sm"
+                  [disabled]="
+                    isSavingSummary || (!summaryDirty && summaryFromCache)
+                  "
+                  (click)="saveSummary()"
+                >
+                  {{ isSavingSummary ? "⏳ Saving…" : "Save Summary" }}
+                </button>
+              </div>
               <button
                 class="btn btn-outline-secondary btn-sm"
                 (click)="showSummary = false"
@@ -131,7 +133,6 @@
           </div>
 
           <!-- Save Footer -->
-          
         </div>
 
         <!-- Summarizing Loader -->
@@ -159,25 +160,24 @@
 
         <!-- ✍️ TEXT AREA -->
         <div
-  class="ocr-editor-wrap"
-  [class.edited]="isDirty(item)"
-  [ngClass]="{ 'locked-editor': !canEdit(item) }"
->
+          class="ocr-editor-wrap"
+          [class.edited]="isDirty(item)"
+          [ngClass]="{ 'locked-editor': !canEdit(item) }"
+        >
           <ngx-editor-menu
             [editor]="getOrCreateEditor(item.DocumentPageId)"
             [toolbar]="pageToolbar"
           >
           </ngx-editor-menu>
           <ngx-editor
-  [editor]="getOrCreateEditor(item.DocumentPageId)"
-  [(ngModel)]="editedTexts[item.DocumentPageId]"
-  (ngModelChange)="onEditorChange(item, $event)"
-  [disabled]="!canEdit(item)"
-  placeholder="Extracted text will appear here…">
-</ngx-editor>
+            [editor]="getOrCreateEditor(item.DocumentPageId)"
+            [(ngModel)]="editedTexts[item.DocumentPageId]"
+            (ngModelChange)="onEditorChange(item, $event)"
+            [disabled]="!canEdit(item)"
+            placeholder="Extracted text will appear here…"
+          >
+          </ngx-editor>
         </div>
-
-        
       </div>
     </div>
   </div>
@@ -188,39 +188,27 @@
   >
     <!-- PAGINATION -->
     <div class="page-local-nav" style="text-align: center">
-          <button
-            class="btn btn--ghost btn--sm"
-            [disabled]="absolutePageNumber === 1"
-            (click)="goToPrevious()"
-          >
-          <a
-                  [href]=""
-                  class="text-hover-primary text-gray-600"
-                >
-            ← Prev Page
-            </a>
-          </button>
+      <button
+        class="btn btn--ghost btn--sm"
+        [disabled]="absolutePageNumber === 1"
+        (click)="goToPrevious()"
+      >
+        <a [href]="" class="text-hover-primary text-gray-600"> ← Prev Page </a>
+      </button>
 
-          <span style="font-size: 0.85rem; opacity: 0.7">
-            Page {{ absolutePageNumber }} of {{ totalRecords }}
-            <!-- ← fixed -->
-          </span>
+      <span style="font-size: 0.85rem; opacity: 0.7">
+        Page {{ absolutePageNumber }} of {{ totalRecords }}
+        <!-- ← fixed -->
+      </span>
 
-          <button
-            class="btn btn--ghost btn--sm"
-            [disabled]="absolutePageNumber === totalRecords"
-            (click)="goToNext()"
-          >
-          <a
-                  [href]=""
-                  class="text-hover-primary text-gray-600"
-                >
-            Next Page →
-            </a>
-          </button>
-         
-
-        </div>
+      <button
+        class="btn btn--ghost btn--sm"
+        [disabled]="absolutePageNumber === totalRecords"
+        (click)="goToNext()"
+      >
+        <a [href]="" class="text-hover-primary text-gray-600"> Next Page → </a>
+      </button>
+    </div>
 
     <!-- ACTIONS -->
     <div class="d-flex gap-2">
@@ -238,36 +226,45 @@
 
       </button> -->
       <button
-              class="btn btn-success btn-sm"
-              (click)="saveRow(selectedItem)"
-              [disabled]="
-                savingRows[selectedItem.DocumentPageId] ||
-                !canEdit(selectedItem) ||
-                selectedItem.StatusId === 3
-              "
-            >
-              <span *ngIf="!savingRows[selectedItem.DocumentPageId]">{{
-                saveButtonLabel
-              }}</span>
-              <span *ngIf="savingRows[selectedItem.DocumentPageId]">
-                <span class="spinner-border spinner-border-sm"></span> Saving...
-              </span>
-            </button>
+        class="btn btn-success btn-sm"
+        (click)="saveRow(selectedItem)"
+        [disabled]="
+          savingRows[selectedItem.DocumentPageId] ||
+          !canEdit(selectedItem) ||
+          selectedItem.StatusId === 3
+        "
+      >
+        <span *ngIf="!savingRows[selectedItem.DocumentPageId]">{{
+          saveButtonLabel
+        }}</span>
+        <span *ngIf="savingRows[selectedItem.DocumentPageId]">
+          <span class="spinner-border spinner-border-sm"></span> Saving...
+        </span>
+      </button>
       <button
-              class="btn btn-danger btn-sm"
-              (click)="rejectRow(selectedItem)"
-              [disabled]="
-                savingRows[selectedItem.DocumentPageId] ||
-                !canEdit(selectedItem) ||
-                selectedItem.StatusId === 3
-              "
-            >
-              ✕ Reject
-            </button>
+        class="btn btn-danger btn-sm"
+        (click)="rejectRow(selectedItem)"
+        [disabled]="
+          savingRows[selectedItem.DocumentPageId] ||
+          !canEdit(selectedItem) ||
+          selectedItem.StatusId === 3
+        "
+      >
+        ✕ Reject
+      </button>
 
       <button class="btn btn-outline-secondary btn-sm" (click)="close()">
         Close
       </button>
     </div>
   </div>
+  <app-pagination-data
+        [currentPage]="currentPage"
+        [totalPages]="totalPages"
+        [totalRecords]="totalRecords"
+        [pageSize]="itemsPerPage"
+        (pageChange)="onPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)"
+      >
+      </app-pagination-data>
 </ng-template>

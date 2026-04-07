@@ -230,6 +230,8 @@ stopSpeaking() {
     this.editedTexts = {};
     this.savingRows = {};
     this.savedRows = {};
+    this.pageSize = 1;
+   this.itemsPerPage = 1; 
     
     this.summary        = '';
     this.summaryId      = 0;
@@ -248,7 +250,7 @@ stopSpeaking() {
 
     const userId = this.currentUserId;
 
-    const startIndex = this.currentPage * this.pageSize;
+    const startIndex = (this.currentPage - 1) * this.pageSize + 1;
 
     this.service
       .getDocumentByDocumentName(this.documentId, startIndex, this.pageSize)
@@ -555,22 +557,29 @@ error: () => {
 
   this.service.saveDocumentPage(payload).subscribe({
     next: () => {
-      this.savedRows[item.DocumentPageId] = true;
-      this.savingRows[item.DocumentPageId] = false;
+  this.savedRows[item.DocumentPageId] = true;
+  this.savingRows[item.DocumentPageId] = false;
 
-      // ✅ SUCCESS SWAL
-      Swal.fire({
-        icon: 'success',
-        title: 'Saved Successfully',
-        text: `Page ${item.PageNumber} has been saved.`,
-        timer: 1500,
-        showConfirmButton: false
-      });
+  Swal.fire({
+    icon: 'success',
+    title: 'Saved Successfully',
+    text: `Page ${item.PageNumber} has been saved.`,
+    timer: 1500,
+    showConfirmButton: false
+  }).then(() => {
+    // ✅ If last page, close modal (redirects to data page)
+    if (this.absolutePageNumber === this.totalRecords) {
+      this.close();
+    } else {
+      // ✅ Move to next page automatically
+      this.goToNext();
+    }
+  });
 
-      setTimeout(() => {
-        this.savedRows[item.DocumentPageId] = false;
-      }, 2000);
-    },
+  setTimeout(() => {
+    this.savedRows[item.DocumentPageId] = false;
+  }, 2000);
+},
 
     error: () => {
       item.ExtractedText = oldText;
@@ -655,6 +664,22 @@ canEdit(item: any): boolean {
     this.currentPage++;
     this.loadPages();
   }
+  get totalPages(): number {
+  return Math.ceil(this.totalRecords / this.itemsPerPage);
+}
+
+// Add these methods
+onPageChange(page: number) {
+  this.currentPage = page;
+  this.loadPages();
+}
+
+onPageSizeChange(size: number) {
+  this.itemsPerPage = size;
+  this.pageSize = size;
+  this.currentPage = 1;
+  this.loadPages();
+}
 
   // 🔥 CLOSE WITH WARNING
   close() {
