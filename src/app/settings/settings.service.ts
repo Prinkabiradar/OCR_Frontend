@@ -852,7 +852,7 @@ cancelOcrJob(jobId: string) {
   const headers = this.getAuthHeaders().set('Content-Type', 'application/json');
   return this.http.post<{ message: string }>(
     environment.BaseUrl + 'api/OcrJob/CancelJob',
-    jobId,
+    { jobId },
     { headers }
   );
 }
