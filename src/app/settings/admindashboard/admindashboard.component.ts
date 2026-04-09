@@ -120,7 +120,7 @@ export class AdmindashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.updateClock();
-    this.clockInterval = setInterval(() => this.updateClock(), 1000);
+    this.clockInterval = setInterval(() => this.updateClock(), 60000);
     this.loadDashboard();
   }
 
@@ -131,11 +131,12 @@ export class AdmindashboardComponent implements OnInit, OnDestroy {
   updateClock(): void {
     const now = new Date();
     this.currentTime = now.toLocaleTimeString('en-IN', {
-      hour: '2-digit', minute: '2-digit', second: '2-digit'
+      hour: '2-digit', minute: '2-digit'//, second: '2-digit'
     });
     this.currentDate = now.toLocaleDateString('en-IN', {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
+    this.cdr.detectChanges();
   }
 
   loadDashboard(): void {
