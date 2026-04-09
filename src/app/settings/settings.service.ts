@@ -28,6 +28,7 @@ export interface OcrFileResult {
   result_id: string;
   job_id: string;
   file_name: string;
+  file_path?: string;
   ocr_text: string;   // raw Gemini JSON string
   success: boolean;
   error: any;
@@ -834,6 +835,24 @@ getOcrJobResults(jobId: string) {
   const headers = this.getAuthHeaders();
   return this.http.get<OcrFileResult[]>(
     environment.BaseUrl + 'api/OcrJob/GetOcrJobResults?jobId=' + jobId,
+    { headers }
+  );
+}
+
+retryOcrResult(jobId: string, fileName: string) {
+  const headers = this.getAuthHeaders().set('Content-Type', 'application/json');
+  return this.http.post<OcrFileResult>(
+    environment.BaseUrl + 'api/OcrJob/RetryResult',
+    { jobId, fileName },
+    { headers }
+  );
+}
+
+cancelOcrJob(jobId: string) {
+  const headers = this.getAuthHeaders().set('Content-Type', 'application/json');
+  return this.http.post<{ message: string }>(
+    environment.BaseUrl + 'api/OcrJob/CancelJob',
+    jobId,
     { headers }
   );
 }

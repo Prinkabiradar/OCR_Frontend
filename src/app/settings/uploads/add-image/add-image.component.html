@@ -112,9 +112,19 @@
   <ng-container *ngIf="screenState === 'processing'">
     <div class="seva-card progress-card">
       <div class="seva-card__header">
-        <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
-        <h2 class="seva-card__title">OCR Processing</h2>
-        <span class="seva-card__subtitle">Your files are being processed in background</span>
+        <div class="progress-card__header-main">
+          <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
+          <h2 class="seva-card__title">OCR Processing</h2>
+          <span class="seva-card__subtitle">Your files are being processed in background</span>
+        </div>
+        <button
+          type="button"
+          class="btn btn--ghost-danger btn--sm"
+          [disabled]="cancellingJob || !currentJobId"
+          (click)="cancelCurrentJob()">
+          <span *ngIf="!cancellingJob">Cancel Job</span>
+          <span *ngIf="cancellingJob">Cancelling…</span>
+        </button>
       </div>
 
       <div class="seva-card__body">
@@ -258,6 +268,29 @@
           <span class="section-divider__icon">🪷</span>
         </div>
 
+        <div class="failed-pages-panel" *ngIf="failedOcrPages.length > 0">
+          <div class="failed-pages-panel__header">
+            <span>⚠️</span>
+            <strong>{{ failedOcrPages.length }} page(s) need retry</strong>
+          </div>
+
+          <div class="failed-pages-panel__row" *ngFor="let item of failedOcrPages">
+            <div class="failed-pages-panel__meta">
+              <span class="failed-pages-panel__name">📄 {{ item.fileName }}</span>
+              <span class="failed-pages-panel__reason">Page {{ item.pageNumber }} · {{ item.message }}</span>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn--outline-peacock btn--sm"
+              [disabled]="isRetryingFailedPage(item.fileName)"
+              (click)="retryFailedPage(item)">
+              <span *ngIf="!isRetryingFailedPage(item.fileName)">Retry</span>
+              <span *ngIf="isRetryingFailedPage(item.fileName)">Retrying…</span>
+            </button>
+          </div>
+        </div>
+
         <!-- OCR Pages -->
         <div class="form-section">
           <div class="form-section__label">OCR Seva — Edit Pages</div>
@@ -269,12 +302,15 @@
                 [class.page-dot--active]="i === currentPageIndex"
                 [class.page-dot--saved]="savedPages.has(i)"
                 (click)="goToPage(i)"
-                [title]="'Page ' + (i+1) + (savedPages.has(i) ? ' ✅' : '')">
+                [title]="'Page ' + page.get('pageNumber')?.value + (savedPages.has(i) ? ' ✅' : '')">
               </span>
             </div>
             <div class="page-counter">
               Page <strong>{{ currentPageIndex + 1 }}</strong>
               of <strong>{{ pages.controls.length }}</strong>
+              <span class="page-counter__actual" *ngIf="pages.controls.length > 0">
+                &nbsp;·&nbsp; PDF page <strong>{{ getCurrentPageNumber() }}</strong>
+              </span>
               <span class="page-counter__saved" *ngIf="savedPages.size > 0">
                 &nbsp;·&nbsp; {{ savedPages.size }} saved
               </span>
@@ -288,7 +324,7 @@
                 <div class="page-card__header">
                   <div class="page-card__title">
                     📄&nbsp; {{ page.get('fileName')?.value }}
-                    <span class="page-badge">Page {{ currentPageIndex + 1 }}</span>
+                    <span class="page-badge">Page {{ page.get('pageNumber')?.value }}</span>
                   </div>
                 </div>
                 <!-- <textarea class="page-textarea" rows="14"
@@ -320,7 +356,7 @@
                   class="btn btn--pag-num"
                   [class.btn--pag-num--active]="i === currentPageIndex"
                   [class.btn--pag-num--saved]="savedPages.has(i)"
-                  (click)="goToPage(i)">{{ i + 1 }}</button>
+                  (click)="goToPage(i)">{{ page.get('pageNumber')?.value }}</button>
                 <span *ngIf="shouldShowEllipsisBefore(i)" class="pag-ellipsis">…</span>
               </ng-container>
             </div>
@@ -332,13 +368,13 @@
               <button type="button" class="btn btn--remove-page ms-3"
                 (click)="removePage(currentPageIndex)"
                 title="Remove this page">
-                ✕ Remove Page {{ currentPageIndex + 1 }}
+                ✕ Remove Page {{ getCurrentPageNumber() }}
               </button>
             <button type="button" class="btn btn--save-page ms-3"
               [class.btn--saved]="savedPages.has(currentPageIndex)"
               [disabled]="!documentId || savedPages.has(currentPageIndex)"
               (click)="savePage(currentPageIndex)">
-              {{ savedPages.has(currentPageIndex) ? '✅ Saved' : 'Save Page ' + (currentPageIndex + 1) }}
+              {{ savedPages.has(currentPageIndex) ? '✅ Saved' : 'Save Page ' + getCurrentPageNumber() }}
             </button>
           </div>
 
