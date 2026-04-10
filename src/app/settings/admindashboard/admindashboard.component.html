@@ -41,67 +41,85 @@
       </div>
     </div>
 
+  
     <!-- ─── STAT CARDS ─── -->
     <div class="stats-grid">
 
-      <div class="stat-card card-saffron">
-        <div class="stat-icon">📄</div>
-        <div class="stat-body">
-          <div class="stat-number">{{ stats.TotalDocuments | number }}</div>
-          <div class="stat-label">Total Documents</div>
-          <div class="stat-trend">↑ {{ stats.ThisMonthDocuments }} this month</div>
+      <div class="stat-card card-saffron clickable" [class.blocked]="roleId === 5" (click)="navigateTo('/settings/ocr-data',[1,2,3,4])">
+        <div class="stat-left">
+          <span class="stat-icon">📄</span>
+          <span class="stat-label">Total Documents</span>
         </div>
-        <div class="stat-deco">दस्तावेज़</div>
+        <span class="stat-number">{{ stats.TotalDocuments | number }}</span>
       </div>
-
+    
       <div class="stat-card card-green">
-        <div class="stat-icon">📜</div>
-        <div class="stat-body">
-          <div class="stat-number">{{ stats.TotalPagesScanned | number }}</div>
-          <div class="stat-label">Pages Scanned</div>
-          <div class="stat-trend">↑ {{ stats.ThisWeekPages }} this week</div>
+        <div class="stat-left">
+          <span class="stat-icon">📜</span>
+          <span class="stat-label">Pages Scanned</span>
         </div>
-        <div class="stat-deco">पृष्ठ</div>
+        <span class="stat-number">{{ stats.TotalPagesScanned | number }}</span>
+      </div>
+    
+      <div class="stat-card card-yellow clickable" [class.blocked]="roleId === 5" (click)="navigateTo('/settings/ocr-data',[1,2,3,4])">
+        <div class="stat-left">
+          <span class="stat-icon">🕐</span>
+          <span class="stat-label">Pending</span>
+        </div>
+        <span class="stat-number">{{ stats.PendingDocuments | number }}</span>
+      </div>
+    
+      <div class="stat-card card-blue clickable" [class.blocked]="roleId === 5" (click)="navigateTo('/settings/ocr-data',[1,2,3,4])">
+        <div class="stat-left">
+          <span class="stat-icon">✅</span>
+          <span class="stat-label">Checked</span>
+          <span class="stat-trend">Partial: {{ stats.PartiallyChecked }}</span>
+        </div>
+        <span class="stat-number">{{ stats.CheckedDocuments | number }}</span>
+      </div>
+    
+      <div class="stat-card card-teal clickable" [class.blocked]="roleId === 5" (click)="navigateTo('/settings/ocr-data',[1,2,3,4])">
+        <div class="stat-left">
+          <span class="stat-icon">🔍</span>
+          <span class="stat-label">Verified</span>
+          <span class="stat-trend">Partial: {{ stats.PartiallyVerified }}</span>
+        </div>
+        <span class="stat-number">{{ stats.VerifiedDocuments | number }}</span>
+      </div>
+    
+      <div class="stat-card card-green clickable" [class.blocked]="roleId === 5" (click)="navigateTo('/settings/ocr-data',[1,2,3,4])">
+        <div class="stat-left">
+          <span class="stat-icon">🏆</span>
+          <span class="stat-label">Approved</span>
+          <span class="stat-trend">Partial: {{ stats.PartiallyApproved }}</span>
+        </div>
+        <span class="stat-number">{{ stats.ApprovedDocuments | number }}</span>
+      </div>
+    
+      <div class="stat-card card-rose clickable" [class.blocked]="roleId === 5" (click)="navigateTo('/settings/ocr-data',[1,2,3,4])">
+        <div class="stat-left">
+          <span class="stat-icon">❌</span>
+          <span class="stat-label">Rejected</span>
+        </div>
+        <span class="stat-number">{{ stats.RejectedDocuments | number }}</span>
+      </div>
+    
+      <div class="stat-card card-purple clickable" [class.blocked]="roleId === 5" (click)="navigateTo('/settings/ocr-data',[1,2,3,4])">
+        <div class="stat-left">
+          <span class="stat-icon">💡</span>
+          <span class="stat-label">Suggestions</span>
+        </div>
+        <span class="stat-number">{{ stats.SuggestionDocuments | number }}</span>
       </div>
 
-      <!-- <div class="stat-card card-blue">
-        <div class="stat-icon">🎙️</div>
-        <div class="stat-body">
-          <div class="stat-number">{{ todaySeva?.TodayVoiceReqs | number }}</div>
-          <div class="stat-label">Voice Requests</div>
-          <div class="stat-trend">↑ {{ todaySeva?.TodayVoiceReqs }} today</div>
-        </div>
-        <div class="stat-deco">आवाज़</div>
-      </div> -->
-
-      <div class="stat-card card-purple">
-        <div class="stat-icon">🤖</div>
-        <div class="stat-body">
-          <div class="stat-number">{{ stats.AISummaries | number }}</div>
-          <div class="stat-label">AI Summaries</div>
-          <div class="stat-trend">↑ {{ stats.TodaySummaries }} today</div>
-        </div>
-        <div class="stat-deco">सारांश</div>
-      </div>
-
-      <div class="stat-card card-gold">
+      <!-- <div class="stat-card card-gold">
         <div class="stat-icon">📂</div>
         <div class="stat-body">
-          <div class="stat-number">{{ stats.DocumentTypes }}</div>
+          <div class="stat-number">{{ stats.DocumentTypes | number }}</div>
           <div class="stat-label">Document Types</div>
           <div class="stat-trend">&nbsp;</div>
         </div>
         <div class="stat-deco">प्रकार</div>
-      </div>
-
-      <!-- <div class="stat-card card-rose">
-        <div class="stat-icon">🌐</div>
-        <div class="stat-body">
-          <div class="stat-number">{{ stats.LanguagesSupported }}</div>
-          <div class="stat-label">Languages Supported</div>
-          <div class="stat-trend">Hindi, Tamil, Telugu…</div>
-        </div>
-        <div class="stat-deco">भाषा</div>
       </div> -->
 
     </div>
@@ -219,7 +237,7 @@
           <div class="panel-title">⚡ Quick Seva Actions</div>
         </div>
         <div class="action-grid">
-          <button class="action-btn btn-upload" routerLink="/settings/add-image">
+          <button class="action-btn btn-upload" (click)="navigateTo('/settings/add-image',[1])">
             <span class="action-icon">📤</span>
             <span class="action-label">Upload Document</span>
           </button>
@@ -231,7 +249,7 @@
             <span class="action-icon">🔍</span>
             <span class="action-label">Search Docs</span>
           </button>
-          <button class="action-btn btn-summary" routerLink="/settings/data-summary">
+          <button class="action-btn btn-summary">
             <span class="action-icon">📋</span>
             <span class="action-label">AI Summary</span>
           </button>

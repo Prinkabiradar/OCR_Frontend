@@ -2,19 +2,22 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { ServiceService } from '../settings.service';
+import { environment } from 'src/environments/environment';
 
 // ── Interfaces — PascalCase matching actual API response keys ─────────────────
 interface DashboardStats {
   TotalDocuments:     number;
   TotalPagesScanned:  number;
-  AISummaries:        number;
+  PendingDocuments:   number;
+  CheckedDocuments:   number;
+  PartiallyChecked:   number;
+  VerifiedDocuments:  number;
+  PartiallyVerified:  number;
+  ApprovedDocuments:  number;
+  PartiallyApproved:  number;
+  RejectedDocuments:  number;
+  SuggestionDocuments:number;
   DocumentTypes:      number;
-  LanguagesSupported: number;
-  TodayUploads:       number;
-  TodaySummaries:     number;
-  ThisMonthDocuments: number;
-  ThisWeekPages:      number;
-  TodayUploadsChange: number;
 }
 
 interface RecentDocumentResult {
@@ -110,7 +113,9 @@ export class AdmindashboardComponent implements OnInit, OnDestroy {
   }
 
   voiceBarColors = ['#ff6600','#f9a825','#2e7d32','#1565c0','#6a1b9a','#c62828'];
-
+  private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
+  currentUserId:number;
+  roleId:number;
   constructor(
     private http: HttpClient,
     private router: Router,
@@ -119,11 +124,19 @@ export class AdmindashboardComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    this.currentUserId = userData?.id ?? 0;
+    this.roleId = userData?.roleId ?? 0;
     this.updateClock();
     this.clockInterval = setInterval(() => this.updateClock(), 60000);
     this.loadDashboard();
   }
-
+ 
+  navigateTo(path: string, allowedRoles: number[] = []): void {
+    if (allowedRoles.length > 0 && !allowedRoles.includes(this.roleId)) return;
+    this.router.navigate([path]);
+  }
   ngOnDestroy(): void {
     clearInterval(this.clockInterval);
   }
