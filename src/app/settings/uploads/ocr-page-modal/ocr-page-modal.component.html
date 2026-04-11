@@ -46,137 +46,49 @@
     <!-- 📄 DATA -->
     <div *ngIf="!loading && pageList.length > 0" class="ocr-page-container">
       <div *ngFor="let item of pageList" class="ocr-card shadow-sm">
-        <!-- 💡 Suggestion -->
-        <div
-          *ngIf="
-            item.StatusId === 8 &&
-            roleId === 3 &&
-            item.Suggestion &&
-            item.Suggestion.trim() !== ''
-          "
-          class="suggestion-box"
-        >
-          <strong>Suggestion:</strong>
-          <p>{{ item.Suggestion }}</p>
-          <button
-            class="btn btn-sm btn-success me-2"
-            (click)="reviewSuggestion(item, 'Resolved')"
-          >
-            <!-- ← item not s -->
-            ✔ Resolve
-          </button>
-          <button
-            class="btn btn-sm btn-danger"
-            (click)="reviewSuggestion(item, 'Rejected')"
-          >
-            <!-- ← item not s -->
-            ✖ Reject
-          </button>
-        </div>
-        <!-- ✅ SUMMARY PANEL — mirrors summary-add component -->
-        <div class="summary-panel mt-3" *ngIf="showSummary && !isSummarizing">
-          <!-- Header -->
-          <div
-            class="summary-panel__header d-flex justify-content-between align-items-center p-2 border-bottom"
-          >
-            <div>
-              <strong>📋 {{ documentName }}</strong>
-              <!-- <span
-                *ngIf="summaryFromCache"
-                class="badge bg-secondary ms-2"
-                style="font-size: 0.7rem"
-              >
-                💾 Saved
-              </span> -->
-            </div>
-            <div class="d-flex gap-2">
-              <!-- <button class="btn btn-outline-primary btn-sm" (click)="speakText(summary)">
-        🔊 Read
-      </button>
-      <button class="btn btn-outline-danger btn-sm" [disabled]="!isSpeaking" (click)="stopSpeaking()">
-        ⏹ Stop
-      </button> -->
-              <div class="d-flex justify-content-end p-2 border-top">
-                <button
-                  class="btn btn-success btn-sm"
-                  [disabled]="
-                    isSavingSummary || (!summaryDirty && summaryFromCache)
-                  "
-                  (click)="saveSummary()"
-                >
-                  {{ isSavingSummary ? "⏳ Saving…" : "Save Summary" }}
-                </button>
-              </div>
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                (click)="showSummary = false"
-              >
-                ✖ Close
-              </button>
-            </div>
-          </div>
-
-          <!-- Editor -->
-          <div class="ocr-editor-wrap p-2">
-            <ngx-editor-menu
-              [editor]="summaryEditor"
-              [toolbar]="summaryToolbar"
-            ></ngx-editor-menu>
-            <ngx-editor
-              style="border: none; min-height: 150px"
-              [editor]="summaryEditor"
-              [(ngModel)]="summary"
-              (ngModelChange)="onSummaryEdit()"
-              placeholder="Summary will appear here…"
-            >
-            </ngx-editor>
-          </div>
-
-          <!-- Save Footer -->
-        </div>
-
-        <!-- Summarizing Loader -->
-        <div *ngIf="isSummarizing" class="text-center py-3">
-          <div class="spinner-border text-primary spinner-border-sm"></div>
-          <p class="text-muted mt-1 mb-0">Generating summary…</p>
-        </div>
         <!-- 🔹 CARD HEADER -->
         <div
           class="ocr-card-header d-flex justify-content-between align-items-center"
         >
           <span class="ocr-page-label">Page {{ item.PageNumber }}</span>
-          <div
-            *ngIf="item.StatusId === 7 && item.RejectionReason"
-            class="rejection-reason-box"
-          >
-            <span class="rejection-label">Rejection Reason:</span>
-            <span class="rejection-text">{{ item.RejectionReason }}</span>
-          </div>
 
           <span class="ocr-badge" [ngClass]="getStatusClass(item.StatusId)">
             {{ getStatusLabel(item.StatusId) }}
           </span>
         </div>
 
-        <!-- ✍️ TEXT AREA -->
-        <div
-          class="ocr-editor-wrap"
-          [class.edited]="isDirty(item)"
-          [ngClass]="{ 'locked-editor': !canEdit(item) }"
-        >
-          <ngx-editor-menu
-            [editor]="getOrCreateEditor(item.DocumentPageId)"
-            [toolbar]="pageToolbar"
+        <!-- 🔥 SPLIT VIEW -->
+        <div class="ocr-split-container">
+          <!-- 📄 LEFT SIDE → DOCUMENT VIEW -->
+          <div class="left-panel">
+  <iframe *ngIf="fileType === 'pdf'" [src]="documentPreviewUrl" width="100%" height="600px"></iframe>
+  <img *ngIf="fileType === 'image'" [src]="documentPreviewUrl" class="img-fluid"/>
+  <pre *ngIf="fileType === 'text'">{{ textFileContent }}</pre>
+  <div *ngIf="fileType === 'other'">Preview not supported.</div>
+  <!-- ❌ DELETE the block below — it conflicts and uses the wrong variable -->
+</div>
+
+          <!-- ✍️ RIGHT SIDE → OCR TEXT -->
+          <div
+            class="ocr-right"
+            [class.edited]="isDirty(item)"
+            [ngClass]="{ 'locked-editor': !canEdit(item) }"
           >
-          </ngx-editor-menu>
-          <ngx-editor
-            [editor]="getOrCreateEditor(item.DocumentPageId)"
-            [(ngModel)]="editedTexts[item.DocumentPageId]"
-            (ngModelChange)="onEditorChange(item, $event)"
-            [disabled]="!canEdit(item)"
-            placeholder="Extracted text will appear here…"
-          >
-          </ngx-editor>
+            <ngx-editor-menu
+              [editor]="getOrCreateEditor(item.DocumentPageId)"
+              [toolbar]="pageToolbar"
+            >
+            </ngx-editor-menu>
+
+            <ngx-editor
+              [editor]="getOrCreateEditor(item.DocumentPageId)"
+              [(ngModel)]="editedTexts[item.DocumentPageId]"
+              (ngModelChange)="onEditorChange(item, $event)"
+              [disabled]="!canEdit(item)"
+              placeholder="Extracted text will appear here…"
+            >
+            </ngx-editor>
+          </div>
         </div>
       </div>
     </div>
@@ -259,12 +171,12 @@
     </div>
   </div>
   <app-pagination-data
-        [currentPage]="currentPage"
-        [totalPages]="totalPages"
-        [totalRecords]="totalRecords"
-        [pageSize]="itemsPerPage"
-        (pageChange)="onPageChange($event)"
-        (pageSizeChange)="onPageSizeChange($event)"
-      >
-      </app-pagination-data>
+    [currentPage]="currentPage"
+    [totalPages]="totalPages"
+    [totalRecords]="totalRecords"
+    [pageSize]="itemsPerPage"
+    (pageChange)="onPageChange($event)"
+    (pageSizeChange)="onPageSizeChange($event)"
+  >
+  </app-pagination-data>
 </ng-template>

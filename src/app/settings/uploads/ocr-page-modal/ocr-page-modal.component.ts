@@ -1,18 +1,12 @@
-import {
-  ChangeDetectorRef,
-  Component,
-  Input,
-  TemplateRef,
-  ViewChild,
-  OnDestroy,
-  HostListener,
-} from '@angular/core';
+import {ChangeDetectorRef,Component,Input,TemplateRef,ViewChild,OnDestroy,HostListener,} from '@angular/core';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { ServiceService } from '../../settings.service';
 import Swal from 'sweetalert2';
 import { forkJoin } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { Editor, Toolbar } from 'ngx-editor';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-ocr-page-modal',
@@ -36,6 +30,10 @@ export class OcrPageModalComponent implements OnDestroy {
   itemsPerPage          = 1;
   totalRecords: number = 0;
   selectedPageIndex: number = 0;
+  documentUrl: any;
+  documentPath: string = '';
+  fileType: string = '';
+  textFileContent: string = '';
 
 
   editedTexts: any = {};
@@ -51,10 +49,13 @@ export class OcrPageModalComponent implements OnDestroy {
   private modalContent!: TemplateRef<any>;
 
   private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
+
   constructor(
     private modalService: NgbModal,
     private service: ServiceService,
     private cdr: ChangeDetectorRef,
+    private sanitizer: DomSanitizer,
+    private http: HttpClient ,
   ) {}
 
   pageEditors: { [id: number]: Editor } = {};
@@ -154,6 +155,22 @@ saveSummary() {
     }
   });
 }
+getSafeUrl(url: string): SafeResourceUrl {
+  return this.sanitizer.bypassSecurityTrustResourceUrl(url);
+}
+
+isPdf(fileUrl: string): boolean {
+  return fileUrl?.toLowerCase().includes('.pdf');
+}
+
+isImage(fileUrl: string): boolean {
+  return fileUrl?.match(/\.(jpg|jpeg|png)$/i) !== null;
+}
+
+isText(fileUrl: string): boolean {
+  return fileUrl?.toLowerCase().includes('.txt');
+}
+
 
 onSummaryEdit() {
   this.summaryDirty = true;
@@ -241,10 +258,46 @@ stopSpeaking() {
     this.isSummarizing  = false;
     this.isSavingSummary = false;
   }
+  documentPreviewUrl: any;
+
+loadDocumentPreview() {
+  if (!this.documentId) return;
+
+  this.service.getDocumentFile(this.documentId).subscribe((res: Blob) => {
+    const contentType = res.type;
+
+    if (contentType.includes('pdf')) {
+      this.fileType = 'pdf';
+    } else if (contentType.includes('image')) {
+      this.fileType = 'image';
+    } else if (contentType.includes('text')) {
+      this.fileType = 'text';
+
+      // 👇 READ TEXT CONTENT
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.textFileContent = reader.result as string;
+        this.cdr.detectChanges();
+      };
+      reader.readAsText(res);
+
+    } else {
+      this.fileType = 'other';
+    }
+
+    const url = URL.createObjectURL(res);
+    this.documentPreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+
+    this.cdr.detectChanges();
+  });
+}
 
   // 🔥 LOAD DATA (FIXED PAGINATION)
   loadPages(): void {
     if (!this.documentId) return;
+    // this.documentUrl = `https://localhost:7045/api/Document/GetDocumentFile?documentId=${this.documentId}`;
+     //this.documentPath = this.documentUrl;
+     this.loadDocumentPreview();
 
     this.loading = true;
 

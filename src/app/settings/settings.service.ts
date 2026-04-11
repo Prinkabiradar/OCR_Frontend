@@ -1017,4 +1017,20 @@ UsersGET(
     params: params,
   });
 }
+getDocumentFile(documentId: number): Observable<Blob> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.get(
+    `${environment.BaseUrl}api/DocumentPage/GetDocumentFile?documentId=${documentId}`,
+    {
+      headers,
+      responseType: 'blob' // ✅ VERY IMPORTANT
+    }
+  );
+}
+
 }

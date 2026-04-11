@@ -32,6 +32,15 @@
             🔍 Search
           </button>
         </div>
+        <div class="col-2">
+            <button
+    class="btn btn-primary btn-sm"
+    (click)="onViewPdf({ documentId: selectedDocumentId })"
+    [disabled]="loadingPages || !selectedDocumentId"
+  >
+    {{ loadingPages ? "Loading..." : "View PDF" }}
+  </button>
+        </div>
       </div>
 
       <!-- OM Loader -->

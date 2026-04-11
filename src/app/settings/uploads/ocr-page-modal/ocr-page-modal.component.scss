@@ -365,3 +365,40 @@ $radius: 10px;
   font-size: 0.85rem;
   opacity: 0.7;
 }
+.ocr-main-container {
+  display: flex;
+  height: 75vh;
+}
+
+.ocr-left-pane {
+  width: 50%;
+  border-right: 1px solid #ddd;
+  background: #000;
+}
+
+.ocr-right-pane {
+  width: 50%;
+  overflow-y: auto;
+  padding: 10px;
+  background: #f8f9fa;
+}
+.ocr-split-container {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+
+  .left-panel {
+    width: 40%;
+    flex-shrink: 0;
+
+    iframe, img {
+      width: 100%;
+      display: block;
+    }
+  }
+
+  .ocr-right {
+    width: 60%;
+    flex-shrink: 0;
+  }
+}
