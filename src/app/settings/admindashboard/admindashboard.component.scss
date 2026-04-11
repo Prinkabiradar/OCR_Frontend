@@ -159,65 +159,85 @@
   @media (max-width: 768px)  { grid-template-columns: repeat(2, 1fr); }
 }
 
+// ─── STAT CARDS ───
+.stats-grid {
+  position: relative; z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+
+  @media (max-width: 1200px) { grid-template-columns: repeat(3, 1fr); }
+  @media (max-width: 768px)  { grid-template-columns: repeat(2, 1fr); }
+}
+
 .stat-card {
-  border-radius: var(--radius);
-  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 10px;
+  padding: 12px 14px;
   position: relative;
   overflow: hidden;
-  cursor: default;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
   border: 1px solid transparent;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  cursor: default;
+  text-decoration: none;
 
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-hover);
+  &.clickable {
+    cursor: pointer;
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    &::after {
+      content: '→';
+      position: absolute;
+      top: 6px; right: 8px;
+      font-size: 11px;
+      opacity: 0.4;
+    }
   }
-
-  .stat-icon {
-    font-size: 28px;
-    margin-bottom: 8px;
+  .stat-card.clickable.blocked {
+    cursor: not-allowed;
+    opacity: 0.6;
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    &::after {
+      content: '🔒';
+      opacity: 0.5;
+    }
   }
+  .stat-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .stat-icon  { font-size: 16px; line-height: 1; }
+  .stat-label { font-size: 11px; font-weight: 500; opacity: 0.72; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-trend { font-size: 10px; opacity: 0.55; }
   .stat-number {
     font-size: 26px;
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 4px;
-  }
-  .stat-label {
-    font-size: 12px;
-    font-weight: 500;
-    opacity: 0.75;
-    margin-bottom: 6px;
-  }
-  .stat-trend {
-    font-size: 11px;
-    font-weight: 600;
-    opacity: 0.65;
-  }
-  .stat-deco {
-    position: absolute;
-    bottom: -8px; right: 8px;
-    font-size: 36px;
-    opacity: 0.08;
-    font-family: 'Cinzel', serif;
-    font-weight: 700;
-    letter-spacing: -1px;
-    white-space: nowrap;
+    flex-shrink: 0;
+    margin-left: 10px;
   }
 }
 
-.card-saffron { background: var(--saffron-light); border-color: rgba(255,102,0,0.2); color: #bf360c;
-  .stat-number { color: var(--saffron); } }
-.card-green   { background: var(--green-light);   border-color: rgba(46,125,50,0.2);  color: #1b5e20;
-  .stat-number { color: var(--green); } }
-.card-blue    { background: var(--blue-light);    border-color: rgba(21,101,192,0.2); color: #0d47a1;
-  .stat-number { color: var(--blue); } }
-.card-purple  { background: var(--purple-light);  border-color: rgba(106,27,154,0.2); color: #4a148c;
-  .stat-number { color: var(--purple); } }
-.card-gold    { background: var(--gold-light);    border-color: rgba(249,168,37,0.2); color: #e65100;
-  .stat-number { color: var(--gold); } }
-.card-rose    { background: var(--rose-light);    border-color: rgba(198,40,40,0.2);  color: #b71c1c;
-  .stat-number { color: var(--rose); } }
+// card colour variants (keep your existing ones, just remove .stat-deco, .stat-body)
+.card-saffron { background: var(--saffron-light); border-color: rgba(255,102,0,0.2);  color: #bf360c; .stat-number { color: var(--saffron); } }
+.card-green   { background: var(--green-light);   border-color: rgba(46,125,50,0.2);  color: #1b5e20; .stat-number { color: var(--green); } }
+.card-yellow  { background: var(--gold-light);    border-color: rgba(249,168,37,0.2); color: #e65100; .stat-number { color: var(--gold); } }
+.card-blue    { background: var(--blue-light);    border-color: rgba(21,101,192,0.2); color: #0d47a1; .stat-number { color: var(--blue); } }
+.card-teal    { background: #e0f2f1;              border-color: rgba(0,131,143,0.2);  color: #004d40; .stat-number { color: #00838f; } }
+.card-purple  { background: var(--purple-light);  border-color: rgba(106,27,154,0.2); color: #4a148c; .stat-number { color: var(--purple); } }
+.card-rose    { background: var(--rose-light);    border-color: rgba(198,40,40,0.2);  color: #b71c1c; .stat-number { color: var(--rose); } }
+
+ 
 
 // ─── PANEL BASE ───
 .seva-panel {

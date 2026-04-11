@@ -6,6 +6,18 @@ import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
 import { Router } from '@angular/router';
 
+interface ParsedOcrPage {
+  fileName: string;
+  extractedText: string;
+  pageNumber: number;
+}
+
+interface FailedOcrPage {
+  fileName: string;
+  pageNumber: number;
+  message: string;
+}
+
 @Component({
   selector: 'app-add-image',
   templateUrl: './add-image.component.html',
@@ -62,9 +74,12 @@ export class AddImageComponent implements OnInit, OnDestroy {
   // 'processing' → show full-screen progress
   // 'edit'       → show edit form after completion
   screenState: 'upload' | 'processing' | 'edit' = 'upload';
+  cancellingJob = false;
 
   // ── Edit form
-  ocrResults: any[] = [];
+  ocrResults: ParsedOcrPage[] = [];
+  failedOcrPages: FailedOcrPage[] = [];
+  retryingFailedPages = new Set<string>();
   editForm!: FormGroup;
   documentId: number = 0;
   documentTypeId: number = 0;
@@ -425,6 +440,58 @@ export class AddImageComponent implements OnInit, OnDestroy {
     }
   }
 
+  cancelCurrentJob() {
+    if (!this.currentJobId || this.cancellingJob) return;
+
+    Swal.fire({
+      icon: 'warning',
+      title: 'Cancel OCR Job?',
+      text: 'This will stop OCR processing for the current job.',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, Cancel Job',
+      cancelButtonText: 'Keep Running',
+      confirmButtonColor: '#c0392b',
+    }).then((result) => {
+      if (!result.isConfirmed || !this.currentJobId) return;
+
+      this.cancellingJob = true;
+      this.cd.detectChanges();
+
+      this.service.cancelOcrJob(this.currentJobId).subscribe({
+        next: (res) => {
+          this.stopPolling();
+          this.stopElapsedTimer();
+          this.service.clearActiveJob();
+          this.uploading = false;
+          this.cancellingJob = false;
+          this.screenState = 'upload';
+          this.pollingMessage = '';
+          this.progressPercent = 0;
+          this.jobStatus = null;
+          this.currentJobId = null;
+          this.cd.detectChanges();
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Job Cancelled',
+            text: res?.message || 'OCR job cancelled successfully.',
+            confirmButtonText: 'OK',
+          });
+        },
+        error: (err) => {
+          this.cancellingJob = false;
+          Swal.fire({
+            icon: 'error',
+            title: 'Cancel Failed',
+            text: err?.error?.message || 'Could not cancel the OCR job.',
+            confirmButtonText: 'OK',
+          });
+          this.cd.detectChanges();
+        },
+      });
+    });
+  }
+
   updateProgress(status: OcrJobStatus) {
     this.progressPercent =
       status.total_files > 0
@@ -510,7 +577,14 @@ export class AddImageComponent implements OnInit, OnDestroy {
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>');
   }
- 
+  private getSourceDocumentName(fileName: string): string {
+    // Matches  _p<digits>.<ext>  at the end, e.g.  "_p12.jpg"
+    return fileName.replace(/_p\d+\.[^.]+$/i, '') || fileName;
+  }
+  private getPageNumber(fileName: string): number | null {
+    const match = fileName.match(/_p(\d+)\.[^.]+$/i);
+    return match ? parseInt(match[1], 10) : null;
+  }
   // loadResults(jobId: string) {
   //   this.service.getOcrJobResults(jobId).subscribe({
   //     next: (results: OcrFileResult[]) => {
@@ -615,19 +689,31 @@ export class AddImageComponent implements OnInit, OnDestroy {
   loadResults(jobId: string) {
     this.service.getOcrJobResults(jobId).subscribe({
       next: (results: OcrFileResult[]) => {
-        const parsed: any[] = [];
+        const parsed: ParsedOcrPage[] = [];
         const typeVotes: Record<string, number> = {};
         const nameVotes: Record<string, number> = {};
-        const errorFiles: { name: string; message: string }[] = [];
+        const errorFiles: FailedOcrPage[] = [];
   
         results.forEach((fileResult, index) => {
+          const fallbackPageNumber = this.extractPageNumber(fileResult.file_name, index + 1);
+
+          if (!fileResult.success || !fileResult.ocr_text) {
+            errorFiles.push({
+              fileName: fileResult.file_name || `File ${index + 1}`,
+              pageNumber: fallbackPageNumber,
+              message: fileResult.error || 'OCR processing failed'
+            });
+            return;
+          }
+
           try {
             const geminiObj = JSON.parse(fileResult.ocr_text);
   
             // ── Detect top-level Gemini API error ──
             if (geminiObj?.error) {
               errorFiles.push({
-                name: fileResult.file_name || `File ${index + 1}`,
+                fileName: fileResult.file_name || `File ${index + 1}`,
+                pageNumber: fallbackPageNumber,
                 message: geminiObj.error.message || 'Unknown API error'
               });
               return;
@@ -655,22 +741,27 @@ export class AddImageComponent implements OnInit, OnDestroy {
             parsed.push({
               fileName: fileResult.file_name,
               extractedText: this.preserveLines(extractedText),
-              pageNumber: index + 1
+              pageNumber: fallbackPageNumber
             });
   
           } catch {
             errorFiles.push({
-              name: fileResult.file_name || `File ${index + 1}`,
+              fileName: fileResult.file_name || `File ${index + 1}`,
+              pageNumber: fallbackPageNumber,
               message: 'Failed to parse OCR response'
             });
           }
         });
+
+        parsed.sort((a, b) => a.pageNumber - b.pageNumber || a.fileName.localeCompare(b.fileName));
+        errorFiles.sort((a, b) => a.pageNumber - b.pageNumber || a.fileName.localeCompare(b.fileName));
   
         // ── Helper to proceed to edit screen ──
         const proceedToEdit = () => {
           const bestType = this.topVote(typeVotes);
           const bestName = this.topVote(nameVotes);
           this.ocrResults = parsed;
+          this.failedOcrPages = errorFiles;
           this.buildEditableForm(parsed, bestType, bestName);
           this.currentPageIndex = 0;
           this.uploading   = false;
@@ -679,120 +770,120 @@ export class AddImageComponent implements OnInit, OnDestroy {
         };
   
         // ── All files failed — go back to upload screen ──
-        // if (errorFiles.length > 0 && parsed.length === 0) {
-        //   this.uploading   = false;
-        //   this.screenState = 'upload';
+        if (errorFiles.length > 0 && parsed.length === 0) {
+          this.uploading   = false;
+          this.screenState = 'upload';
   
-        //   const rows = errorFiles.map(f => `
-        //     <tr>
-        //       <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:13px">
-        //         📄 ${f.name}
-        //       </td>
-        //       <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;
-        //                  font-size:12px;color:#c0392b">
-        //         ${f.message}
-        //       </td>
-        //     </tr>`).join('');
+          const rows = errorFiles.map(f => `
+            <tr>
+              <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;font-size:13px">
+                📄 ${f.fileName}
+              </td>
+              <td style="padding:6px 10px;text-align:left;border-bottom:1px solid #f0f0f0;
+                         font-size:12px;color:#c0392b">
+                ${f.message}
+              </td>
+            </tr>`).join('');
   
-        //   Swal.fire({
-        //     icon: 'error',
-        //     title: 'OCR Failed for All Files',
-        //     html: `
-        //       <p style="font-size:14px;color:#555;margin-bottom:12px">
-        //         None of the files could be processed:
-        //       </p>
-        //       <div style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
-        //         <table style="width:100%;border-collapse:collapse">
-        //           <thead>
-        //             <tr style="background:#fafafa">
-        //               <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">File</th>
-        //               <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">Error</th>
-        //             </tr>
-        //           </thead>
-        //           <tbody>${rows}</tbody>
-        //         </table>
-        //       </div>`,
-        //     confirmButtonText: 'OK',
-        //     width: '580px'
-        //   });
-        //   this.cd.detectChanges();
-        //   return;
-        // }
+          Swal.fire({
+            icon: 'error',
+            title: 'OCR Failed for All Files',
+            html: `
+              <p style="font-size:14px;color:#555;margin-bottom:12px">
+                None of the files could be processed:
+              </p>
+              <div style="max-height:260px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+                <table style="width:100%;border-collapse:collapse">
+                  <thead>
+                    <tr style="background:#fafafa">
+                      <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">File</th>
+                      <th style="padding:8px 10px;text-align:left;font-size:12px;color:#999">Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>`,
+            confirmButtonText: 'OK',
+            width: '580px'
+          });
+          this.cd.detectChanges();
+          return;
+        }
   
-        // ── Some files failed, some succeeded — warn then continue ──
-        // if (errorFiles.length > 0 && parsed.length > 0) {
-        //   const rows = errorFiles.map(f => `
-        //     <tr>
-        //       <td style="padding:6px 10px;font-size:13px;border-bottom:1px solid #f0f0f0">
-        //         📄 ${f.name}
-        //       </td>
-        //       <td style="padding:6px 10px;font-size:12px;color:#c0392b;border-bottom:1px solid #f0f0f0">
-        //         ${f.message}
-        //       </td>
-        //     </tr>`).join('');
+       // ── Some files failed, some succeeded — warn then continue ──
+        if (errorFiles.length > 0 && parsed.length > 0) {
+          const rows = errorFiles.map(f => `
+            <tr>
+              <td style="padding:6px 10px;font-size:13px;border-bottom:1px solid #f0f0f0">
+                📄 ${f.fileName}
+              </td>
+              <td style="padding:6px 10px;font-size:12px;color:#c0392b;border-bottom:1px solid #f0f0f0">
+                ${f.message}
+              </td>
+            </tr>`).join('');
   
-        //   Swal.fire({
-        //     icon: 'warning',
-        //     title: `${errorFiles.length} File(s) Failed`,
-        //     html: `
-        //       <p style="font-size:14px;color:#555;margin-bottom:12px">
-        //         The following files could not be processed and were skipped:
-        //       </p>
-        //       <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
-        //         <table style="width:100%;border-collapse:collapse">
-        //           <tbody>${rows}</tbody>
-        //         </table>
-        //       </div>
-        //       <p style="color:#27ae60;font-size:13px;margin-top:12px">
-        //         ✅ ${parsed.length} file(s) loaded successfully.
-        //       </p>`,
-        //     confirmButtonText: 'Continue with valid files',
-        //     width: '560px'
-        //   }).then(() => proceedToEdit());
-        //   return;
-        // }
+          Swal.fire({
+            icon: 'warning',
+            title: `${errorFiles.length} File(s) Failed`,
+            html: `
+              <p style="font-size:14px;color:#555;margin-bottom:12px">
+                The following files could not be processed and were skipped:
+              </p>
+              <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:8px">
+                <table style="width:100%;border-collapse:collapse">
+                  <tbody>${rows}</tbody>
+                </table>
+              </div>
+              <p style="color:#27ae60;font-size:13px;margin-top:12px">
+                ✅ ${parsed.length} file(s) loaded successfully.
+              </p>`,
+            confirmButtonText: 'Continue with valid files',
+            width: '560px'
+          }).then(() => proceedToEdit());
+          return;
+        }
   
         // ── All files failed — go back to upload screen ──
-        if (errorFiles.length > 0 && parsed.length === 0) {
-        this.uploading   = false;
-        this.screenState = 'upload';
+      //   if (errorFiles.length > 0 && parsed.length === 0) {
+      //   this.uploading   = false;
+      //   this.screenState = 'upload';
 
-        Swal.fire({
-          icon: 'error',
-          title: 'OCR Failed',
-          html: `
-            <p style="font-size:14px;color:#555;">
-              All <strong>${errorFiles.length}</strong> file(s) could not be processed.
-            </p>
-            <p style="font-size:13px;color:#c0392b;margin-top:8px;">
-              ${errorFiles[0].message}
-            </p>`,
-          confirmButtonText: 'OK',
-          width: '460px'
-        });
-        this.cd.detectChanges();
-        return;
-      }
+      //   Swal.fire({
+      //     icon: 'error',
+      //     title: 'OCR Failed',
+      //     html: `
+      //       <p style="font-size:14px;color:#555;">
+      //         All <strong>${errorFiles.length}</strong> file(s) could not be processed.
+      //       </p>
+      //       <p style="font-size:13px;color:#c0392b;margin-top:8px;">
+      //         ${errorFiles[0].message}
+      //       </p>`,
+      //     confirmButtonText: 'OK',
+      //     width: '460px'
+      //   });
+      //   this.cd.detectChanges();
+      //   return;
+      // }
       // ── Some files failed, some succeeded — warn then continue ──
-      if (errorFiles.length > 0 && parsed.length > 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: `${errorFiles.length} File(s) Failed`,
-          html: `
-            <p style="font-size:14px;color:#555;margin-bottom:8px;">
-              <strong>${errorFiles.length}</strong> file(s) could not be processed and were skipped.
-            </p>
-            <p style="font-size:13px;color:#c0392b;margin-bottom:8px;">
-              ${errorFiles[0].message}
-            </p>
-            <p style="color:#27ae60;font-size:13px;">
-              ✅ ${parsed.length} file(s) loaded successfully.
-            </p>`,
-          confirmButtonText: 'Continue with valid files',
-          width: '460px'
-        }).then(() => proceedToEdit());
-        return;
-      }
+      // if (errorFiles.length > 0 && parsed.length > 0) {
+      //   Swal.fire({
+      //     icon: 'warning',
+      //     title: `${errorFiles.length} File(s) Failed`,
+      //     html: `
+      //       <p style="font-size:14px;color:#555;margin-bottom:8px;">
+      //         <strong>${errorFiles.length}</strong> file(s) could not be processed and were skipped.
+      //       </p>
+      //       <p style="font-size:13px;color:#c0392b;margin-bottom:8px;">
+      //         ${errorFiles[0].message}
+      //       </p>
+      //       <p style="color:#27ae60;font-size:13px;">
+      //         ✅ ${parsed.length} file(s) loaded successfully.
+      //       </p>`,
+      //     confirmButtonText: 'Continue with valid files',
+      //     width: '460px'
+      //   }).then(() => proceedToEdit());
+      //   return;
+      // }
 
         // ── All files succeeded ──
         proceedToEdit();
@@ -809,6 +900,105 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.cd.detectChanges();
       }
     });
+  }
+
+  private parseSingleResult(
+    fileResult: OcrFileResult,
+    fallbackPageNumber?: number,
+  ): ParsedOcrPage | null {
+    if (!fileResult?.ocr_text) {
+      return null;
+    }
+
+    const pageNumber = this.extractPageNumber(
+      fileResult.file_name,
+      fallbackPageNumber ?? 1,
+    );
+
+    try {
+      const geminiObj = JSON.parse(fileResult.ocr_text);
+      if (geminiObj?.error) {
+        return null;
+      }
+
+      const rawText = geminiObj?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      let extractedText = rawText;
+
+      try {
+        const clean = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+        const structured = JSON.parse(clean);
+        extractedText = structured.extracted_text ?? rawText;
+      } catch {
+      }
+
+      return {
+        fileName: fileResult.file_name,
+        extractedText: this.preserveLines(extractedText),
+        pageNumber,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private upsertRetriedPage(page: ParsedOcrPage) {
+    const sortedResults = [...this.ocrResults.filter(p => p.fileName !== page.fileName), page]
+      .sort((a, b) => a.pageNumber - b.pageNumber || a.fileName.localeCompare(b.fileName));
+
+    this.ocrResults = sortedResults;
+
+    const existingIndex = this.pages.controls.findIndex(
+      control => control.get('fileName')?.value === page.fileName,
+    );
+
+    const formGroup = this.fb.group({
+      fileName: new FormControl(page.fileName),
+      pageNumber: new FormControl(page.pageNumber),
+      extractedText: new FormControl(page.extractedText),
+    });
+
+    const insertIndex = sortedResults.findIndex(
+      item => item.fileName === page.fileName && item.pageNumber === page.pageNumber,
+    );
+
+    if (existingIndex >= 0) {
+      this.pages.removeAt(existingIndex);
+    }
+
+    this.pages.insert(insertIndex, formGroup);
+    this.currentPageIndex = insertIndex;
+    this.rebuildSavedPagesAfterRetry(insertIndex, existingIndex);
+  }
+
+  private rebuildSavedPagesAfterRetry(insertIndex: number, removedIndex: number) {
+    const updated = new Set<number>();
+
+    this.savedPages.forEach((index) => {
+      let nextIndex = index;
+
+      if (removedIndex >= 0) {
+        if (index === removedIndex) {
+          return;
+        }
+
+        if (index > removedIndex) {
+          nextIndex = index - 1;
+        }
+      }
+
+      if (nextIndex >= insertIndex) {
+        nextIndex += 1;
+      }
+
+      updated.add(nextIndex);
+    });
+
+    this.savedPages = updated;
+  }
+
+  private extractPageNumber(fileName: string, fallbackPageNumber: number): number {
+    const match = fileName?.match(/_p(\d+)(?:\D|$)/i);
+    return match ? Number(match[1]) : fallbackPageNumber;
   }
 
   private topVote(votes: Record<string, number>): string {
@@ -838,13 +1028,13 @@ export class AddImageComponent implements OnInit, OnDestroy {
   }
 
 
-  buildEditableForm(results: any[], suggestedType = '', suggestedName = '') {
+  buildEditableForm(results: ParsedOcrPage[], suggestedType = '', suggestedName = '') {
     const pagesArray = this.fb.array<FormGroup>([]);
-    results.forEach((r, i) => {
+    results.forEach((r) => {
       pagesArray.push(
         this.fb.group({
           fileName: new FormControl(r.fileName),
-          pageNumber: new FormControl(i + 1),
+          pageNumber: new FormControl(r.pageNumber),
           extractedText: new FormControl(r.extractedText),
         }),
       );
@@ -932,6 +1122,62 @@ export class AddImageComponent implements OnInit, OnDestroy {
     if (i === Math.max(1, cur - 1) && cur > 2) return true;
     if (i === total - 1 && cur < total - 3) return true;
     return false;
+  }
+
+  getCurrentPageNumber(): number {
+    return this.pages.at(this.currentPageIndex)?.get('pageNumber')?.value ?? this.currentPageIndex + 1;
+  }
+
+  isRetryingFailedPage(fileName: string): boolean {
+    return this.retryingFailedPages.has(fileName);
+  }
+
+  retryFailedPage(item: FailedOcrPage) {
+    if (!this.currentJobId || this.isRetryingFailedPage(item.fileName)) {
+      return;
+    }
+
+    this.retryingFailedPages.add(item.fileName);
+    this.cd.detectChanges();
+
+    this.service.retryOcrResult(this.currentJobId, item.fileName).subscribe({
+      next: (result) => {
+        const parsedPage = this.parseSingleResult(result, item.pageNumber);
+        if (!parsedPage) {
+          this.retryingFailedPages.delete(item.fileName);
+          Swal.fire({
+            icon: 'error',
+            title: 'Retry Failed',
+            text: 'Retry completed but the OCR response is still invalid.',
+            confirmButtonText: 'OK'
+          });
+          this.cd.detectChanges();
+          return;
+        }
+
+        this.upsertRetriedPage(parsedPage);
+        this.failedOcrPages = this.failedOcrPages.filter(page => page.fileName !== item.fileName);
+        this.retryingFailedPages.delete(item.fileName);
+        this.cd.detectChanges();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Page Retried',
+          text: `Page ${parsedPage.pageNumber} was added back successfully.`,
+          confirmButtonText: 'OK'
+        });
+      },
+      error: (err) => {
+        this.retryingFailedPages.delete(item.fileName);
+        Swal.fire({
+          icon: 'error',
+          title: 'Retry Failed',
+          text: err?.error?.message || `Could not retry ${item.fileName}. Please try again.`,
+          confirmButtonText: 'OK'
+        });
+        this.cd.detectChanges();
+      }
+    });
   }
 
   documentTyperopdown() {
@@ -1204,10 +1450,11 @@ export class AddImageComponent implements OnInit, OnDestroy {
     });
   }
   removePage(index: number) {
+    const pageNumber = this.pages.at(index).get('pageNumber')?.value ?? index + 1;
     Swal.fire({
       icon: 'warning',
       title: 'Remove Page?',
-      html: `Are you sure you want to remove <strong>Page ${index + 1}</strong>?<br>
+      html: `Are you sure you want to remove <strong>Page ${pageNumber}</strong>?<br>
              <small style="color:#999">${this.pages.at(index).get('fileName')?.value}</small>`,
       showCancelButton: true,
       confirmButtonText: 'Yes, Remove',
