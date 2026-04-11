@@ -1036,7 +1036,7 @@ UsersGET(
     params: params,
   });
 }
-getDocumentFile(documentId: number): Observable<Blob> {
+getDocumentFile(documentId: number, pageNumber: number = 1): Observable<Blob> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
 
   const headers = new HttpHeaders({
@@ -1044,10 +1044,10 @@ getDocumentFile(documentId: number): Observable<Blob> {
   });
 
   return this.http.get(
-    `${environment.BaseUrl}api/DocumentPage/GetDocumentFile?documentId=${documentId}`,
+    `${environment.BaseUrl}api/DocumentPage/GetDocumentFile?documentId=${documentId}&pageNumber=${pageNumber}`,
     {
       headers,
-      responseType: 'blob' // ✅ VERY IMPORTANT
+      responseType: 'blob'
     }
   );
 }

@@ -1255,7 +1255,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
           Swal.fire({
             icon: 'success',
             title: 'Saved!',
-            text: `Document Type saved. ID = ${newId}`,
+            text: `Document Type saved`,
             confirmButtonText: 'OK',
           });
           this.cd.detectChanges();
@@ -1345,6 +1345,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
         ExtractedText: page.extractedText,
         StatusId: 0,
         CreatedBy: 1,
+        job_id: this.currentJobId,
       })
       .subscribe({
         next: () => {
@@ -1438,6 +1439,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
           StatusId: 0,
           CreatedBy: 1,
           RejectionReason: page.rejectionreason,
+          job_id: this.currentJobId,
         })
         .subscribe({
           next: () => {

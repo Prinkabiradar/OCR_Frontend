@@ -263,32 +263,38 @@ stopSpeaking() {
 loadDocumentPreview() {
   if (!this.documentId) return;
 
-  this.service.getDocumentFile(this.documentId).subscribe((res: Blob) => {
-    const contentType = res.type;
+  this.service.getDocumentFile(this.documentId, this.currentPage).subscribe({
+    next: (res: Blob) => {
+      const contentType = res.type;
 
-    if (contentType.includes('pdf')) {
-      this.fileType = 'pdf';
-    } else if (contentType.includes('image')) {
-      this.fileType = 'image';
-    } else if (contentType.includes('text')) {
-      this.fileType = 'text';
+      if (contentType.includes('pdf')) {
+        this.fileType = 'pdf';
+      } else if (contentType.includes('image')) {
+        this.fileType = 'image';
+      } else if (contentType.includes('text')) {
+        this.fileType = 'text';
+        const reader = new FileReader();
+        reader.onload = () => {
+          this.textFileContent = reader.result as string;
+          this.cdr.detectChanges();
+        };
+        reader.readAsText(res);
+      } else {
+        this.fileType = 'other';
+      }
 
-      // 👇 READ TEXT CONTENT
-      const reader = new FileReader();
-      reader.onload = () => {
-        this.textFileContent = reader.result as string;
-        this.cdr.detectChanges();
-      };
-      reader.readAsText(res);
+      // ── Revoke previous URL to avoid memory leaks ──
+      if (this.documentPreviewUrl) {
+        URL.revokeObjectURL(this.documentPreviewUrl);
+      }
 
-    } else {
-      this.fileType = 'other';
+      const url = URL.createObjectURL(res);
+      this.documentPreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
+      this.cdr.detectChanges();
+    },
+    error: (err) => {
+      console.error('Failed to load document preview:', err);
     }
-
-    const url = URL.createObjectURL(res);
-    this.documentPreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
-
-    this.cdr.detectChanges();
   });
 }
 
