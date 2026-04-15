@@ -127,7 +127,7 @@ export class AdmindashboardComponent implements OnInit, OnDestroy {
     const lsValue = localStorage.getItem(this.authLocalStorageToken);
     const userData = lsValue ? JSON.parse(lsValue) : null;
     this.currentUserId = userData?.id ?? 0;
-    this.roleId = userData?.roleId ?? 0;
+    this.roleId = Number(userData?.roleId ?? 0);
     this.updateClock();
     this.clockInterval = setInterval(() => this.updateClock(), 60000);
     this.loadDashboard();
@@ -136,6 +136,17 @@ export class AdmindashboardComponent implements OnInit, OnDestroy {
   navigateTo(path: string, allowedRoles: number[] = []): void {
     if (allowedRoles.length > 0 && !allowedRoles.includes(this.roleId)) return;
     this.router.navigate([path]);
+  }
+  canSeeCard(card: 'verified' | 'approved' | 'suggestion'): boolean {
+    const role = Number(this.roleId);
+    switch (this.roleId) {
+      case 1: return !['verified', 'approved', 'suggestion'].includes(card);
+      case 2: return !['approved', 'suggestion'].includes(card);
+      case 3:return true;
+      case 4: return true;          // sees everything
+      case 5: return true;         // blocked
+      default: return true;
+    }
   }
   ngOnDestroy(): void {
     clearInterval(this.clockInterval);

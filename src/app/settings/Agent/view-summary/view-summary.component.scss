@@ -1,12 +1,25 @@
- 
 .editor-wrapper {
-    border: 1px solid #dee2e6;
-    border-radius: 6px;
-    overflow: hidden;
-  
-    .NgxEditor {
-      min-height: 400px;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-  }
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  height: 70vh;   // control full height
+  overflow: hidden; // keep this if needed for border clipping
+}
+
+/* ✅ Toolbar sticky */
+::ng-deep .ngx-editor-menu {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* ✅ Scroll should be here (NOT inside editor only) */
+.NgxEditor {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;  // important for flex scroll
+  padding: 10px;
+}

@@ -14,12 +14,14 @@
   <!-- Rich Text Editor -->
   <div *ngIf="!loading" class="editor-wrapper">
     <ngx-editor-menu [editor]="editor" [toolbar]="toolbar"*ngIf="!isReadOnly"></ngx-editor-menu>
+    <div class="editor-scroll">
     <ngx-editor
       [editor]="editor"
       [(ngModel)]="editorContent"
       [disabled]="isReadOnly" 
       placeholder="Summary will appear here...">
     </ngx-editor>
+    </div>
   </div>
 
 </div>
