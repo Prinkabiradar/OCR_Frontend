@@ -42,6 +42,8 @@ suggestionEditor: Editor;
 pageTextEditor: Editor;
 pageTextContent: string = '';
 
+loadingPages = false;
+
 editorToolbar: Toolbar = [
   ['bold', 'italic', 'underline', 'strike'],
   ['ordered_list', 'bullet_list'],
@@ -588,4 +590,22 @@ onDocumentSelect(event: any) {
   }
 
   min(a: number, b: number): number { return Math.min(a, b); }
+
+  onViewPdf(doc: any): void {
+    this.loadingPages = true;
+
+    this.service.getPdf(doc.documentId, this.roleId).subscribe({
+      next: (res: Blob) => {
+        const fileURL = URL.createObjectURL(res);
+        window.open(fileURL, '_blank');
+        this.loadingPages = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to load PDF:', err);
+        this.loadingPages = false;
+        this.cd.detectChanges();
+      },
+    });
+  }
 }
