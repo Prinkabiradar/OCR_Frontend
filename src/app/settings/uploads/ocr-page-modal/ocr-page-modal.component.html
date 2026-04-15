@@ -1,30 +1,24 @@
 <ng-template #ocrPageModal let-modal>
-  <div
-    class="modal-header ocr-header d-flex justify-content-between align-items-center"
-  >
+  <!-- ═══════════════════════════════════════════════════════════ HEADER -->
+  <div class="modal-header ocr-header d-flex justify-content-between align-items-center">
     <div>
       <h4 class="ocr-title mb-0">{{ documentName }}</h4>
       <small class="text-muted">OCR Review & Validation</small>
     </div>
-
     <div class="d-flex align-items-center gap-2">
-      <button
-        class="btn btn-primary btn-sm"
-        (click)="summarizeDocument()"
-        [disabled]="isSummarizing"
-      >
-        <span *ngIf="!isSummarizing"> Summary</span>
+      <button class="btn btn-primary btn-sm" (click)="summarizeDocument()" [disabled]="isSummarizing">
+        <span *ngIf="!isSummarizing">Summary</span>
         <span *ngIf="isSummarizing">
           <span class="spinner-border spinner-border-sm"></span> Loading…
         </span>
       </button>
-      <!-- Close Button -->
       <button class="btn-close" (click)="close()"></button>
     </div>
   </div>
 
-  <!-- 🔷 BODY -->
+  <!-- ═══════════════════════════════════════════════════════════ BODY -->
   <div class="modal-body ocr-body">
+
     <!-- 🔄 LOADING -->
     <div *ngIf="loading" class="ocr-state-center">
       <div class="spinner-border text-primary"></div>
@@ -37,106 +31,153 @@
       <p class="text-muted">No pages available</p>
     </div>
 
-    <!-- 🔔 Suggestion Info — shown on every page -->
+    <!-- 🔔 Suggestion banner -->
     <div *ngIf="suggestedPages.length > 0" class="alert alert-warning">
       <strong>⚠ You have suggestion for page number:</strong>
       {{ suggestedPageNumbers }}
     </div>
 
-    <!-- 📄 DATA -->
+    <!-- 📄 PAGE CARDS -->
     <div *ngIf="!loading && pageList.length > 0" class="ocr-page-container">
-      <div *ngFor="let item of pageList" class="ocr-card shadow-sm">
-        <!-- 🔹 CARD HEADER -->
-        <div
-          class="ocr-card-header d-flex justify-content-between align-items-center"
-        >
-          <span class="ocr-page-label">Page {{ item.PageNumber }}</span>
+      <div *ngFor="let item of pageList" class="ocr-card shadow-sm" style="overflow: hidden;">
 
+        <!-- Card header -->
+        <div class="ocr-card-header d-flex justify-content-between align-items-center">
+          <span class="ocr-page-label">Page {{ item.PageNumber }}</span>
           <span class="ocr-badge" [ngClass]="getStatusClass(item.StatusId)">
             {{ getStatusLabel(item.StatusId) }}
           </span>
         </div>
 
-        <!-- 🔥 SPLIT VIEW -->
+        <!-- ══════════════════════════════════════ SPLIT VIEW -->
         <div class="ocr-split-container">
-          <!-- 📄 LEFT SIDE → DOCUMENT VIEW -->
+
+          <!-- ── LEFT: Document preview ──────────────────────── -->
           <div class="left-panel">
-  <iframe *ngIf="fileType === 'pdf'" [src]="documentPreviewUrl" width="100%" height="600px"></iframe>
-  <img *ngIf="fileType === 'image'" [src]="documentPreviewUrl" class="img-fluid"/>
-  <pre *ngIf="fileType === 'text'">{{ textFileContent }}</pre>
-  <div *ngIf="fileType === 'other'">Preview not supported.</div>
-  <!-- ❌ DELETE the block below — it conflicts and uses the wrong variable -->
-</div>
+    <div class="panel-label">
+      <span class="panel-icon">📄</span>
+      <span>Original Document</span>
+      <span class="panel-sub">{{ getFileType(item.FilePath) | uppercase }}</span>
+    </div>
 
-          <!-- ✍️ RIGHT SIDE → OCR TEXT -->
-          <div
-            class="ocr-right"
-            [class.edited]="isDirty(item)"
-            [ngClass]="{ 'locked-editor': !canEdit(item) }"
-          >
-            <ngx-editor-menu
-              [editor]="getOrCreateEditor(item.DocumentPageId)"
-              [toolbar]="pageToolbar"
-            >
-            </ngx-editor-menu>
-
-            <ngx-editor
-              [editor]="getOrCreateEditor(item.DocumentPageId)"
-              [(ngModel)]="editedTexts[item.DocumentPageId]"
-              (ngModelChange)="onEditorChange(item, $event)"
-              [disabled]="!canEdit(item)"
-              placeholder="Extracted text will appear here…"
-            >
-            </ngx-editor>
-          </div>
+    <div class="panel-content">
+      <!-- PDF -->
+      <ng-container *ngIf="getFileType(item.FilePath) === 'pdf'">
+        <iframe
+          [src]="getSafeUrl(item.FilePath)"
+          width="100%"
+          height="100%"
+          style="border: none; display: block; min-height: 500px;"
+          type="application/pdf">
+        </iframe>
+        <div class="mt-2 text-center">
+          <a [href]="getRawUrl(item.FilePath)" target="_blank" rel="noopener"
+             class="btn btn-sm btn-outline-secondary">
+            Open PDF in new tab ↗
+          </a>
         </div>
+      </ng-container>
+
+      <!-- IMAGE -->
+      <img
+        *ngIf="getFileType(item.FilePath) === 'image'"
+        [src]="getSafeUrl(item.FilePath)"
+        class="img-fluid w-100"
+        alt="Original page {{ item.PageNumber }}"
+      />
+
+      <!-- PLAIN TEXT -->
+      <pre *ngIf="getFileType(item.FilePath) === 'text'"
+           class="text-preview">{{ textFileContent }}</pre>
+
+      <!-- NO FILE -->
+      <div *ngIf="!item.FilePath || getFileType(item.FilePath) === 'none'"
+           class="no-preview">
+        <span class="no-preview-icon">📂</span>
+        <p>No original file available for this page.</p>
       </div>
     </div>
   </div>
+          <!-- ── END LEFT ────────────────────────────────────── -->
 
-  <!-- 🔷 FOOTER -->
-  <div
-    class="modal-footer ocr-footer d-flex justify-content-between align-items-center flex-wrap"
-  >
-    <!-- PAGINATION -->
+          <!-- ── RIGHT: OCR extracted text ──────────────────── -->
+          <div class="ocr-right"
+       [class.edited]="isDirty(item)"
+       [ngClass]="{ 'locked-editor': !canEdit(item) }">
+
+    <div class="panel-label right-label">
+      <span class="panel-icon">✏️</span>
+      <span>Extracted Text</span>
+      <span class="panel-sub">OCR Output</span>
+      <span *ngIf="isDirty(item)" class="dirty-badge">Unsaved changes</span>
+      <span *ngIf="!canEdit(item)" class="locked-badge">🔒 Read-only</span>
+    </div>
+
+    <div class="panel-content editor-wrap">
+      <ngx-editor-menu
+        [editor]="getOrCreateEditor(item.DocumentPageId)"
+        [toolbar]="pageToolbar">
+      </ngx-editor-menu>
+      <ngx-editor
+        [editor]="getOrCreateEditor(item.DocumentPageId)"
+        [(ngModel)]="editedTexts[item.DocumentPageId]"
+        (ngModelChange)="onEditorChange(item, $event)"
+        [disabled]="!canEdit(item)"
+        placeholder="Extracted text will appear here…">
+      </ngx-editor>
+    </div>
+
+    <!-- Rejection reason (visible when rejected) -->
+    <div *ngIf="item.StatusId === 7 && item.RejectionReason" class="rejection-banner">
+      <span class="rejection-label">Rejection reason:</span>
+      <span class="rejection-text">{{ item.RejectionReason }}</span>
+    </div>
+
+    <!-- Suggestion text (visible when suggestion exists) -->
+    <div *ngIf="item.Suggestion" class="suggestion-banner">
+      <span class="suggestion-label">💡 Suggestion:</span>
+      <span class="suggestion-text">{{ item.Suggestion }}</span>
+    </div>
+
+  </div>
+          <!-- ── END RIGHT ───────────────────────────────────── -->
+
+        </div>
+        <!-- ══════════════════════════════════ END SPLIT VIEW -->
+
+      </div>
+    </div>
+    <!-- END PAGE CARDS -->
+
+  </div>
+  <!-- ═══════════════════════════════════════════════════════════ END BODY -->
+
+  <!-- ═══════════════════════════════════════════════════════════ FOOTER -->
+  <div class="modal-footer ocr-footer d-flex justify-content-between align-items-center flex-wrap">
+
+    <!-- Pagination nav -->
     <div class="page-local-nav" style="text-align: center">
       <button
         class="btn btn--ghost btn--sm"
         [disabled]="absolutePageNumber === 1"
-        (click)="goToPrevious()"
-      >
-        <a [href]="" class="text-hover-primary text-gray-600"> ← Prev Page </a>
+        (click)="goToPrevious()">
+        ← Prev Page
       </button>
 
       <span style="font-size: 0.85rem; opacity: 0.7">
         Page {{ absolutePageNumber }} of {{ totalRecords }}
-        <!-- ← fixed -->
       </span>
 
       <button
         class="btn btn--ghost btn--sm"
         [disabled]="absolutePageNumber === totalRecords"
-        (click)="goToNext()"
-      >
-        <a [href]="" class="text-hover-primary text-gray-600"> Next Page → </a>
+        (click)="goToNext()">
+        Next Page →
       </button>
     </div>
 
-    <!-- ACTIONS -->
-    <div class="d-flex gap-2">
-      <!-- <button
-        class="btn btn-success btn-sm"
-        (click)="saveAll()"
-        [disabled]="!hasDirtyRows || savingAll">
-
-        <span *ngIf="!savingAll">✔ Save All</span>
-
-        <span *ngIf="savingAll">
-          <span class="spinner-border spinner-border-sm"></span>
-          Saving...
-        </span>
-
-      </button> -->
+    <!-- Action buttons -->
+    <div class="d-flex gap-2" *ngIf="selectedItem">
       <button
         class="btn btn-success btn-sm"
         (click)="saveRow(selectedItem)"
@@ -144,15 +185,15 @@
           savingRows[selectedItem.DocumentPageId] ||
           !canEdit(selectedItem) ||
           selectedItem.StatusId === 3
-        "
-      >
-        <span *ngIf="!savingRows[selectedItem.DocumentPageId]">{{
-          saveButtonLabel
-        }}</span>
+        ">
+        <span *ngIf="!savingRows[selectedItem.DocumentPageId]">
+          {{ saveButtonLabel }}
+        </span>
         <span *ngIf="savingRows[selectedItem.DocumentPageId]">
           <span class="spinner-border spinner-border-sm"></span> Saving...
         </span>
       </button>
+
       <button
         class="btn btn-danger btn-sm"
         (click)="rejectRow(selectedItem)"
@@ -160,8 +201,7 @@
           savingRows[selectedItem.DocumentPageId] ||
           !canEdit(selectedItem) ||
           selectedItem.StatusId === 3
-        "
-      >
+        ">
         ✕ Reject
       </button>
 
@@ -169,14 +209,18 @@
         Close
       </button>
     </div>
+
   </div>
+  <!-- ═══════════════════════════════════════════════════════════ END FOOTER -->
+
+  <!-- Pagination component -->
   <app-pagination-data
     [currentPage]="currentPage"
     [totalPages]="totalPages"
     [totalRecords]="totalRecords"
     [pageSize]="itemsPerPage"
     (pageChange)="onPageChange($event)"
-    (pageSizeChange)="onPageSizeChange($event)"
-  >
+    (pageSizeChange)="onPageSizeChange($event)">
   </app-pagination-data>
+
 </ng-template>

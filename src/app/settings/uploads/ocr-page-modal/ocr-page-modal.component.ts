@@ -1,4 +1,12 @@
-import {ChangeDetectorRef,Component,Input,TemplateRef,ViewChild,OnDestroy,HostListener,} from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  Input,
+  TemplateRef,
+  ViewChild,
+  OnDestroy,
+  HostListener,
+} from '@angular/core';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { ServiceService } from '../../settings.service';
 import Swal from 'sweetalert2';
@@ -27,14 +35,10 @@ export class OcrPageModalComponent implements OnDestroy {
   currentPage: number = 1;
   pageSize: number = 1;
   loading: boolean = false;
-  itemsPerPage          = 1;
+  itemsPerPage = 1;
   totalRecords: number = 0;
   selectedPageIndex: number = 0;
-  documentUrl: any;
-  documentPath: string = '';
-  fileType: string = '';
   textFileContent: string = '';
-
 
   editedTexts: any = {};
   savingRows: any = {};
@@ -55,7 +59,7 @@ export class OcrPageModalComponent implements OnDestroy {
     private service: ServiceService,
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
-    private http: HttpClient ,
+    private http: HttpClient,
   ) {}
 
   pageEditors: { [id: number]: Editor } = {};
@@ -68,163 +72,257 @@ export class OcrPageModalComponent implements OnDestroy {
     ['align_left', 'align_center', 'align_right'],
     ['format_clear'],
   ];
+
   summaryEditor: Editor = new Editor();
-summaryToolbar: Toolbar = [
-  ['bold', 'italic', 'underline', 'strike'],
-  ['ordered_list', 'bullet_list'],
-  [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
-  ['blockquote'],
-  ['align_left', 'align_center', 'align_right'],
-  ['format_clear'],
-];
+  summaryToolbar: Toolbar = [
+    ['bold', 'italic', 'underline', 'strike'],
+    ['ordered_list', 'bullet_list'],
+    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+    ['blockquote'],
+    ['align_left', 'align_center', 'align_right'],
+    ['format_clear'],
+  ];
 
-summary           : string  = '';
-summaryId         : number  = 0;
-summaryFromCache  : boolean = false;
-summaryDirty      : boolean = false;
-isSummarizing     : boolean = false;
-isSavingSummary   : boolean = false;
-showSummary       : boolean = false;
-isSpeaking        : boolean = false;
-summaryUpdatedAt  : Date | null = null;
+  summary: string = '';
+  summaryId: number = 0;
+  summaryFromCache: boolean = false;
+  summaryDirty: boolean = false;
+  isSummarizing: boolean = false;
+  isSavingSummary: boolean = false;
+  showSummary: boolean = false;
+  isSpeaking: boolean = false;
+  summaryUpdatedAt: Date | null = null;
 
-summarizeDocument() {
-  if (!this.documentName) return;
-  this.isSummarizing = true;
-  this.summary       = '';
-  this.showSummary   = false;
-  this.summaryDirty  = false;
-  this.summaryId     = 0;
-  this.cdr.detectChanges();
+  // ─── FILE PREVIEW HELPERS ───────────────────────────────────────────────────
 
-  this.service.summarizeDocument(this.documentName).subscribe({
-    next: (res: any) => {
-      const raw: string = res.summary.summary || '';
-      this.summary          = this.markdownToHtml(raw);
-      this.summaryId        = res.summary.summaryId ?? 0;
-      this.summaryFromCache = res.summary.fromCache;
-      this.summaryUpdatedAt = res.summary.updatedAt ? new Date(res.summary.updatedAt) : null;
-      this.isSummarizing    = false;
-      this.showSummary      = true;
-      this.summaryDirty     = false;
-      this.cdr.detectChanges();
-    },
-    error: () => { this.isSummarizing = false; this.cdr.detectChanges(); }
-  });
-}
+  /**
+   * Determines file type from stored path extension.
+   */
+  getFileType(filePath: string): string {
+    if (!filePath) return 'none';
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return 'pdf';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext ?? ''))
+      return 'image';
+    if (ext === 'txt') return 'text';
+    return 'none';
+  }
 
-private markdownToHtml(text: string): string {
-  if (text.trim().startsWith('<')) return text;
-  return text
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm,  '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm,   '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g,     '<em>$1</em>')
-    .replace(/^\* (.+)$/gm,    '<li>$1</li>')
-    .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
-    .replace(/\n{2,}/g, '</p><p>')
-    .replace(/^(?!<[hul\/])(.+)$/gm, '<p>$1</p>')
-    .replace(/<p><\/p>/g, '');
-}
+  /**
+   * Converts stored DB path → full public URL → sanitized SafeResourceUrl.
+   * Adjust the split key ('uploads/') to match your server's folder name.
+   */
+  // getSafeUrl(filePath: string, pageNumber?: number): SafeResourceUrl {
+  //   if (!filePath) return '';
 
-saveSummary() {
-  if (!this.documentName || !this.summary.trim()) return;
-  this.isSavingSummary = true;
-  this.cdr.detectChanges();
+  //   let normalized = filePath.replace(/\\/g, '/');
 
-  const lsValue  = localStorage.getItem(this.authLocalStorageToken);
-  const userData = lsValue ? JSON.parse(lsValue) : null;
-  const userId   = userData?.id     ?? 0;
-  const roleId   = userData?.roleId ?? 0;
+  //   const ext = normalized.split('.').pop()?.toLowerCase();
 
-  this.service.saveSummary(this.documentName, this.summary, this.summaryId, userId, roleId).subscribe({
-    next: (res: any) => {
-      this.summaryId        = res.summaryId ?? this.summaryId;
-      this.summaryFromCache = true;
-      this.summaryUpdatedAt = res.updatedAt ? new Date(res.updatedAt) : null;
-      this.isSavingSummary  = false;
-      this.summaryDirty     = false;
-      this.cdr.detectChanges();
-      Swal.fire({ icon: 'success', title: 'Saved!', text: 'Summary saved successfully', timer: 1500, showConfirmButton: false });
-    },
-    error: () => {
-      this.isSavingSummary = false;
-      this.cdr.detectChanges();
-      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to save summary' });
-    }
-  });
-}
-getSafeUrl(url: string): SafeResourceUrl {
+  //   // 🔥 Only modify for images
+  //   if (pageNumber && ext !== 'pdf') {
+  //     normalized = normalized.replace(
+  //       /OCR\d+\.jpeg/,
+  //       `page_${pageNumber}.jpeg`,
+  //     );
+  //   }
+
+  //   // 🔥 IMPORTANT: Correct URL building
+  //   let baseUrl = environment.BaseUrl;
+
+  //   // ensure trailing slash
+  //   if (!baseUrl.endsWith('/')) {
+  //     baseUrl += '/';
+  //   }
+
+  //   // avoid duplicate uploads
+  //   if (normalized.startsWith('uploads/')) {
+  //     normalized = normalized.replace('uploads/', '');
+  //   }
+
+  //   const fullUrl = `${baseUrl}uploads/${normalized}`;
+
+  //   console.log('PDF/Image URL:', fullUrl); // ✅ DEBUG
+
+  //   return this.sanitizer.bypassSecurityTrustResourceUrl(fullUrl);
+  // }
+
+
+  getSafeUrl(filePath: string): SafeResourceUrl {
+  const raw = this.getRawUrl(filePath);
+  const ext = filePath?.split('.').pop()?.toLowerCase();
+  // Append PDF viewer params inside the sanitized URL
+  const url = ext === 'pdf' ? `${raw}#toolbar=0&navpanes=0` : raw;
   return this.sanitizer.bypassSecurityTrustResourceUrl(url);
 }
 
-isPdf(fileUrl: string): boolean {
-  return fileUrl?.toLowerCase().includes('.pdf');
+getRawUrl(filePath: string): string {
+  if (!filePath) return '';
+  let normalized = filePath.replace(/\\/g, '/');
+  let baseUrl = environment.BaseUrl;
+  if (!baseUrl.endsWith('/')) baseUrl += '/';
+  if (normalized.startsWith('uploads/')) {
+    normalized = normalized.substring('uploads/'.length);
+  }
+  return `${baseUrl}uploads/${normalized}`;
 }
+  // ─── SUMMARY ────────────────────────────────────────────────────────────────
 
-isImage(fileUrl: string): boolean {
-  return fileUrl?.match(/\.(jpg|jpeg|png)$/i) !== null;
-}
+  summarizeDocument() {
+    if (!this.documentName) return;
+    this.isSummarizing = true;
+    this.summary = '';
+    this.showSummary = false;
+    this.summaryDirty = false;
+    this.summaryId = 0;
+    this.cdr.detectChanges();
 
-isText(fileUrl: string): boolean {
-  return fileUrl?.toLowerCase().includes('.txt');
-}
+    this.service.summarizeDocument(this.documentName).subscribe({
+      next: (res: any) => {
+        const raw: string = res.summary.summary || '';
+        this.summary = this.markdownToHtml(raw);
+        this.summaryId = res.summary.summaryId ?? 0;
+        this.summaryFromCache = res.summary.fromCache;
+        this.summaryUpdatedAt = res.summary.updatedAt
+          ? new Date(res.summary.updatedAt)
+          : null;
+        this.isSummarizing = false;
+        this.showSummary = true;
+        this.summaryDirty = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isSummarizing = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
 
+  private markdownToHtml(text: string): string {
+    if (text.trim().startsWith('<')) return text;
+    return text
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^\* (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/^(?!<[hul\/])(.+)$/gm, '<p>$1</p>')
+      .replace(/<p><\/p>/g, '');
+  }
 
-onSummaryEdit() {
-  this.summaryDirty = true;
-}
+  saveSummary() {
+    if (!this.documentName || !this.summary.trim()) return;
+    this.isSavingSummary = true;
+    this.cdr.detectChanges();
 
-speakText(text: string) {
-  window.speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang  = 'en-IN';
-  this.isSpeaking = true;
-  utterance.onend = () => { this.isSpeaking = false; this.cdr.detectChanges(); };
-  window.speechSynthesis.speak(utterance);
-  this.cdr.detectChanges();
-}
+    const lsValue = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    const userId = userData?.id ?? 0;
+    const roleId = userData?.roleId ?? 0;
 
-stopSpeaking() {
-  window.speechSynthesis.cancel();
-  this.isSpeaking = false;
-  this.cdr.detectChanges();
-}
+    this.service
+      .saveSummary(
+        this.documentName,
+        this.summary,
+        this.summaryId,
+        userId,
+        roleId,
+      )
+      .subscribe({
+        next: (res: any) => {
+          this.summaryId = res.summaryId ?? this.summaryId;
+          this.summaryFromCache = true;
+          this.summaryUpdatedAt = res.updatedAt
+            ? new Date(res.updatedAt)
+            : null;
+          this.isSavingSummary = false;
+          this.summaryDirty = false;
+          this.cdr.detectChanges();
+          Swal.fire({
+            icon: 'success',
+            title: 'Saved!',
+            text: 'Summary saved successfully',
+            timer: 1500,
+            showConfirmButton: false,
+          });
+        },
+        error: () => {
+          this.isSavingSummary = false;
+          this.cdr.detectChanges();
+          Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Failed to save summary',
+          });
+        },
+      });
+  }
 
+  onSummaryEdit() {
+    this.summaryDirty = true;
+  }
+
+  speakText(text: string) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'en-IN';
+    this.isSpeaking = true;
+    utterance.onend = () => {
+      this.isSpeaking = false;
+      this.cdr.detectChanges();
+    };
+    window.speechSynthesis.speak(utterance);
+    this.cdr.detectChanges();
+  }
+
+  stopSpeaking() {
+    window.speechSynthesis.cancel();
+    this.isSpeaking = false;
+    this.cdr.detectChanges();
+  }
+
+  // ─── EDITOR HELPERS ─────────────────────────────────────────────────────────
 
   private preserveLines(text: string): string {
     if (!text) return '';
-    if (text.trim().startsWith('<')) return text; // already HTML
-  
+    if (text.trim().startsWith('<')) return text;
+
     return text
       .split('\n')
-      .map(line => {
+      .map((line) => {
         const trimmed = line.trimEnd();
         if (!trimmed) return '<p><br></p>';
-        if (trimmed.startsWith('### ')) return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
-        if (trimmed.startsWith('## '))  return `<h2>${this.inlineFormat(trimmed.slice(3))}</h2>`;
-        if (trimmed.startsWith('# '))   return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
+        if (trimmed.startsWith('### '))
+          return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
+        if (trimmed.startsWith('## '))
+          return `<h2>${this.inlineFormat(trimmed.slice(3))}</h2>`;
+        if (trimmed.startsWith('# '))
+          return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
         if (trimmed.startsWith('* ') || trimmed.startsWith('- '))
           return `<p>${this.inlineFormat(trimmed.slice(2))}</p>`;
         return `<p>${this.inlineFormat(trimmed)}</p>`;
       })
       .join('');
   }
-  
+
   private inlineFormat(text: string): string {
     return text
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>');
   }
-  
+
   getOrCreateEditor(id: number): Editor {
     if (!this.pageEditors[id]) {
       this.pageEditors[id] = new Editor();
     }
     return this.pageEditors[id];
   }
-  // 🔥 OPEN MODAL
+
+  // ─── MODAL OPEN ─────────────────────────────────────────────────────────────
+
   open(): Promise<boolean> {
     this.resetState();
     this.loadPages();
@@ -235,7 +333,7 @@ stopSpeaking() {
         scrollable: true,
         backdrop: 'static',
         centered: true,
-        fullscreen: 'md-down',
+        fullscreen: true,
       });
       this.modalRef.result.then(resolve, resolve);
     });
@@ -248,135 +346,105 @@ stopSpeaking() {
     this.savingRows = {};
     this.savedRows = {};
     this.pageSize = 1;
-   this.itemsPerPage = 1; 
-    
-    this.summary        = '';
-    this.summaryId      = 0;
+    this.itemsPerPage = 1;
+    this.textFileContent = '';
+
+    this.summary = '';
+    this.summaryId = 0;
     this.summaryFromCache = false;
-    this.summaryDirty   = false;
-    this.showSummary    = false;
-    this.isSummarizing  = false;
+    this.summaryDirty = false;
+    this.showSummary = false;
+    this.isSummarizing = false;
     this.isSavingSummary = false;
   }
-  documentPreviewUrl: any;
 
-loadDocumentPreview() {
-  if (!this.documentId) return;
+  // ─── LOAD PAGES ─────────────────────────────────────────────────────────────
 
-  this.service.getDocumentFile(this.documentId, this.currentPage).subscribe({
-    next: (res: Blob) => {
-      const contentType = res.type;
-
-      if (contentType.includes('pdf')) {
-        this.fileType = 'pdf';
-      } else if (contentType.includes('image')) {
-        this.fileType = 'image';
-      } else if (contentType.includes('text')) {
-        this.fileType = 'text';
-        const reader = new FileReader();
-        reader.onload = () => {
-          this.textFileContent = reader.result as string;
-          this.cdr.detectChanges();
-        };
-        reader.readAsText(res);
-      } else {
-        this.fileType = 'other';
-      }
-
-      // ── Revoke previous URL to avoid memory leaks ──
-      if (this.documentPreviewUrl) {
-        URL.revokeObjectURL(this.documentPreviewUrl);
-      }
-
-      const url = URL.createObjectURL(res);
-      this.documentPreviewUrl = this.sanitizer.bypassSecurityTrustResourceUrl(url);
-      this.cdr.detectChanges();
-    },
-    error: (err) => {
-      console.error('Failed to load document preview:', err);
-    }
-  });
-}
-
-  // 🔥 LOAD DATA (FIXED PAGINATION)
   loadPages(): void {
     if (!this.documentId) return;
-    // this.documentUrl = `https://localhost:7045/api/Document/GetDocumentFile?documentId=${this.documentId}`;
-     //this.documentPath = this.documentUrl;
-     this.loadDocumentPreview();
 
     this.loading = true;
-
-    const userId = this.currentUserId;
-
     const startIndex = (this.currentPage - 1) * this.pageSize + 1;
 
     this.service
       .getDocumentByDocumentName(this.documentId, startIndex, this.pageSize)
       .subscribe({
         next: (res: any) => {
-  const safeRes = Array.isArray(res) ? res : [];
+          const safeRes = Array.isArray(res) ? res : [];
 
-  this.pageList = safeRes.map((x: any) => ({
-    DocumentPageId: x.documentpageid,
-    DocumentId: x.documentid,
-    PageNumber: x.pagenumber,
-    ExtractedText: x.extractedtext,
-    StatusId: x.statusid,
-    RejectionReason:x.rejectionreason,
-    totalRecords: x.totalrecords,
+          this.pageList = safeRes.map((x: any) => ({
+            DocumentPageId: x.documentpageid,
+            DocumentId: x.documentid,
+            PageNumber: x.pagenumber,
+            ExtractedText: x.extractedtext,
+            StatusId: x.statusid,
+            RejectionReason: x.rejectionreason,
+            totalRecords: x.totalrecords,
+            FilePath: x.filepath ?? null, // ← from DB via SQL function
+            ResultId: x.resultid ?? null, // ← from DB via SQL function
 
-    
-    // ✅ Check it's a non-empty string (rejects {}, null, undefined)
-    Suggestion: typeof x.suggestiontext === 'string' && x.suggestiontext.trim() !== ''
-      ? x.suggestiontext
-      : '',
+            Suggestion:
+              typeof x.suggestiontext === 'string' &&
+              x.suggestiontext.trim() !== ''
+                ? x.suggestiontext
+                : '',
 
-    SuggestedPage: typeof x.suggestionpagenumber === 'number'
-      ? x.suggestionpagenumber
-      : null,
+            SuggestedPage:
+              typeof x.suggestionpagenumber === 'number'
+                ? x.suggestionpagenumber
+                : null,
 
-    SuggestionId: typeof x.suggestionid === 'number'
-      ? x.suggestionid
-      : null,
-  }));
-if (safeRes.length > 0) {
-    this.totalRecords = safeRes[0].totalrecords;
-  }
-  this.selectedItem = this.pageList.length ? this.pageList[0] : null;
-          const allSuggestionsRaw = safeRes.length > 0 ? safeRes[0]?.allsuggestions : null;
+            SuggestionId:
+              typeof x.suggestionid === 'number' ? x.suggestionid : null,
+          }));
 
-  if (typeof allSuggestionsRaw === 'string' && allSuggestionsRaw.trim() !== '') {
-    this.suggestedPages = allSuggestionsRaw
-      .split('|')
-      .map((entry: string) => {
-        const parts = entry.split(':');
-        return {
-          PageNumber: parseInt(parts[0]),
-          SuggestionId: parseInt(parts[2]),
-        };
-      })
-      .filter(s => !isNaN(s.PageNumber) && !isNaN(s.SuggestionId));
-  } else {
-    this.suggestedPages = []; // ✅ safely handles {} case
-  }
+          if (safeRes.length > 0) {
+            this.totalRecords = safeRes[0].totalrecords;
+          }
 
-  this.pageList.forEach((item) => {
-    if (!this.editedTexts[item.DocumentPageId]) {
-      this.editedTexts[item.DocumentPageId] = this.preserveLines(item.ExtractedText);
-    }
-    // ensure editor instance exists
-    this.getOrCreateEditor(item.DocumentPageId);
-  });
+          this.selectedItem = this.pageList.length ? this.pageList[0] : null;
 
-  this.loading = false;      // ✅ now always reached
-  this.cdr.detectChanges();
-},
-error: () => {
-  this.loading = false;
-},
+          const allSuggestionsRaw =
+            safeRes.length > 0 ? safeRes[0]?.allsuggestions : null;
+
+          if (
+            typeof allSuggestionsRaw === 'string' &&
+            allSuggestionsRaw.trim() !== ''
+          ) {
+            this.suggestedPages = allSuggestionsRaw
+              .split('|')
+              .map((entry: string) => {
+                const parts = entry.split(':');
+                return {
+                  PageNumber: parseInt(parts[0]),
+                  SuggestionId: parseInt(parts[2]),
+                };
+              })
+              .filter((s) => !isNaN(s.PageNumber) && !isNaN(s.SuggestionId));
+          } else {
+            this.suggestedPages = [];
+          }
+
+          this.pageList.forEach((item) => {
+            if (!this.editedTexts[item.DocumentPageId]) {
+              this.editedTexts[item.DocumentPageId] = this.preserveLines(
+                item.ExtractedText,
+              );
+            }
+            this.getOrCreateEditor(item.DocumentPageId);
+          });
+
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: () => {
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
       });
   }
+
+  // ─── SUGGESTION REVIEW ──────────────────────────────────────────────────────
 
   reviewSuggestion(s: any, action: string) {
     Swal.fire({
@@ -391,7 +459,7 @@ error: () => {
         const userData = lsValue ? JSON.parse(lsValue) : null;
 
         const model = {
-          suggestionId: s.SuggestionId, // ← match mapped property names
+          suggestionId: s.SuggestionId,
           documentPageId: s.DocumentPageId,
           action: action,
           reviewedBy: userData?.id ?? 0,
@@ -400,21 +468,16 @@ error: () => {
 
         this.service.reviewSuggestion(model).subscribe({
           next: () => {
-            // Remove suggestion from the item in pageList
             const page = this.pageList.find(
               (x) => x.DocumentPageId === s.DocumentPageId,
             );
-            if (page) {
-              page.Suggestion = ''; // ← clear suggestion on UI
-            }
+            if (page) page.Suggestion = '';
 
-            // Remove from suggestedPages
             this.suggestedPages = this.suggestedPages.filter(
               (p) => p !== s.PageNumber,
             );
 
-            this.cdr.detectChanges(); // ← fix: cdr not cd
-
+            this.cdr.detectChanges();
             Swal.fire('Success', `Marked as ${action}`, 'success');
           },
           error: () => {
@@ -425,7 +488,8 @@ error: () => {
     });
   }
 
-  // 🔥 AUTO SAVE (DEBOUNCE)
+  // ─── EDITOR CHANGE ──────────────────────────────────────────────────────────
+
   onEditorChange(item: any, html: string): void {
     this.editedTexts[item.DocumentPageId] = html;
   }
@@ -435,37 +499,39 @@ error: () => {
   }
 
   get suggestedPageNumbers(): string {
-  if (!this.suggestedPages.length) return '';
-  return this.suggestedPages.map(s => 'Page ' + s.PageNumber).join(', ');
-}
+    if (!this.suggestedPages.length) return '';
+    return this.suggestedPages.map((s) => 'Page ' + s.PageNumber).join(', ');
+  }
+
   get hasDirtyRows(): boolean {
     return this.pageList.some((x) => this.isDirty(x));
   }
 
- get saveButtonLabel(): string {
-  switch (this.roleId) {
-    case 1: return '✔ Check';
-    case 2: return '✔ Verify';
-    case 3: return '✔ Approve';
-    default: return '✔ Save';
+  get saveButtonLabel(): string {
+    switch (this.roleId) {
+      case 1:
+        return '✔ Check';
+      case 2:
+        return '✔ Verify';
+      case 3:
+        return '✔ Approve';
+      default:
+        return '✔ Save';
+    }
   }
-}
-  // 🔥 ROLE-BASED STATUS FLOW
+
+  // ─── ROLE-BASED STATUS ──────────────────────────────────────────────────────
+
   getNextStatus(statusId: number): number {
     switch (this.roleId) {
       case 1:
-        // Role 1: fresh start or restart after rejection
         return statusId === 0 || statusId === 7 ? 1 : statusId;
-
       case 2:
         return statusId === 0 || statusId === 7 ? 1 : statusId;
-
       case 3:
         return statusId === 1 || statusId === 7 ? 2 : statusId;
-
       case 4:
         return statusId === 2 || statusId === 7 ? 3 : statusId;
-
       default:
         return statusId;
     }
@@ -489,7 +555,7 @@ error: () => {
         return 'Partially Approved';
       case 7:
         return 'Rejected';
-        case 8:
+      case 8:
         return 'Suggestion';
       default:
         return 'Unknown';
@@ -511,7 +577,7 @@ error: () => {
         return 'badge-green';
       case 7:
         return 'badge-rejected';
-        case 8:
+      case 8:
         return 'badge-suggestion';
       default:
         return 'badge-default';
@@ -522,10 +588,20 @@ error: () => {
     return this.roleId === 2 || this.roleId === 3;
   }
 
+  canEdit(item: any): boolean {
+    if (item.StatusId === 8 && this.roleId !== 3) return false;
+    if (this.roleId === 1 && (item.StatusId === 2 || item.StatusId === 3))
+      return false;
+    if (this.roleId === 2 && item.StatusId === 3) return false;
+    return true;
+  }
+
+  // ─── REJECT ROW ─────────────────────────────────────────────────────────────
+
   rejectRow(item: any) {
     if (!this.canEdit(item)) {
-    Swal.fire('Not Allowed', 'You cannot reject this page.', 'warning');
-    return;
+      Swal.fire('Not Allowed', 'You cannot reject this page.', 'warning');
+      return;
     }
 
     if (this.savingRows[item.DocumentPageId]) return;
@@ -540,9 +616,7 @@ error: () => {
       confirmButtonText: 'Reject',
       confirmButtonColor: '#dc3545',
       inputValidator: (value) => {
-        if (!value || !value.trim()) {
-          return 'Please enter a rejection reason.';
-        }
+        if (!value || !value.trim()) return 'Please enter a rejection reason.';
         return null;
       },
     }).then((result) => {
@@ -557,23 +631,22 @@ error: () => {
         pageNumber: item.PageNumber,
         extractedText:
           this.editedTexts[item.DocumentPageId] ?? item.ExtractedText,
-        statusId: 7, // ← Rejected
+        statusId: 7,
         userId: this.currentUserId,
         rejectionReason: rejectionReason,
         roleId: this.roleId,
       };
 
       this.savingRows[item.DocumentPageId] = true;
-      item.StatusId = 7; // optimistic update
+      item.StatusId = 7;
 
       this.service.saveDocumentPage(payload).subscribe({
         next: () => {
           this.savingRows[item.DocumentPageId] = false;
-          //Swal.fire('Rejected', 'Page has been rejected.', 'warning');
           this.cdr.detectChanges();
         },
         error: () => {
-          item.StatusId = oldStatus; // rollback
+          item.StatusId = oldStatus;
           this.savingRows[item.DocumentPageId] = false;
           Swal.fire('Error', 'Rejection failed', 'error');
         },
@@ -581,100 +654,74 @@ error: () => {
     });
   }
 
-  // 🔥 SAVE ROW (OPTIMISTIC UI)
+  // ─── SAVE ROW ───────────────────────────────────────────────────────────────
+
   saveRow(item: any) {
     if (!this.canEdit(item)) {
-    Swal.fire('Not Allowed', 'You cannot edit this page at this stage.', 'warning');
-    return;
-  }
-
-  if (this.savingRows[item.DocumentPageId]) return;
-
-  const oldText = item.ExtractedText;
-  const oldStatus = item.StatusId;
-  const lsValue = localStorage.getItem(this.authLocalStorageToken);
-  const userData = lsValue ? JSON.parse(lsValue) : null;
-  const userId = this.currentUserId;
-  //this.roleId = userData?.roleId ?? 0;
-
-  const payload = {
-    documentPageId: item.DocumentPageId,
-    documentId: item.DocumentId,
-    pageNumber: item.PageNumber,
-    extractedText: this.editedTexts[item.DocumentPageId],
-    statusId: this.getNextStatus(item.StatusId),
-    userId: this.currentUserId,
-    roleId: this.roleId,
-    rejectionReason: '',
-  };
-
-  this.savingRows[item.DocumentPageId] = true;
-
-  // optimistic update
-  item.ExtractedText = payload.extractedText;
-  item.StatusId = payload.statusId;
-
-  this.service.saveDocumentPage(payload).subscribe({
-    next: () => {
-  this.savedRows[item.DocumentPageId] = true;
-  this.savingRows[item.DocumentPageId] = false;
-
-  Swal.fire({
-    icon: 'success',
-    title: 'Saved Successfully',
-    text: `Page ${item.PageNumber} has been saved.`,
-    timer: 1500,
-    showConfirmButton: false
-  }).then(() => {
-    // ✅ If last page, close modal (redirects to data page)
-    if (this.absolutePageNumber === this.totalRecords) {
-      this.close();
-    } else {
-      // ✅ Move to next page automatically
-      this.goToNext();
+      Swal.fire(
+        'Not Allowed',
+        'You cannot edit this page at this stage.',
+        'warning',
+      );
+      return;
     }
-  });
 
-  setTimeout(() => {
-    this.savedRows[item.DocumentPageId] = false;
-  }, 2000);
-},
+    if (this.savingRows[item.DocumentPageId]) return;
 
-    error: () => {
-      item.ExtractedText = oldText;
-      item.StatusId = oldStatus;
-      this.savingRows[item.DocumentPageId] = false;
+    const oldText = item.ExtractedText;
+    const oldStatus = item.StatusId;
 
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'Save failed'
-      });
-    },
-  });
-}
+    const payload = {
+      documentPageId: item.DocumentPageId,
+      documentId: item.DocumentId,
+      pageNumber: item.PageNumber,
+      extractedText: this.editedTexts[item.DocumentPageId],
+      statusId: this.getNextStatus(item.StatusId),
+      userId: this.currentUserId,
+      roleId: this.roleId,
+      rejectionReason: '',
+    };
 
-canEdit(item: any): boolean {
-   if (item.StatusId === 8 && this.roleId !== 3) {
-    return false;
+    this.savingRows[item.DocumentPageId] = true;
+    item.ExtractedText = payload.extractedText;
+    item.StatusId = payload.statusId;
+
+    this.service.saveDocumentPage(payload).subscribe({
+      next: () => {
+        this.savedRows[item.DocumentPageId] = true;
+        this.savingRows[item.DocumentPageId] = false;
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Saved Successfully',
+          text: `Page ${item.PageNumber} has been saved.`,
+          timer: 1500,
+          showConfirmButton: false,
+        }).then(() => {
+          if (this.absolutePageNumber === this.totalRecords) {
+            this.close();
+          } else {
+            this.goToNext();
+          }
+        });
+
+        setTimeout(() => {
+          this.savedRows[item.DocumentPageId] = false;
+        }, 2000);
+      },
+      error: () => {
+        item.ExtractedText = oldText;
+        item.StatusId = oldStatus;
+        this.savingRows[item.DocumentPageId] = false;
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Save failed' });
+      },
+    });
   }
-  // ❌ Role 1 cannot edit if Verified or Approved
-  if (this.roleId === 1 && (item.StatusId === 2 || item.StatusId === 3)) {
-    return false;
-  }
 
-  // ❌ Role 2 cannot edit if Approved
-  if (this.roleId === 2 && item.StatusId === 3) {
-    return false;
-  }
+  // ─── SAVE ALL ───────────────────────────────────────────────────────────────
 
-  return true; // ✅ allowed otherwise
-}
-
-  // 🔥 SAVE ALL
   saveAll() {
     if (!this.hasDirtyRows) return;
-
     this.savingAll = true;
 
     const requests = this.pageList.map((item) =>
@@ -684,9 +731,9 @@ canEdit(item: any): boolean {
         pageNumber: item.PageNumber,
         extractedText: this.editedTexts[item.DocumentPageId],
         statusId: this.getNextStatus(item.StatusId),
-        userId: this.currentUserId, // ← ADD
-        roleId: this.roleId, // ← ADD
-        rejectionReason: '', 
+        userId: this.currentUserId,
+        roleId: this.roleId,
+        rejectionReason: '',
       }),
     );
 
@@ -701,12 +748,24 @@ canEdit(item: any): boolean {
     });
   }
 
-  // 🔥 PAGINATION
+  // ─── PAGINATION ─────────────────────────────────────────────────────────────
+
   get hasPrevious() {
     return this.currentPage > 1;
   }
+
   get hasNext() {
     return this.pageList.length === this.pageSize;
+  }
+
+  get absolutePageNumber(): number {
+    return (
+      (this.currentPage - 1) * this.itemsPerPage + this.selectedPageIndex + 1
+    );
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.totalRecords / this.itemsPerPage);
   }
 
   goToPrevious() {
@@ -714,57 +773,45 @@ canEdit(item: any): boolean {
     this.currentPage--;
     this.loadPages();
   }
-  get absolutePageNumber(): number {
-    return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
-  }
 
   goToNext() {
     if (!this.hasNext) return;
     this.currentPage++;
     this.loadPages();
   }
-  get totalPages(): number {
-  return Math.ceil(this.totalRecords / this.itemsPerPage);
-}
 
-// Add these methods
-onPageChange(page: number) {
-  this.currentPage = page;
-  this.loadPages();
-}
-
-onPageSizeChange(size: number) {
-  this.itemsPerPage = size;
-  this.pageSize = size;
-  this.currentPage = 1;
-  this.loadPages();
-}
-
-  // 🔥 CLOSE WITH WARNING
-  close() {
-    // if (this.hasDirtyRows) {
-    //   Swal.fire({
-    //     title: 'Unsaved changes',
-    //     showCancelButton: true,
-    //   }).then((res) => {
-    //     if (res.isConfirmed) this.modalRef.close();
-    //   });
-    // } else {
-      this.modalRef.close();
-    // }
+  onPageChange(page: number) {
+    this.currentPage = page;
+    this.loadPages();
   }
 
-  // 🔥 AUTO UNLOCK
+  onPageSizeChange(size: number) {
+    this.itemsPerPage = size;
+    this.pageSize = size;
+    this.currentPage = 1;
+    this.loadPages();
+  }
+
+  // ─── CLOSE ──────────────────────────────────────────────────────────────────
+
+  close() {
+    this.modalRef.close();
+  }
+
+  // ─── DESTROY ────────────────────────────────────────────────────────────────
+
   ngOnDestroy() {
-    // Destroy all page editors
-    Object.values(this.pageEditors).forEach(editor => editor.destroy());
-    this.summaryEditor.destroy(); 
+    Object.values(this.pageEditors).forEach((editor) => editor.destroy());
+    this.summaryEditor.destroy();
     if (this.documentId) {
-      this.service.manageLock(this.documentId, this.currentUserId, 'UNLOCK').subscribe();
+      this.service
+        .manageLock(this.documentId, this.currentUserId, 'UNLOCK')
+        .subscribe();
     }
   }
 
-  // 🔥 CTRL + S
+  // ─── CTRL + S ───────────────────────────────────────────────────────────────
+
   @HostListener('document:keydown.control.s', ['$event'])
   handleSave(event: KeyboardEvent) {
     event.preventDefault();

@@ -1346,6 +1346,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
         StatusId: 0,
         CreatedBy: 1,
         job_id: this.currentJobId,
+        file_name:page.fileName,
       })
       .subscribe({
         next: () => {
@@ -1440,6 +1441,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
           CreatedBy: 1,
           RejectionReason: page.rejectionreason,
           job_id: this.currentJobId,
+          file_name:page.fileName,
         })
         .subscribe({
           next: () => {
