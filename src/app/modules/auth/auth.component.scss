@@ -1,3 +1,19 @@
 :host {
   height: 100%;
 }
+.image-card {
+  background: #e3c967;
+  padding: 15px;
+  border-radius: 16px;
+  border: 1px solid #0f0e09; /* light gray border */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  display: inline-block;
+}
+
+.image-card img {
+  width: 100%;
+  max-width: 450px;
+  height: auto;
+  border-radius: 12px;
+  display: block;
+}
