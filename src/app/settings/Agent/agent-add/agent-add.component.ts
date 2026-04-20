@@ -10,151 +10,69 @@ import { Editor, Toolbar } from 'ngx-editor';
   templateUrl: './agent-add.component.html',
   styleUrls: ['./agent-add.component.scss']
 })
-export class AgentAddComponent implements OnInit,OnDestroy  {
+export class AgentAddComponent implements OnInit, OnDestroy {
 
-  // ✅ Pagination — exactly like RolesDataComponent
+  // ── Pages pagination (result card) ──────────────────────────
   totalPages   : number = 0;
   currentPage  : number = 1;
   totalRecords : number = 0;
   itemsPerPage          = 10;
-  searchQuery  : string = '';
-  selectedPageIndex: number = 0;
+  selectedPageIndex     : number = 0;
 
-  pages: any[] = [];
-  documentDropdown: any[] = [];
-selectedDocumentId: number = 0;
-selectedDocumentName: string = '';
+  // ── Document table pagination ────────────────────────────────
+  docCurrentPage  : number = 1;
+  docPageSize     : number = 10;
+  docTotalPages   : number = 0;
+  docTotalRecords : number = 0;
 
-  summaryId        : number    = 0; 
-  summaryFromCache = false;
-  summaryUpdatedAt: Date | null = null;
-  isSavingSummary  = false;
-  summaryDirty     = false; 
-  roleId           : number    = 0; 
+  // ── Document table data ──────────────────────────────────────
+  pages               : any[]    = [];
+  documentDropdown    : any[]    = [];
+  selectedDocumentId  : number   = 0;
+  selectedDocumentName: string   = '';
+  loadingDropdown     : boolean  = false;
+  searchQuery         : string   = '';
+  private searchDebounce: any;
 
-  // Suggestion modal
-showSuggestionModal = false;
-suggestionText      = '';
-isSavingSuggestion  = false;
+  // ── Summary ─────────────────────────────────────────────────
+  summaryId        : number    = 0;
+  summaryFromCache  = false;
+  summaryUpdatedAt : Date | null = null;
+  isSavingSummary   = false;
+  summaryDirty      = false;
 
-summaryEditor: Editor;
-suggestionEditor: Editor;
-pageTextEditor: Editor;
-pageTextContent: string = '';
+  // ── Role ────────────────────────────────────────────────────
+  roleId: number = 0;
 
-loadingPages = false;
+  // ── Suggestion modal ─────────────────────────────────────────
+  showSuggestionModal = false;
+  suggestionText      = '';
+  isSavingSuggestion  = false;
 
-editorToolbar: Toolbar = [
-  ['bold', 'italic', 'underline', 'strike'],
-  ['ordered_list', 'bullet_list'],
-  [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
-  ['blockquote'],
-  ['align_left', 'align_center', 'align_right'],
-  ['format_clear'],
-];
-private preserveLines(text: string): string {
-  if (!text) return '';
-  if (text.trim().startsWith('<')) return text;
+  // ── Editors ──────────────────────────────────────────────────
+  summaryEditor   : Editor;
+  suggestionEditor: Editor;
+  pageTextEditor  : Editor;
+  pageTextContent : string = '';
 
-  return text
-    .split('\n')
-    .map(line => {
-      const trimmed = line.trimEnd();
-      if (!trimmed) return '<p><br></p>';
-      if (trimmed.startsWith('### ')) return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
-      if (trimmed.startsWith('## '))  return `<h2>${this.inlineFormat(trimmed.slice(3))}</h2>`;
-      if (trimmed.startsWith('# '))   return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
-      if (trimmed.startsWith('* ') || trimmed.startsWith('- '))
-        return `<p>${this.inlineFormat(trimmed.slice(2))}</p>`;
-      return `<p>${this.inlineFormat(trimmed)}</p>`;
-    })
-    .join('');
-}
+  loadingPages = false;
 
-private inlineFormat(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>');
-}
+  editorToolbar: Toolbar = [
+    ['bold', 'italic', 'underline', 'strike'],
+    ['ordered_list', 'bullet_list'],
+    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
+    ['blockquote'],
+    ['align_left', 'align_center', 'align_right'],
+    ['format_clear'],
+  ];
 
-ngOnInit(): void {
-  this.pageTextEditor   = new Editor(); 
-  this.summaryEditor    = new Editor();
-  this.suggestionEditor = new Editor();
-  this.loadVoices();
-  this.loadDocumentsDropdown();
-  const lsValue = localStorage.getItem(this.authLocalStorageToken);
-    const userData = lsValue ? JSON.parse(lsValue) : null;
-    const userId = userData?.id ?? 0;
-    const roleId = userData?.roleId ?? 0;
-    this.roleId = roleId;
-}
-ngOnDestroy(): void {
-  this.summaryEditor?.destroy();
-  this.suggestionEditor?.destroy();
-  this.pageTextEditor?.destroy();
-}
-
-openSuggestionModal() {
-  this.suggestionText     = '';
-  this.showSuggestionModal = true;
-  // this.suggestionEditor?.destroy();
-  // this.suggestionEditor = new Editor();
-  // this.cd.detectChanges();
-}
-
-closeSuggestionModal() {
-  this.showSuggestionModal = false;
-  this.suggestionText      = '';
-}
-
-onOverlayClick(event: MouseEvent) {
-  if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
-    this.closeSuggestionModal();
-  }
-}
-
-saveSuggestion() {
-  if (!this.suggestionText.trim()) return;
-  this.isSavingSuggestion = true;
-  this.cd.detectChanges();
-  const lsValue = localStorage.getItem(this.authLocalStorageToken);
-  const userData = lsValue ? JSON.parse(lsValue) : null;
-  const createdBy = userData?.id ?? 0;
-  // Get current page details from the active page
-  const currentPage = this.currentDocPage;
-  const documentId     = this.selectedDocumentId;
-  const pageNumber     = currentPage?.pageNumber ?? 0;
-  const documentPageId = currentPage?.documentPageId ?? currentPage?.id ?? 0;
-
-  this.service.saveSuggestion(
-    0,              // new suggestion, so ID = 0
-    documentId,
-    pageNumber,
-    documentPageId,
-    this.suggestionText.trim(),
-    createdBy
-  ).subscribe({
-    next: () => {
-      this.isSavingSuggestion = false;
-      this.closeSuggestionModal();
-      Swal.fire({ icon: 'success', title: 'Thanks!', text: 'Suggestion submitted successfully.' });
-      this.cd.detectChanges();
-    },
-    error: () => {
-      this.isSavingSuggestion = false;
-      this.cd.detectChanges();
-      Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to submit suggestion.' });
-    }
-  });
-}
-
-  // ✅ Pages list — exactly like roleList$
+  // ── Observable page list ─────────────────────────────────────
   pageList$: Observable<any[]>;
   private pageListSubject: BehaviorSubject<any[]> = new BehaviorSubject<any[]>([]);
 
   private authLocalStorageToken = `${environment.appVersion}-${environment.USERDATA_KEY}`;
 
+  // ── State flags ──────────────────────────────────────────────
   userQuestion  = '';
   documentName  = '';
   fullText      = '';
@@ -166,7 +84,7 @@ saveSuggestion() {
   isSummarizing = false;
   showSummary   = false;
 
-  // ✅ Voice controls
+  // ── Voice ────────────────────────────────────────────────────
   availableVoices: SpeechSynthesisVoice[] = [];
   selectedVoice  : SpeechSynthesisVoice | null = null;
   speechRate      = 0.85;
@@ -180,15 +98,15 @@ saveSuggestion() {
   private femaleVoiceKeywords = ['heera', 'female', 'woman', 'lekha', 'priya', 'zira', 'susan'];
 
   private langPatterns = [
-    { lang: 'hi-IN', label: 'Hindi',          pattern: /[\u0900-\u097F]/ },
-    { lang: 'bn-IN', label: 'Bengali',         pattern: /[\u0980-\u09FF]/ },
-    { lang: 'ta-IN', label: 'Tamil',           pattern: /[\u0B80-\u0BFF]/ },
-    { lang: 'te-IN', label: 'Telugu',          pattern: /[\u0C00-\u0C7F]/ },
-    { lang: 'kn-IN', label: 'Kannada',         pattern: /[\u0C80-\u0CFF]/ },
-    { lang: 'ml-IN', label: 'Malayalam',       pattern: /[\u0D00-\u0D7F]/ },
-    { lang: 'gu-IN', label: 'Gujarati',        pattern: /[\u0A80-\u0AFF]/ },
-    { lang: 'pa-IN', label: 'Punjabi',         pattern: /[\u0A00-\u0A7F]/ },
-    { lang: 'en-IN', label: 'Indian English',  pattern: /[a-zA-Z]/        }
+    { lang: 'hi-IN', label: 'Hindi',         pattern: /[\u0900-\u097F]/ },
+    { lang: 'bn-IN', label: 'Bengali',        pattern: /[\u0980-\u09FF]/ },
+    { lang: 'ta-IN', label: 'Tamil',          pattern: /[\u0B80-\u0BFF]/ },
+    { lang: 'te-IN', label: 'Telugu',         pattern: /[\u0C00-\u0C7F]/ },
+    { lang: 'kn-IN', label: 'Kannada',        pattern: /[\u0C80-\u0CFF]/ },
+    { lang: 'ml-IN', label: 'Malayalam',      pattern: /[\u0D00-\u0D7F]/ },
+    { lang: 'gu-IN', label: 'Gujarati',       pattern: /[\u0A80-\u0AFF]/ },
+    { lang: 'pa-IN', label: 'Punjabi',        pattern: /[\u0A00-\u0A7F]/ },
+    { lang: 'en-IN', label: 'Indian English', pattern: /[a-zA-Z]/        }
   ];
 
   constructor(private service: ServiceService, private cd: ChangeDetectorRef) {
@@ -196,144 +114,179 @@ saveSuggestion() {
     this.setupSpeechRecognition();
   }
 
+  // ── Lifecycle ────────────────────────────────────────────────
 
+  ngOnInit(): void {
+    this.pageTextEditor   = new Editor();
+    this.summaryEditor    = new Editor();
+    this.suggestionEditor = new Editor();
+    this.loadVoices();
+    this.loadDocumentsDropdown();
+
+    const lsValue  = localStorage.getItem(this.authLocalStorageToken);
+    const userData = lsValue ? JSON.parse(lsValue) : null;
+    this.roleId    = userData?.roleId ?? 0;
+  }
+
+  ngOnDestroy(): void {
+    this.summaryEditor?.destroy();
+    this.suggestionEditor?.destroy();
+    this.pageTextEditor?.destroy();
+    if (this.searchDebounce) clearTimeout(this.searchDebounce);
+  }
+
+  // ── Document table + pagination ──────────────────────────────
 
   loadDocumentsDropdown(search: string = '') {
-  this.service.dropdownAll(search, '1', '6', '0').subscribe({
-    next: (res: any[]) => {
-      console.log('Dropdown API Response:', res);  // 👈 ADD THIS
+    this.loadingDropdown = true;
+    this.cd.detectChanges();
 
-      this.documentDropdown = res.map(x => ({
-  id: x.id.toString(),   // ng-select2 prefers string
-  text: x.text           // ✅ FIXED
-}));
+    // Pass docCurrentPage and docPageSize to the API
+    this.service.dropdownAll(search, this.docCurrentPage.toString(), '6', this.docPageSize.toString()).subscribe({
+      next: (res: any[]) => {
+        this.documentDropdown = res.map(x => ({
+          id  : x.id.toString(),
+          text: x.text,
+          totalRecords: x.totalRecords ?? x.totalrecords ?? 0
+        }));
 
-      this.cd.detectChanges();
-    },
-    error: (err) => {
-      console.error('Dropdown API Error:', err);  // 👈 ADD THIS
-    }
-  });
-}
-onDocumentSelect(event: any) {
-  console.log('Selected Value:', event);
+        // Read total from first record if API returns it
+        const total = this.documentDropdown[0]?.totalRecords ?? 0;
+        this.docTotalRecords = total;
+        this.docTotalPages   = Math.ceil(total / this.docPageSize) || 1;
 
-  // event is ID, not object
-  this.selectedDocumentId = Number(event);
-
-  // find full object from dropdown
-  const selected = this.documentDropdown.find(x => x.id == this.selectedDocumentId);
-
-  this.selectedDocumentName = selected?.text || '';
-
-  // pass to search
-  this.userQuestion = this.selectedDocumentName;
-
-  console.log('Selected Name:', this.selectedDocumentName);
-}
-  get indianVoices() {
-    const indianLangs = ['en-IN', 'hi', 'bn', 'ta', 'te', 'kn', 'ml', 'gu', 'pa'];
-    return this.availableVoices.filter(v => indianLangs.some(l => v.lang.startsWith(l)));
+        this.loadingDropdown = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Dropdown API Error:', err);
+        this.loadingDropdown = false;
+        this.cd.detectChanges();
+      }
+    });
   }
-  // ✅ Main search — exactly like RolesGET()
-  AgentGET() {
-    const startIndex     = this.currentPage;
-    const pageSize       = this.itemsPerPage;
-    const searchBy       = this.searchQuery ? '1' : '0';
-    const searchCriteria = this.userQuestion;  
 
+  /** Search input — debounced, resets to page 1 */
+  onSearchChange(value: string) {
+    this.searchQuery = value;
+    if (this.searchDebounce) clearTimeout(this.searchDebounce);
+    this.searchDebounce = setTimeout(() => {
+      this.docCurrentPage = 1;
+      this.loadDocumentsDropdown(value);
+    }, 400);
+  }
+
+  /** Table pagination page change */
+  onDocPageChange(page: number) {
+    this.docCurrentPage = page;
+    this.loadDocumentsDropdown(this.searchQuery);
+  }
+
+  /** Table pagination page size change */
+  onDocPageSizeChange(size: number) {
+    this.docPageSize    = size;
+    this.docCurrentPage = 1;
+    this.loadDocumentsDropdown(this.searchQuery);
+  }
+
+  /** "View" button clicked — hide table, show result card */
+  selectDocument(doc: any) {
+    this.selectedDocumentId   = Number(doc.id);
+    this.selectedDocumentName = doc.text;
+    this.userQuestion         = doc.text;
+    this.currentPage          = 1;
+    this.pages                = [];
+    this.notFound             = false;
+    this.showSummary          = false;
+    this.AgentGET();
+  }
+
+  /** "← Back" button — show table again, clear result */
+  backToTable() {
+    this.selectedDocumentName = '';
+    this.selectedDocumentId   = 0;
+    this.userQuestion         = '';
+    this.pages                = [];
+    this.documentName         = '';
+    this.notFound             = false;
+    this.showSummary          = false;
+    this.summary              = '';
+    this.currentPage          = 1;
+    this.cd.detectChanges();
+  }
+
+  // ── Main data fetch ──────────────────────────────────────────
+
+  AgentGET() {
     this.isLoading = true;
     this.notFound  = false;
     this.cd.detectChanges();
 
     this.service.askAgent(
       this.userQuestion,
-      startIndex,
-      pageSize,
-      searchBy,
-      searchCriteria
+      this.currentPage,
+      this.itemsPerPage,
+      this.searchQuery ? '1' : '0',
+      this.userQuestion
     ).subscribe({
       next: (response: any) => {
-        this.isLoading    = false;
-        this.documentName = response.documentName;
-        this.fullText     = response.fullText;
-        this.totalPages   = response.totalPages;
-        this.totalRecords = response.totalCount;
-        this.notFound     = response.pages.length === 0;
-        this.pages        = response.pages;
-        this.selectedPageIndex = 0;   
+        this.isLoading         = false;
+        this.documentName      = response.documentName;
+        this.fullText          = response.fullText;
+        this.totalPages        = response.totalPages;
+        this.totalRecords      = response.totalCount;
+        this.notFound          = response.pages.length === 0;
+        this.pages             = response.pages;
+        this.selectedPageIndex = 0;
         this.pageListSubject.next(response.pages);
-        this.updatePageContent(); 
-      
+        this.updatePageContent();
+
         if (!this.notFound) {
           this.autoSelectVoice(response.fullText);
         }
         this.cd.detectChanges();
       },
-      error: () => { this.isLoading = false; this.cd.detectChanges(); }
+      error: () => {
+        this.isLoading = false;
+        this.cd.detectChanges();
+      }
     });
   }
 
-  // ✅ Exactly like onSearch()
-  onSearch(target: EventTarget | null): void {
-    if (target instanceof HTMLInputElement) {
-      this.userQuestion = target.value;
-      this.currentPage  = 1;
-      this.AgentGET();
-    }
-  }
+  // ── Result card pagination ────────────────────────────────────
 
-  // ✅ Exactly like onPageChange()
   onPageChange(page: number) {
     this.currentPage = page;
     this.AgentGET();
     this.cd.detectChanges();
   }
 
-  // ✅ Exactly like onPageSizeChange()
   onPageSizeChange(newSize: number) {
     this.itemsPerPage = newSize;
     this.AgentGET();
     this.cd.detectChanges();
   }
 
-  // ✅ Search button / Enter key / Voice
-  askQuestion() {
-    if (!this.userQuestion?.trim()) return;
-    this.currentPage = 1;
-    this.AgentGET();
-  }
+  // ── Page navigation ──────────────────────────────────────────
+
   get currentDocPage(): any {
     return this.pages[this.selectedPageIndex] ?? null;
   }
-  
-  get totalDocPagesInCurrentBatch(): number {
-    return this.pages.length;
-  }
+
   get absolutePageNumber(): number {
     return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
   }
 
-  // recreatePageEditor() {
-  //   this.pageTextEditor?.destroy();
-  //   this.pageTextEditor = new Editor();
-  //   this.cd.detectChanges();
-  // }
-  
-  // Converts raw extractedText to HTML for the editor
-  // get pageTextContent(): string {
-  //   const raw = this.currentDocPage?.extractedText || '';
-  //   return this.preserveLines(raw);
-  // }
   private updatePageContent() {
     const raw = this.currentDocPage?.extractedText || '';
     this.pageTextContent = this.preserveLines(raw);
     this.cd.detectChanges();
   }
+
   prevDocPage() {
     if (this.selectedPageIndex > 0) {
       this.selectedPageIndex--;
-      this.updatePageContent();   // ← replace recreatePageEditor()
+      this.updatePageContent();
     } else if (this.currentPage > 1) {
       this.currentPage--;
       this.AgentGET();
@@ -344,81 +297,78 @@ onDocumentSelect(event: any) {
     }
     this.cd.detectChanges();
   }
-  
+
   nextDocPage() {
     if (this.selectedPageIndex < this.pages.length - 1) {
       this.selectedPageIndex++;
-      this.updatePageContent();   // ← replace recreatePageEditor()
+      this.updatePageContent();
     } else if (this.currentPage < this.totalPages) {
       this.currentPage++;
       this.selectedPageIndex = 0;
       this.AgentGET();
-      // updatePageContent() will be called inside AgentGET's next() callback
     }
     this.cd.detectChanges();
   }
-  // ✅ Summary
-  // summarizeDocument() {
-  //   if (!this.documentName) return;
-  //   this.isSummarizing = true;
-  //   this.summary       = '';
-  //   this.showSummary   = false;
-  //   this.cd.detectChanges();
 
-  //   this.service.summarizeDocument(this.documentName).subscribe({
-  //     next: (res: any) => {
-  //       this.summary       = res.summary;
-  //       this.isSummarizing = false;
-  //       this.showSummary   = true;
-  //       this.cd.detectChanges();
-  //     },
-  //     error: () => { this.isSummarizing = false; this.cd.detectChanges(); }
-  //   });
-  // }
- 
+  // ── Legacy helpers ───────────────────────────────────────────
+
+  onSearch(target: EventTarget | null): void {
+    if (target instanceof HTMLInputElement) {
+      this.userQuestion = target.value;
+      this.currentPage  = 1;
+      this.AgentGET();
+    }
+  }
+
+  askQuestion() {
+    if (!this.userQuestion?.trim()) return;
+    this.currentPage = 1;
+    this.AgentGET();
+  }
+
+  // ── Summary ──────────────────────────────────────────────────
+
   summarizeDocument() {
     if (!this.documentName) return;
     this.isSummarizing = true;
     this.summary       = '';
     this.showSummary   = false;
     this.summaryDirty  = false;
-    this.summaryId     = 0; 
+    this.summaryId     = 0;
     this.cd.detectChanges();
-  
-        const lsValue = localStorage.getItem(this.authLocalStorageToken);
-    const userData = lsValue ? JSON.parse(lsValue) : null;
-    //const userId =
-    const roleId = userData?.roleId ?? 0;
-    const userId =  userData?.id ?? 0;
-  
+
     this.service.summarizeDocument(this.documentName).subscribe({
-      next: (res: any) => { 
-        const raw: string = res.summary.summary || '';
+      next: (res: any) => {
+        const raw: string     = res.summary.summary || '';
         this.summary          = this.preserveLines(raw);
         this.summaryId        = res.summary.summaryId ?? 0;
-        this.summaryFromCache = res.summary.fromCache;   // false = Gemini, true = DB
+        this.summaryFromCache = res.summary.fromCache;
         this.summaryUpdatedAt = res.summary.updatedAt ? new Date(res.summary.updatedAt) : null;
         this.isSummarizing    = false;
         this.showSummary      = true;
         this.summaryDirty     = false;
         this.cd.detectChanges();
       },
-      error: () => { this.isSummarizing = false; this.cd.detectChanges(); }
+      error: () => {
+        this.isSummarizing = false;
+        this.cd.detectChanges();
+      }
     });
   }
+
+  onSummaryEdit() { this.summaryDirty = true; }
 
   saveSummary() {
     if (!this.documentName || !this.summary.trim()) return;
     this.isSavingSummary = true;
     this.cd.detectChanges();
-    const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+    const lsValue  = localStorage.getItem(this.authLocalStorageToken);
     const userData = lsValue ? JSON.parse(lsValue) : null;
-    const userId = userData?.id ?? 0;
-    const roleId = userData?.roleId ?? 0;
-  
-   // const userId = this.getUserId();   // ← get from token
-  
-    this.service.saveSummary(this.documentName, this.summary, this.summaryId, userId,roleId).subscribe({
+    const userId   = userData?.id ?? 0;
+    const roleId   = userData?.roleId ?? 0;
+
+    this.service.saveSummary(this.documentName, this.summary, this.summaryId, userId, roleId).subscribe({
       next: (res: any) => {
         this.summaryId        = res.summaryId ?? this.summaryId;
         this.summaryFromCache = true;
@@ -426,26 +376,112 @@ onDocumentSelect(event: any) {
         this.isSavingSummary  = false;
         this.summaryDirty     = false;
         this.cd.detectChanges();
-        Swal.fire({
-          icon: 'success',
-          title: 'Saved!',
-          text: 'Summary saved successfully',
-          confirmButtonText: 'OK'
-        }) ;
+        Swal.fire({ icon: 'success', title: 'Saved!', text: 'Summary saved successfully', confirmButtonText: 'OK' });
       },
-      error: () => { this.isSavingSummary = false; this.cd.detectChanges();
-        Swal.fire({
-          icon: 'error',
-          title: 'Error!',
-          text: 'Failed to save summary'
-        }); }
+      error: () => {
+        this.isSavingSummary = false;
+        this.cd.detectChanges();
+        Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to save summary' });
+      }
     });
   }
-  
-  onSummaryEdit() {
-    this.summaryDirty = true;
+
+  // ── Suggestion modal ─────────────────────────────────────────
+
+  openSuggestionModal() {
+    this.suggestionText      = '';
+    this.showSuggestionModal = true;
   }
-  // ✅ Voice recognition
+
+  closeSuggestionModal() {
+    this.showSuggestionModal = false;
+    this.suggestionText      = '';
+  }
+
+  onOverlayClick(event: MouseEvent) {
+    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
+      this.closeSuggestionModal();
+    }
+  }
+
+  saveSuggestion() {
+    if (!this.suggestionText.trim()) return;
+    this.isSavingSuggestion = true;
+    this.cd.detectChanges();
+
+    const lsValue        = localStorage.getItem(this.authLocalStorageToken);
+    const userData       = lsValue ? JSON.parse(lsValue) : null;
+    const createdBy      = userData?.id ?? 0;
+    const currentPage    = this.currentDocPage;
+    const documentId     = this.selectedDocumentId;
+    const pageNumber     = currentPage?.pageNumber     ?? 0;
+    const documentPageId = currentPage?.documentPageId ?? currentPage?.id ?? 0;
+
+    this.service.saveSuggestion(
+      0, documentId, pageNumber, documentPageId,
+      this.suggestionText.trim(), createdBy
+    ).subscribe({
+      next: () => {
+        this.isSavingSuggestion = false;
+        this.closeSuggestionModal();
+        Swal.fire({ icon: 'success', title: 'Thanks!', text: 'Suggestion submitted successfully.' });
+        this.cd.detectChanges();
+      },
+      error: () => {
+        this.isSavingSuggestion = false;
+        this.cd.detectChanges();
+        Swal.fire({ icon: 'error', title: 'Error!', text: 'Failed to submit suggestion.' });
+      }
+    });
+  }
+
+  // ── PDF viewer ───────────────────────────────────────────────
+
+  onViewPdf(doc: any): void {
+    this.loadingPages = true;
+    this.service.getPdf(doc.documentId, this.roleId).subscribe({
+      next: (res: Blob) => {
+        const fileURL = URL.createObjectURL(res);
+        window.open(fileURL, '_blank');
+        this.loadingPages = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to load PDF:', err);
+        this.loadingPages = false;
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  // ── Text formatting ──────────────────────────────────────────
+
+  private preserveLines(text: string): string {
+    if (!text) return '';
+    if (text.trim().startsWith('<')) return text;
+    return text
+      .split('\n')
+      .map(line => {
+        const trimmed = line.trimEnd();
+        if (!trimmed) return '<p><br></p>';
+        if (trimmed.startsWith('### ')) return `<h3>${this.inlineFormat(trimmed.slice(4))}</h3>`;
+        if (trimmed.startsWith('## '))  return `<h2>${this.inlineFormat(trimmed.slice(3))}</h2>`;
+        if (trimmed.startsWith('# '))   return `<h1>${this.inlineFormat(trimmed.slice(2))}</h1>`;
+        if (trimmed.startsWith('* ') || trimmed.startsWith('- '))
+          return `<p>${this.inlineFormat(trimmed.slice(2))}</p>`;
+        return `<p>${this.inlineFormat(trimmed)}</p>`;
+      })
+      .join('');
+  }
+
+  private inlineFormat(text: string): string {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
+
+  // ── Voice recognition ────────────────────────────────────────
+
   setupSpeechRecognition() {
     const SR = (window as any).SpeechRecognition
             || (window as any).webkitSpeechRecognition;
@@ -459,22 +495,13 @@ onDocumentSelect(event: any) {
     this.recognition.onresult = (event: any) => {
       let interimText = '';
       let finalText   = '';
-
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        if (event.results[i].isFinal) {
-          finalText += event.results[i][0].transcript;
-        } else {
-          interimText += event.results[i][0].transcript;
-        }
+        if (event.results[i].isFinal) finalText   += event.results[i][0].transcript;
+        else                          interimText  += event.results[i][0].transcript;
       }
-
       this.userQuestion = finalText || interimText;
       this.cd.detectChanges();
-
-      if (finalText) {
-        this.isListening = false;
-        this.askQuestion();
-      }
+      if (finalText) { this.isListening = false; this.askQuestion(); }
     };
 
     this.recognition.onend   = () => { this.isListening = false; this.cd.detectChanges(); };
@@ -495,7 +522,8 @@ onDocumentSelect(event: any) {
     this.cd.detectChanges();
   }
 
-  // ✅ Voice output
+  // ── Voice output ─────────────────────────────────────────────
+
   loadVoices() {
     const load = () => {
       const voices = window.speechSynthesis.getVoices();
@@ -514,10 +542,7 @@ onDocumentSelect(event: any) {
 
   findBestVoice(langCode: string): SpeechSynthesisVoice | null {
     let voice = this.availableVoices.find(v => v.lang === langCode);
-    if (!voice) {
-      const base = langCode.split('-')[0];
-      voice = this.availableVoices.find(v => v.lang.startsWith(base));
-    }
+    if (!voice) { const base = langCode.split('-')[0]; voice = this.availableVoices.find(v => v.lang.startsWith(base)); }
     if (!voice) voice = this.availableVoices.find(v => v.lang.startsWith('en'));
     return voice || this.availableVoices[0];
   }
@@ -537,21 +562,17 @@ onDocumentSelect(event: any) {
     this.cd.detectChanges();
   }
 
-  onVoiceChange(event: any) {
-    this.selectedVoice = this.availableVoices.find(v => v.name === event.target.value) || null;
-  }
-
   speakText(text: string) {
     window.speechSynthesis.cancel();
     this.autoSelectVoice(text);
-    const utterance    = new SpeechSynthesisUtterance(text);
+    const utterance  = new SpeechSynthesisUtterance(text);
     if (this.selectedVoice) utterance.voice = this.selectedVoice;
-    utterance.lang     = this.selectedVoice?.lang || 'en-IN';
-    utterance.rate     = this.speechRate;
-    utterance.pitch    = this.speechPitch;
-    utterance.volume   = this.speechVolume;
-    this.isSpeaking    = true;
-    utterance.onend    = () => { this.isSpeaking = false; this.cd.detectChanges(); };
+    utterance.lang   = this.selectedVoice?.lang || 'en-IN';
+    utterance.rate   = this.speechRate;
+    utterance.pitch  = this.speechPitch;
+    utterance.volume = this.speechVolume;
+    this.isSpeaking  = true;
+    utterance.onend  = () => { this.isSpeaking = false; this.cd.detectChanges(); };
     window.speechSynthesis.speak(utterance);
     this.cd.detectChanges();
   }
@@ -562,50 +583,22 @@ onDocumentSelect(event: any) {
     this.cd.detectChanges();
   }
 
-  previewVoice() {
-    const name = this.selectedVoice?.name?.toLowerCase() || '';
-    const lang = this.selectedVoice?.lang || 'en-IN';
-    let text   = 'Hello, this is a voice preview.';
-    if (lang.startsWith('hi'))        text = 'नमस्ते, यह एक आवाज़ पूर्वावलोकन है।';
-    else if (name.includes('heera')) text = 'Hello, I am Heera. Indian English female voice.';
-    else if (name.includes('ravi'))  text = 'Hello, I am Ravi. Indian English male voice.';
-    this.speakText(text);
-  }
-
-  isMaleVoice(voice: SpeechSynthesisVoice): boolean {
-    return this.maleVoiceKeywords.some(k => voice.name.toLowerCase().includes(k));
-  }
-
-  isFemaleVoice(voice: SpeechSynthesisVoice): boolean {
-    return this.femaleVoiceKeywords.some(k => voice.name.toLowerCase().includes(k));
-  }
-
-  get indianMaleVoices()   { return this.availableVoices.filter(v => v.lang === 'en-IN' && this.isMaleVoice(v)); }
-  get indianFemaleVoices() { return this.availableVoices.filter(v => v.lang === 'en-IN' && this.isFemaleVoice(v)); }
-  get indianEnglishVoices(){ return this.availableVoices.filter(v => v.lang === 'en-IN'); }
-  get hindiVoices()        { return this.availableVoices.filter(v => v.lang.startsWith('hi')); }
-  get otherVoices() {
-    const indian = ['en-IN', 'hi', 'bn', 'ta', 'te', 'kn', 'ml', 'gu', 'pa'];
-    return this.availableVoices.filter(v => !indian.some(l => v.lang.startsWith(l)));
-  }
+  // ── Utility ──────────────────────────────────────────────────
 
   min(a: number, b: number): number { return Math.min(a, b); }
 
-  onViewPdf(doc: any): void {
-    this.loadingPages = true;
-
-    this.service.getPdf(doc.documentId, this.roleId).subscribe({
-      next: (res: Blob) => {
-        const fileURL = URL.createObjectURL(res);
-        window.open(fileURL, '_blank');
-        this.loadingPages = false;
-        this.cd.detectChanges();
-      },
-      error: (err) => {
-        console.error('Failed to load PDF:', err);
-        this.loadingPages = false;
-        this.cd.detectChanges();
-      },
-    });
+  get indianVoices() {
+    const l = ['en-IN', 'hi', 'bn', 'ta', 'te', 'kn', 'ml', 'gu', 'pa'];
+    return this.availableVoices.filter(v => l.some(x => v.lang.startsWith(x)));
   }
+  get indianMaleVoices()    { return this.availableVoices.filter(v => v.lang === 'en-IN' && this.isMaleVoice(v)); }
+  get indianFemaleVoices()  { return this.availableVoices.filter(v => v.lang === 'en-IN' && this.isFemaleVoice(v)); }
+  get indianEnglishVoices() { return this.availableVoices.filter(v => v.lang === 'en-IN'); }
+  get hindiVoices()         { return this.availableVoices.filter(v => v.lang.startsWith('hi')); }
+  get otherVoices() {
+    const l = ['en-IN', 'hi', 'bn', 'ta', 'te', 'kn', 'ml', 'gu', 'pa'];
+    return this.availableVoices.filter(v => !l.some(x => v.lang.startsWith(x)));
+  }
+  isMaleVoice(v: SpeechSynthesisVoice)   { return this.maleVoiceKeywords.some(k => v.name.toLowerCase().includes(k)); }
+  isFemaleVoice(v: SpeechSynthesisVoice) { return this.femaleVoiceKeywords.some(k => v.name.toLowerCase().includes(k)); }
 }
