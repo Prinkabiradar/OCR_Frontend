@@ -11,6 +11,7 @@ export class UserModel extends AuthModel {
   email: string;
   pic: string;
   roles: number[] = [];
+  roleName:string;
   occupation: string;
   companyName: string;
   phone: string;
@@ -59,6 +60,7 @@ export class UserModel extends AuthModel {
     this.email = user.email || '';
     this.pic = user.pic || './assets/media/avatars/blank.png';
     this.roles = user.roles || [];
+    this.roleName=user.roleName;
     this.occupation = user.occupation || '';
     this.companyName = user.companyName || '';
     this.phone = user.phone || '';

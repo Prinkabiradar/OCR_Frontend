@@ -26,6 +26,9 @@ export class NavbarComponent implements OnInit, AfterViewInit {
 	ngOnInit(): void { 
 
 		this.user$ = this.auth.currentUserSubject.asObservable();
+		// this.user$.subscribe(user => {
+		// 	console.log('User Data:', user);
+		//   });
 	}
 
 }

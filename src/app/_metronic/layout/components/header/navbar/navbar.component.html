@@ -71,31 +71,27 @@
 
 <!--begin::User menu-->
 <div class="app-navbar-item" [ngClass]="itemClass">
-  <!--begin::Menu wrapper-->
-  <div class="cursor-pointer symbol" [ngClass]="userAvatarClass" data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-attach="parent" data-kt-menu-placement="bottom-end">
-    <img src="./assets/media/avatars/300-3.jpg" />
+  <div class="d-flex align-items-center gap-2 cursor-pointer" 
+       data-kt-menu-trigger="{default: 'click', lg: 'hover'}" 
+       data-kt-menu-attach="parent" 
+       data-kt-menu-placement="bottom-end">
+        
+    <!-- Avatar -->
+    <div class="symbol" [ngClass]="userAvatarClass">
+      <img src="./assets/media/avatars/300-3.jpg" alt="avatar" />
+    </div>
+
+    <!-- Dynamic User Name & Email -->
+    <ng-container *ngIf="user$ | async as _user">
+      <div class="d-flex flex-column">
+        <span class="fw-bold fs-6 text-dark lh-1">{{ _user.userName }}</span>
+        <span class="fw-semibold text-muted fs-8 mt-1">{{ _user.roleName }}</span>
+      </div>
+    </ng-container>
+
   </div>
   
-
-  <div  data-kt-menu-trigger="{default: 'click', lg: 'hover'}" data-kt-menu-attach="parent" data-kt-menu-placement="bottom-end" class="menu-item px-3 userAvatarClass">
-    <div class="menu-content d-flex align-items-center px-3">
-    
-      <div *ngIf="user$ | async as _user" class="d-flex flex-column">
-        <div class="fw-bolder d-flex align-items-center fs-5">
-          {{ _user.username }} 
-          <!-- <span class="badge badge-light-success fw-bolder fs-8 px-2 py-1 ms-2"
-            >Pro</span
-          > -->
-        </div>
-        <a class="fw-bold text-muted text-hover-primary fs-7 cursor-pointer">
-          {{ _user.email }}
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <app-user-inner data-kt-menu='true'></app-user-inner> 
-  <!--end::Menu wrapper-->
+  <app-user-inner data-kt-menu='true'></app-user-inner>
 </div>
 <!--end::User menu-->
 
