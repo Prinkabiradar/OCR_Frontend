@@ -713,7 +713,7 @@ getRawUrl(filePath: string): string {
         item.ExtractedText = oldText;
         item.StatusId = oldStatus;
         this.savingRows[item.DocumentPageId] = false;
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Save failed' });
+        Swal.fire({ icon: 'error', title: 'Error', text: 'This Document is already saved.' });
       },
     });
   }
