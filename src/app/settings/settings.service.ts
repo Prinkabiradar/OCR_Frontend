@@ -1052,4 +1052,15 @@ UsersGET(
 //   );
 // }
 
+getWord(documentId: number, roleId: number): Observable<Blob> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.get(
+    `${environment.BaseUrl}api/DocumentPdf/GenerateWord?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}`,
+    { headers, responseType: 'blob' }
+  );
+}
 }

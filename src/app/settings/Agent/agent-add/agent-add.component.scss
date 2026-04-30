@@ -744,3 +744,44 @@
     gap: 10px;
   }
 }
+.card {
+  padding: 12px;
+}
+
+.top-bar {
+  padding-bottom: 12px !important;
+}
+
+.table {
+  margin-bottom: 8px;
+}
+
+.pagination-wrapper {
+  margin-top: 8px;
+}
+
+.modal-box {
+  padding: 12px;
+}
+
+ngx-editor {
+  .NgxEditor {
+    min-height: 80px !important;
+  }
+  .NgxEditor__MenuBar {
+    display: none !important; // hide toolbar to save space
+  }
+}
+
+.d-flex.justify-content-between {
+  margin-top: 8px !important;
+  margin-bottom: 4px !important;
+}
+
+table.ocr-table {
+  th, td {
+    padding: 4px 8px !important;
+    margin-left: 8px;
+    margin-right: 8px;
+  }
+}

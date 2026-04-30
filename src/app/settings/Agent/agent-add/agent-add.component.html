@@ -1,115 +1,117 @@
 <!-- ─── CONTENT WRAPPER ─── -->
-<div class="seva-content">
+<div>
 
-  <!-- Document Table Card — hidden once a document is selected -->
-  <div class="seva-card" *ngIf="!selectedDocumentName">
-    <div class="seva-card__header">
-      <span class="seva-card__header-dot seva-card__header-dot--saffron"></span>
-      <h2 class="seva-card__title">Search Documents</h2>
-    </div>
+  <!-- Main Card -->
+  <div class="card">
 
-    <div class="seva-card__body">
-
-      <!-- Search Row -->
-      <div class="row top-bar align-items-center pb-3">
-        <div class="col-md-4">
+    <!-- 🔍 Filter Row -->
+    <div class="row top-bar align-items-center pb-5">
+      <div class="col-md-3">
+        <div class="search-box">
           <input
             type="text"
-            class="form-control"
+            class="form-control uniform-control"
             placeholder="Search Document..."
             [(ngModel)]="searchQuery"
             (ngModelChange)="onSearchChange($event)"
           />
         </div>
       </div>
-
-      <!-- OM Loader for table -->
-      <div class="om-loader" *ngIf="loadingDropdown">
-        <div class="om-loader__ring">
-          <span class="om-loader__symbol">ॐ</span>
-        </div>
-        <p class="om-loader__text">Loading documents…</p>
-      </div>
-
-      <!-- Documents Table -->
-      <table
-        class="table table-bordered ocr-table"
-        *ngIf="documentDropdown.length > 0 && !loadingDropdown"
-      >
-        <thead class="table-light text-dark">
-          <tr style="text-align: left;">
-            <th>#</th>
-            <th>Document Name</th>
-            <th>Action</th>
-            <th>View PDF</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let doc of documentDropdown; let i = index" class="ocr-table">
-            <td>{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</td>
-            <td>{{ doc.text?.trim() ? doc.text : 'NA' }}</td>
-            <td>
-              <button
-                class="btn btn-primary btn-sm"
-                (click)="selectDocument(doc)"
-                [disabled]="isLoading"
-              >
-                View
-              </button>
-            </td>
-            <td>
-              <button
-                class="btn btn-primary btn-sm"
-                (click)="onViewPdf({ documentId: +doc.id })"
-                [disabled]="loadingPages"
-              >
-                {{ loadingPages ? 'Loading...' : 'View PDF' }}
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- Empty State -->
-      <div class="not-found-box" *ngIf="documentDropdown.length === 0 && !loadingDropdown">
-        🪷 No documents found. Please try a different search.
-      </div>
-
-      <!-- Table Pagination -->
-      <app-pagination-data
-        *ngIf="documentDropdown.length > 0 && !loadingDropdown"
-        [currentPage]="docCurrentPage"
-        [totalPages]="docTotalPages"
-        [totalRecords]="docTotalRecords"
-        [pageSize]="docPageSize"
-        (pageChange)="onDocPageChange($event)"
-        (pageSizeChange)="onDocPageSizeChange($event)"
-      >
-      </app-pagination-data>
-
     </div>
+
+    <!-- OM Loader -->
+    <div *ngIf="loadingDropdown" class="loading">
+      Loading documents...
+    </div>
+
+    <!-- 📋 Documents Table -->
+    <table
+      class="table table-bordered ocr-table"
+      *ngIf="documentDropdown.length > 0 && !loadingDropdown"
+    >
+      <thead class="table-light text-dark">
+        <tr style="text-align: left;">
+          <th>#</th>
+          <th>Document Name</th>
+          <th>Action</th>
+          <th width="160">View PDF / Word</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of documentDropdown; let i = index" class="ocr-table">
+          <td>{{ (docCurrentPage - 1) * docPageSize + i + 1 }}</td>
+          <td>{{ doc.text?.trim() ? doc.text : 'NA' }}</td>
+          <td>
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="selectDocument(doc)"
+              [disabled]="isLoading"
+            >
+              {{ isLoading ? 'Opening...' : 'View' }}
+            </button>
+          </td>
+          <td>
+            <!-- PDF button: only THIS row shows loading -->
+            <button
+              class="btn btn-primary btn-sm"
+              (click)="onViewPdf({ documentId: +doc.id })"
+              [disabled]="isPdfLoading(+doc.id)"
+            >
+              {{ isPdfLoading(+doc.id) ? 'Loading...' : 'PDF' }}
+            </button>
+
+            <!-- Word button: only THIS row shows loading -->
+            <button
+              class="btn btn-success btn-sm ms-1"
+              (click)="onDownloadWord({ documentId: +doc.id })"
+              [disabled]="isWordLoading(+doc.id)"
+            >
+              {{ isWordLoading(+doc.id) ? 'Generating...' : '📄Word' }}
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Empty State -->
+    <div *ngIf="documentDropdown.length === 0 && !loadingDropdown" class="empty">
+      No documents found
+    </div>
+
+    <!-- 📄 Pagination -->
+    <div class="pagination-wrapper">
+      <div class="pagination-left">
+        <app-pagination-data
+          [currentPage]="docCurrentPage"
+          [totalPages]="docTotalPages"
+          [totalRecords]="docTotalRecords"
+          [pageSize]="docPageSize"
+          (pageChange)="onDocPageChange($event)"
+          (pageSizeChange)="onDocPageSizeChange($event)"
+        >
+        </app-pagination-data>
+      </div>
+    </div>
+
   </div>
 
-  <!-- ─── Pages / Result Card ─── -->
-  <div class="seva-card" *ngIf="selectedDocumentName">
+  <!-- ─── Result / Pages Card (shown after selecting a document) ─── -->
+  <div class="card" *ngIf="selectedDocumentName">
 
-    <div class="seva-card__header">
-      <span class="seva-card__header-dot seva-card__header-dot--gold"></span>
-      <div class="seva-card__header-title-block">
-        <h2 class="seva-card__title">📄 {{ documentName || selectedDocumentName }}</h2>
+    <!-- Card Header -->
+    <div class="row top-bar align-items-center pb-3">
+      <div class="col-md-6">
+        <h5 class="mb-0">📄 {{ documentName || selectedDocumentName }}</h5>
       </div>
-
-      <div class="doc-actions">
-        <!-- Back Button -->
+      <div class="col-md-6 text-end d-flex justify-content-end gap-2">
         <button
-          class="btn btn--ghost btn--sm"
+          class="btn btn-light btn-sm"
           (click)="backToTable()"
         >
           ← Back
         </button>
-
         <button
-          class="btn btn--outline-gold btn--sm"
+          class="btn btn-outline-secondary btn-sm"
           [disabled]="isSummarizing"
           (click)="summarizeDocument()"
         >
@@ -118,184 +120,149 @@
       </div>
     </div>
 
-    <div class="seva-card__body">
+    <!-- OM Loader -->
+    <div *ngIf="isLoading" class="loading">
+      Searching documents, please wait…
+    </div>
 
-      <!-- OM Loader for page search -->
-      <div class="om-loader" *ngIf="isLoading">
-        <div class="om-loader__ring">
-          <span class="om-loader__symbol">ॐ</span>
-        </div>
-        <p class="om-loader__text">Searching documents, please wait…</p>
+    <!-- Not Found -->
+    <div *ngIf="notFound && !isLoading" class="empty">
+      No pages found for this document.
+    </div>
+
+    <!-- Summary Loader -->
+    <div *ngIf="isSummarizing" class="loading">
+      Generating summary…
+    </div>
+
+    <!-- Summary Panel -->
+    <div class="card mb-3" *ngIf="showSummary && !isSummarizing">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>📋 Document Summary</span>
+        <button class="btn btn-light btn-sm" (click)="showSummary = false">
+          ✖ Close
+        </button>
       </div>
-
-      <!-- Not Found -->
-      <div class="not-found-box" *ngIf="notFound && !isLoading">
-        🪷 No pages found for this document.
+      <div class="card-body">
+        <ngx-editor
+          [editor]="summaryEditor"
+          [(ngModel)]="summary"
+          (ngModelChange)="onSummaryEdit()"
+          placeholder="Summary will appear here…"
+        >
+        </ngx-editor>
       </div>
+    </div>
 
-      <!-- Summary Loader -->
-      <div class="om-loader" *ngIf="isSummarizing">
-        <div class="om-loader__ring">
-          <span class="om-loader__symbol">ॐ</span>
-        </div>
-        <p class="om-loader__text">Generating summary…</p>
-      </div>
+    <!-- Single Page Viewer -->
+    <div *ngIf="currentDocPage && !isLoading">
 
-      <!-- Summary Panel -->
-      <div class="summary-panel" *ngIf="showSummary && !isSummarizing">
-        <div class="summary-panel__header">
-          <div>
-            <span>📋 Document Summary</span>
-            <span
-              *ngIf="summaryFromCache"
-              class="lang-badge"
-              style="margin-left: 8px"
-            ></span>
-          </div>
-          <div class="summary-panel__actions">
-            <button
-              class="btn btn--ghost btn--sm"
-              (click)="showSummary = false"
-            >
-              ✖ Close
-            </button>
-          </div>
-        </div>
-        <div class="summary-panel__body">
-          <div class="agent-editor-wrap agent-editor-wrap--readonly">
-            <ngx-editor
-              [editor]="summaryEditor"
-              [(ngModel)]="summary"
-              (ngModelChange)="onSummaryEdit()"
-              placeholder="Summary will appear here…"
-            >
-            </ngx-editor>
-          </div>
-        </div>
-      </div>
-
-      <!-- Single Page Viewer -->
-      <div class="pages-list" *ngIf="currentDocPage && !isLoading">
-        <div class="page-card">
-          <div class="page-card__header">
-            <div class="page-card__title">
-              📜 Page {{ currentDocPage.pageNumber }}
-              <span style="font-size: 0.8rem; opacity: 0.6; margin-left: 8px">
-                ({{ absolutePageNumber }} of {{ totalRecords }})
-              </span>
-            </div>
-
-            <!-- Suggestion Button -->
-            <div class="d-flex justify-content-start mt-2" *ngIf="roleId === 5 || roleId === 4">
-              <button
-                class="btn btn-outline-warning btn-sm d-flex align-items-center gap-2 shadow-sm"
-                (click)="openSuggestionModal()"
+      <!-- Page Table -->
+      <table class="table table-bordered ocr-table">
+        <thead class="table-light text-dark">
+          <tr>
+            <th>Content</th>
+            <th *ngIf="roleId === 5 || roleId === 4">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <ngx-editor
+                [editor]="pageTextEditor"
+                [ngModel]="pageTextContent"
+                placeholder="Page text will appear here…"
               >
-                <i class="bi bi-lightbulb"></i>
-                Suggestion
+              </ngx-editor>
+            </td>
+            <td *ngIf="roleId === 5 || roleId === 4" style="width: 120px; vertical-align: top;">
+              <button
+                class="btn btn-outline-warning btn-sm"
+                (click)="openSuggestionModal()"
+                *ngIf="roleId === 5 || roleId === 4"
+              >
+                <i class="bi bi-lightbulb"></i> Suggestion
               </button>
-            </div>
-          </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-          <div class="page-editor-wrap">
-            <ngx-editor
-              [editor]="pageTextEditor"
-              [ngModel]="pageTextContent"
-              placeholder="Page text will appear here…"
-            >
-            </ngx-editor>
-          </div>
-        </div>
-
-        <!-- Prev / Next -->
-        <div class="page-local-nav" style="text-align: center">
-          <button
-            class="btn btn--ghost btn--sm"
-            [disabled]="absolutePageNumber === 1"
-            (click)="prevDocPage()"
-          >
-            ← Prev Page
-          </button>
-
-          <span style="font-size: 0.85rem; opacity: 0.7">
-            Page {{ absolutePageNumber }} of {{ totalRecords }}
-          </span>
-
-          <button
-            class="btn btn--ghost btn--sm"
-            [disabled]="absolutePageNumber === totalRecords"
-            (click)="nextDocPage()"
-          >
-            Next Page →
-          </button>
-        </div>
+      <!-- Prev / Next -->
+      <div class="d-flex justify-content-between align-items-center mt-2">
+        <button
+          class="btn btn-light btn-sm"
+          [disabled]="absolutePageNumber === 1"
+          (click)="prevDocPage()"
+        >
+          ← Prev Page
+        </button>
+        <span class="text-muted" style="font-size: 0.85rem;">
+          Page {{ absolutePageNumber }} of {{ totalRecords }}
+        </span>
+        <button
+          class="btn btn-light btn-sm"
+          [disabled]="absolutePageNumber === totalRecords"
+          (click)="nextDocPage()"
+        >
+          Next Page →
+        </button>
       </div>
+    </div>
 
-      <!-- Backend Pagination -->
-      <app-pagination-data
-        *ngIf="!isLoading && pages.length > 0"
-        [currentPage]="currentPage"
-        [totalPages]="totalPages"
-        [totalRecords]="totalRecords"
-        [pageSize]="itemsPerPage"
-        (pageChange)="onPageChange($event)"
-        (pageSizeChange)="onPageSizeChange($event)"
-      >
-      </app-pagination-data>
-
-      <!-- Suggestion Modal -->
-      <div
-        class="modal-overlay"
-        *ngIf="showSuggestionModal"
-        (click)="onOverlayClick($event)"
-      >
-        <div class="modal-box">
-          <div class="modal-box__header">
-            <span class="modal-box__title">💡 Submit a Suggestion</span>
-            <button
-              class="btn btn--ghost btn--sm"
-              (click)="closeSuggestionModal()"
-            >
-              ✕
-            </button>
-          </div>
-          <div class="modal-box__body">
-            <label class="form-label">Your suggestion</label>
-            <textarea
-              class="form-control summary-textarea"
-              rows="5"
-              [(ngModel)]="suggestionText"
-              placeholder="Type your suggestion here…"
-              maxlength="500"
-            ></textarea>
-            <small style="float: right; opacity: 0.5">
-              {{ suggestionText.length }} / 500
-            </small>
-          </div>
-          <div class="modal-box__footer">
-            <button
-              class="btn btn--ghost btn--sm"
-              (click)="closeSuggestionModal()"
-            >
-              Cancel
-            </button>
-            <button
-              class="btn btn--primary btn--sm"
-              [disabled]="isSavingSuggestion || !suggestionText.trim()"
-              (click)="saveSuggestion()"
-            >
-              {{ isSavingSuggestion ? '⏳ Saving…' : 'Save' }}
-            </button>
-          </div>
-        </div>
+    <!-- Backend Pagination -->
+    <div class="pagination-wrapper mt-3">
+      <div class="pagination-left">
+        <app-pagination-data
+          *ngIf="!isLoading && pages.length > 0"
+          [currentPage]="currentPage"
+          [totalPages]="totalPages"
+          [totalRecords]="totalRecords"
+          [pageSize]="itemsPerPage"
+          (pageChange)="onPageChange($event)"
+          (pageSizeChange)="onPageSizeChange($event)"
+        >
+        </app-pagination-data>
       </div>
+    </div>
 
+  </div>
+
+  <!-- 📦 Suggestion Modal -->
+  <div
+    class="modal-overlay"
+    *ngIf="showSuggestionModal"
+    (click)="onOverlayClick($event)"
+  >
+    <div class="modal-box">
+      <div class="modal-box__header">
+        <span class="modal-box__title">💡 Submit a Suggestion</span>
+        <button class="btn btn-light btn-sm" (click)="closeSuggestionModal()">✕</button>
+      </div>
+      <div class="modal-box__body">
+        <label class="form-label">Your suggestion</label>
+        <textarea
+          class="form-control"
+          rows="5"
+          [(ngModel)]="suggestionText"
+          placeholder="Type your suggestion here…"
+          maxlength="500"
+        ></textarea>
+        <small class="text-muted float-end">{{ suggestionText.length }} / 500</small>
+      </div>
+      <div class="modal-box__footer">
+        <button class="btn btn-light btn-sm" (click)="closeSuggestionModal()">
+          Cancel
+        </button>
+        <button
+          class="btn btn-primary btn-sm"
+          [disabled]="isSavingSuggestion || !suggestionText.trim()"
+          (click)="saveSuggestion()"
+        >
+          {{ isSavingSuggestion ? '⏳ Saving…' : 'Save' }}
+        </button>
+      </div>
     </div>
   </div>
 
-</div>
-
-<!-- ─── FOOTER ─── -->
-<div class="seva-footer">
-  🪷 &nbsp; सेवा परमो धर्मः &nbsp; 🪷
 </div>
