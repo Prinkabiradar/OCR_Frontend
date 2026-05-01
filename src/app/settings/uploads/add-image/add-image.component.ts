@@ -60,6 +60,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     'gemini-1.5-pro',
   ];
   selectedGeminiModel = 'gemini-2.5-flash';
+  pageJumpInput = '';
 
   pageEditor: Editor;
   pageToolbar: Toolbar = [
@@ -133,7 +134,9 @@ export class AddImageComponent implements OnInit, OnDestroy {
     // Job was running before — check its current status
     this.service.getOcrJobById(saved.jobId).subscribe({
       next: (status: OcrJobStatus) => {
-        if (status.status === 'Queued' || status.status === 'Processing') {
+        const normalizedStatus = (status?.status || '').toLowerCase();
+
+        if (normalizedStatus === 'queued' || normalizedStatus === 'processing') {
           // Job still running — resume progress screen
           this.currentJobId = saved.jobId;
           this.jobStatus = status;
@@ -153,12 +156,12 @@ export class AddImageComponent implements OnInit, OnDestroy {
             timer: 4000,
             timerProgressBar: true,
           });
-        } else if (status.status === 'Completed') {
+        } else if (normalizedStatus === 'completed') {
           // Completed while user was away — load results directly
           this.currentJobId = saved.jobId;
           this.service.clearActiveJob();
           this.loadResults(saved.jobId);
-        } else if (status.status === 'Failed') {
+        } else if (normalizedStatus === 'failed') {
           this.service.clearActiveJob();
           Swal.fire({
             icon: 'error',
@@ -169,8 +172,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        // Job not found or API error — clear stale localStorage
-        this.service.clearActiveJob();
+        // Keep local storage on transient errors; do not lose running job context.
       },
     });
   }
@@ -425,12 +427,14 @@ export class AddImageComponent implements OnInit, OnDestroy {
           this.updateProgress(status);
           this.cd.detectChanges();
 
-          if (status.status === 'Completed') {
+          const normalizedStatus = (status?.status || '').toLowerCase();
+
+          if (normalizedStatus === 'completed') {
             this.stopPolling();
             this.stopElapsedTimer();
             this.service.clearActiveJob();
             this.loadResults(jobId);
-          } else if (status.status === 'Failed') {
+          } else if (normalizedStatus === 'failed') {
             this.stopPolling();
             this.stopElapsedTimer();
             this.service.clearActiveJob();
@@ -1121,6 +1125,23 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.pageEditor = new Editor();
     this.currentPageIndex = index;
     this.cd.detectChanges();
+  }
+
+  jumpToPage(rawValue: string | number) {
+    const total = this.pages.controls.length;
+    if (total === 0) return;
+
+    const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
+    if (Number.isNaN(parsed)) return;
+
+    const clampedPage = Math.max(1, Math.min(total, parsed));
+
+    const indexByPageNumber = this.pages.controls.findIndex(
+      (control) => Number(control.get('pageNumber')?.value) === clampedPage,
+    );
+
+    this.goToPage(indexByPageNumber >= 0 ? indexByPageNumber : clampedPage - 1);
+    this.pageJumpInput = '';
   }
 
   shouldShowPageButton(i: number): boolean {

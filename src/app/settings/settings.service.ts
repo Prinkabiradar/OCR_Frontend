@@ -822,7 +822,15 @@ saveActiveJob(jobId: string, totalFiles: number) {
 // Get saved job from localStorage
 getActiveJob(): { jobId: string; totalFiles: number; startedAt: string } | null {
   const raw = localStorage.getItem(this.activeJobKey);
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed?.jobId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 // Clear job from localStorage when done
