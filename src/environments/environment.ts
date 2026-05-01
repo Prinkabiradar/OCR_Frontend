@@ -9,7 +9,7 @@ export const environment = {
   isMockEnabled: true,
   apiUrl: 'api',
   // BaseUrl: 'https://ocrapi.sharpflux.com/',
-  BaseUrl: 'https://localhost:7045/',
+  BaseUrl: 'http://localhost:5247/',
  
  
   appThemeName: 'Myhris',

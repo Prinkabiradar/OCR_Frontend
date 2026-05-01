@@ -48,6 +48,18 @@ export class AddImageComponent implements OnInit, OnDestroy {
   ];
 
   rejectedFiles: { name: string; extension: string; reason: string }[] = [];
+  geminiModels: string[] = [
+    'gemini-3.1-pro-preview',
+    'gemini-3.1-pro-preview-customtools',
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+  ];
+  selectedGeminiModel = 'gemini-2.5-flash';
 
   pageEditor: Editor;
   pageToolbar: Toolbar = [
@@ -203,6 +215,10 @@ export class AddImageComponent implements OnInit, OnDestroy {
     // ── Show Swal only if there are rejections
     if (rejected.length > 0) {
       this.showRejectedFilesAlert(rejected, accepted.length);
+    }
+
+    if (accepted.length > 0 && this.rejectedFiles.length === 0 && !this.uploading) {
+      this.uploadFiles();
     }
   }
 
@@ -361,6 +377,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
     const formData = new FormData();
     this.selectedFiles.forEach((file) => formData.append('files', file));
+    formData.append('geminiModel', this.selectedGeminiModel);
 
     this.uploading = true;
     this.currentJobId = null;
@@ -1140,7 +1157,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.retryingFailedPages.add(item.fileName);
     this.cd.detectChanges();
 
-    this.service.retryOcrResult(this.currentJobId, item.fileName).subscribe({
+    this.service.retryOcrResult(this.currentJobId, item.fileName, this.selectedGeminiModel).subscribe({
       next: (result) => {
         const parsedPage = this.parseSingleResult(result, item.pageNumber);
         if (!parsedPage) {

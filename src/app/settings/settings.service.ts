@@ -839,11 +839,11 @@ getOcrJobResults(jobId: string) {
   );
 }
 
-retryOcrResult(jobId: string, fileName: string) {
+retryOcrResult(jobId: string, fileName: string, geminiModel?: string) {
   const headers = this.getAuthHeaders().set('Content-Type', 'application/json');
   return this.http.post<OcrFileResult>(
     environment.BaseUrl + 'api/OcrJob/RetryResult',
-    { jobId, fileName },
+    { jobId, fileName, geminiModel: geminiModel || null },
     { headers }
   );
 }
