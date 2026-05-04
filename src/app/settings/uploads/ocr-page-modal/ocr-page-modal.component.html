@@ -342,15 +342,16 @@
         class="btn btn-success btn-sm"
         (click)="saveAll()"
         [disabled]="
+          savingAll ||
           savingRows[selectedItem.DocumentPageId] ||
           !canEdit(selectedItem) ||
           selectedItem.StatusId === 3
         "
       >
-        <span *ngIf="!savingRows[selectedItem.DocumentPageId]">
+        <span *ngIf="!savingAll">
          {{saveAllButtonLabel}}
         </span>
-        <span *ngIf="savingRows[selectedItem.DocumentPageId]">
+        <span *ngIf="savingAll">
           <span class="spinner-border spinner-border-sm"></span> Saving...
         </span>
       </button>

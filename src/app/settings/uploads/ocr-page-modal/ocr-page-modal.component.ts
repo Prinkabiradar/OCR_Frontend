@@ -15,6 +15,7 @@ import { environment } from 'src/environments/environment';
 import { Editor, Toolbar } from 'ngx-editor';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-ocr-page-modal',
@@ -61,6 +62,7 @@ export class OcrPageModalComponent implements OnDestroy {
     private cdr: ChangeDetectorRef,
     private sanitizer: DomSanitizer,
     private http: HttpClient,
+    private router: Router,
   ) {}
 
   pageEditors: { [id: number]: Editor } = {};
@@ -548,10 +550,8 @@ getRawUrl(filePath: string): string {
       case 1:
         return statusId === 0 || statusId === 7 ? 1 : statusId;
       case 2:
-        return statusId === 0 || statusId === 7 ? 1 : statusId;
-      case 3:
         return statusId === 1 || statusId === 7 ? 2 : statusId;
-      case 4:
+      case 3:
         return statusId === 2 || statusId === 7 ? 3 : statusId;
       default:
         return statusId;
@@ -742,30 +742,81 @@ getRawUrl(filePath: string): string {
   // ─── SAVE ALL ───────────────────────────────────────────────────────────────
 
   saveAll() {
-    if (!this.hasDirtyRows) return;
-    this.savingAll = true;
+    if (!this.documentId || this.savingAll) return;
 
-    const requests = this.pageList.map((item) =>
-      this.service.saveDocumentPage({
-        documentPageId: item.DocumentPageId,
-        documentId: item.DocumentId,
-        pageNumber: item.PageNumber,
-        extractedText: this.editedTexts[item.DocumentPageId],
-        statusId: this.getNextStatus(item.StatusId),
-        userId: this.currentUserId,
-        roleId: this.roleId,
-        rejectionReason: '',
-      }),
-    );
+    Swal.fire({
+      icon: 'warning',
+      title: 'Are you sure you want to Save all ?',
+      showCancelButton: true,
+      confirmButtonText: 'Yes',
+      cancelButtonText: 'No',
+      confirmButtonColor: '#16a34a',
+    }).then((result) => {
+      if (!result.isConfirmed) return;
 
-    forkJoin(requests).subscribe({
-      next: () => {
-        this.savingAll = false;
-        Swal.fire('Success', 'All changes saved', 'success');
-      },
-      error: () => {
-        this.savingAll = false;
-      },
+      this.savingAll = true;
+      this.cdr.detectChanges();
+
+      const pageSize = Math.max(this.totalRecords || this.pageSize || 1, 1);
+
+      this.service.getDocumentByDocumentName(this.documentId!, 1, pageSize).subscribe({
+        next: (res: any) => {
+          const allPages = (Array.isArray(res) ? res : []).map((x: any) => ({
+            DocumentPageId: x.documentpageid ?? x.DocumentPageId,
+            DocumentId: x.documentid ?? x.DocumentId,
+            PageNumber: x.pagenumber ?? x.PageNumber,
+            ExtractedText: x.extractedtext ?? x.ExtractedText,
+            StatusId: x.statusid ?? x.StatusId,
+            RejectionReason: x.rejectionreason ?? x.RejectionReason,
+          }));
+
+          const requests = allPages
+            .filter((item: any) => {
+              const nextStatus = this.getNextStatus(Number(item.StatusId));
+              return this.canEdit(item) && nextStatus !== Number(item.StatusId);
+            })
+            .map((item: any) =>
+              this.service.saveDocumentPage({
+                documentPageId: item.DocumentPageId,
+                documentId: item.DocumentId,
+                pageNumber: item.PageNumber,
+                extractedText:
+                  this.editedTexts[item.DocumentPageId] ?? item.ExtractedText,
+                statusId: this.getNextStatus(Number(item.StatusId)),
+                userId: this.currentUserId,
+                roleId: this.roleId,
+                rejectionReason: '',
+              }),
+            );
+
+          if (!requests.length) {
+            this.savingAll = false;
+            this.cdr.detectChanges();
+            Swal.fire('Info', 'No pages are available to verify.', 'info');
+            return;
+          }
+
+          forkJoin(requests).subscribe({
+            next: () => {
+              this.savingAll = false;
+              Swal.fire('Success', 'All pages verified successfully.', 'success').then(() => {
+                this.modalRef.close(true);
+                this.router.navigate(['/settings/ocr-data']);
+              });
+            },
+            error: () => {
+              this.savingAll = false;
+              this.cdr.detectChanges();
+              Swal.fire('Error', 'Failed to verify all pages.', 'error');
+            },
+          });
+        },
+        error: () => {
+          this.savingAll = false;
+          this.cdr.detectChanges();
+          Swal.fire('Error', 'Failed to load pages for verification.', 'error');
+        },
+      });
     });
   }
 
