@@ -390,11 +390,59 @@ $radius:   10px;
   justify-content: center;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .page-info {
   font-size: 0.85rem;
   opacity: 0.7;
+}
+
+.page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 4px;
+
+  &__label {
+    font-size: 12px;
+    color: $muted;
+    white-space: nowrap;
+  }
+
+  &__input {
+    width: 76px;
+    height: 32px;
+    border-radius: 7px;
+    border: 1px solid $border;
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: $text;
+    background: $card;
+    outline: none;
+
+    &:focus {
+      border-color: $primary;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+  }
+}
+
+.btn--pag-go {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid $primary;
+  border-radius: 7px;
+  background: $primary;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+
+  &:hover {
+    background: #1d4ed8;
+    color: #fff;
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
