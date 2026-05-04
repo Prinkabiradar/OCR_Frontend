@@ -304,6 +304,27 @@
         Page {{ absolutePageNumber }} of {{ totalRecords }}
       </span>
 
+      <div class="page-jump">
+        <label class="page-jump__label">Go to</label>
+        <input
+          class="page-jump__input"
+          type="number"
+          min="1"
+          [max]="totalRecords"
+          [value]="pageJumpInput"
+          (input)="pageJumpInput = $any($event.target).value"
+          (keyup.enter)="jumpToPage(pageJumpInput)"
+          placeholder="78"
+        />
+        <button
+          type="button"
+          class="btn btn--pag-go btn--sm"
+          (click)="jumpToPage(pageJumpInput)"
+        >
+          Go
+        </button>
+      </div>
+
       <button
         class="btn btn--ghost btn--sm"
         [disabled]="absolutePageNumber === totalRecords"
@@ -315,6 +336,24 @@
 
     <!-- Action buttons -->
     <div class="d-flex gap-2" *ngIf="selectedItem">
+      <button     *ngIf=" 
+            roleId === 3 || roleId === 2
+          "
+        class="btn btn-success btn-sm"
+        (click)="saveAll()"
+        [disabled]="
+          savingRows[selectedItem.DocumentPageId] ||
+          !canEdit(selectedItem) ||
+          selectedItem.StatusId === 3
+        "
+      >
+        <span *ngIf="!savingRows[selectedItem.DocumentPageId]">
+         {{saveAllButtonLabel}}
+        </span>
+        <span *ngIf="savingRows[selectedItem.DocumentPageId]">
+          <span class="spinner-border spinner-border-sm"></span> Saving...
+        </span>
+      </button>
       <button
         class="btn btn-success btn-sm"
         (click)="saveRow(selectedItem)"

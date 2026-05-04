@@ -205,6 +205,59 @@
   }
 }
 
+.model-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.model-radio {
+  display: block;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: linear-gradient(145deg, #ffffff 0%, #f9fbfd 100%);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    transition: all 0.2s ease;
+    min-height: 64px;
+  }
+
+  &__title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-label);
+    line-height: 1.25;
+    word-break: break-word;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  input:checked + .model-radio__card {
+    border-color: var(--saffron);
+    box-shadow: 0 0 0 3px rgba(232, 98, 10, 0.12);
+    background: linear-gradient(145deg, #fff8f2 0%, #fff2e7 100%);
+  }
+
+  input:disabled + .model-radio__card {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  FILE LIST
 // ─────────────────────────────────────────────────────────────────────────────
@@ -892,6 +945,37 @@
   margin-bottom: 20px;
 }
 
+.page-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 8px;
+
+  &__label {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  &__input {
+    width: 76px;
+    height: 34px;
+    border-radius: 7px;
+    border: 1.5px solid var(--border);
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-label);
+    background: #fff;
+    outline: none;
+
+    &:focus {
+      border-color: var(--saffron);
+      box-shadow: 0 0 0 3px rgba(232, 98, 10, 0.1);
+    }
+  }
+}
+
 .pagination-pages {
   display: flex;
   align-items: center;
@@ -963,6 +1047,22 @@
     background: var(--green-pale);
     color: var(--green);
     border-color: #6FCF97;
+  }
+}
+
+.btn--pag-go {
+  background: var(--peacock);
+  color: #fff;
+  border: 1px solid var(--peacock);
+  border-radius: 7px;
+  height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+
+  &:hover {
+    background: var(--peacock-lt);
+    border-color: var(--peacock-lt);
   }
 }
 

@@ -38,6 +38,7 @@ export class OcrPageModalComponent implements OnDestroy {
   itemsPerPage = 1;
   totalRecords: number = 0;
   selectedPageIndex: number = 0;
+  pageJumpInput = '';
   textFileContent: string = '';
 
   editedTexts: any = {};
@@ -345,6 +346,8 @@ getRawUrl(filePath: string): string {
     this.editedTexts = {};
     this.savingRows = {};
     this.savedRows = {};
+    this.selectedPageIndex = 0;
+    this.pageJumpInput = '';
     this.pageSize = 1;
     this.itemsPerPage = 1;
     this.textFileContent = '';
@@ -402,7 +405,12 @@ getRawUrl(filePath: string): string {
             this.totalRecords = safeRes[0].totalrecords;
           }
 
-          this.selectedItem = this.pageList.length ? this.pageList[0] : null;
+          if (this.selectedPageIndex >= this.pageList.length) {
+            this.selectedPageIndex = Math.max(0, this.pageList.length - 1);
+          }
+          this.selectedItem = this.pageList.length
+            ? this.pageList[this.selectedPageIndex]
+            : null;
 
           const allSuggestionsRaw =
             safeRes.length > 0 ? safeRes[0]?.allsuggestions : null;
@@ -517,6 +525,19 @@ getRawUrl(filePath: string): string {
         return '✔ Approve';
       default:
         return '✔ Save';
+    }
+  }
+
+    get saveAllButtonLabel(): string {
+    switch (this.roleId) {
+      case 1:
+        return '✔ Check All';
+      case 2:
+        return '✔ Verify All';
+      case 3:
+        return '✔ Approve All';
+      default:
+        return '✔ Save All';
     }
   }
 
@@ -780,8 +801,25 @@ getRawUrl(filePath: string): string {
     this.loadPages();
   }
 
+  jumpToPage(rawValue: string | number) {
+    const total = this.totalRecords;
+    if (total === 0) return;
+
+    const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
+    if (Number.isNaN(parsed)) return;
+
+    const clampedPage = Math.max(1, Math.min(total, parsed));
+    const pageSize = Math.max(1, this.itemsPerPage || this.pageSize || 1);
+
+    this.selectedPageIndex = (clampedPage - 1) % pageSize;
+    this.currentPage = Math.ceil(clampedPage / pageSize);
+    this.pageJumpInput = '';
+    this.loadPages();
+  }
+
   onPageChange(page: number) {
     this.currentPage = page;
+    this.selectedPageIndex = 0;
     this.loadPages();
   }
 
@@ -789,6 +827,7 @@ getRawUrl(filePath: string): string {
     this.itemsPerPage = size;
     this.pageSize = size;
     this.currentPage = 1;
+    this.selectedPageIndex = 0;
     this.loadPages();
   }
 

@@ -48,6 +48,19 @@ export class AddImageComponent implements OnInit, OnDestroy {
   ];
 
   rejectedFiles: { name: string; extension: string; reason: string }[] = [];
+  geminiModels: string[] = [
+    'gemini-3.1-pro-preview',
+    'gemini-3.1-pro-preview-customtools',
+    'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro',
+  ];
+  selectedGeminiModel = 'gemini-2.5-flash';
+  pageJumpInput = '';
 
   pageEditor: Editor;
   pageToolbar: Toolbar = [
@@ -121,7 +134,9 @@ export class AddImageComponent implements OnInit, OnDestroy {
     // Job was running before — check its current status
     this.service.getOcrJobById(saved.jobId).subscribe({
       next: (status: OcrJobStatus) => {
-        if (status.status === 'Queued' || status.status === 'Processing') {
+        const normalizedStatus = (status?.status || '').toLowerCase();
+
+        if (normalizedStatus === 'queued' || normalizedStatus === 'processing') {
           // Job still running — resume progress screen
           this.currentJobId = saved.jobId;
           this.jobStatus = status;
@@ -141,12 +156,12 @@ export class AddImageComponent implements OnInit, OnDestroy {
             timer: 4000,
             timerProgressBar: true,
           });
-        } else if (status.status === 'Completed') {
+        } else if (normalizedStatus === 'completed') {
           // Completed while user was away — load results directly
           this.currentJobId = saved.jobId;
           this.service.clearActiveJob();
           this.loadResults(saved.jobId);
-        } else if (status.status === 'Failed') {
+        } else if (normalizedStatus === 'failed') {
           this.service.clearActiveJob();
           Swal.fire({
             icon: 'error',
@@ -157,8 +172,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
         }
       },
       error: () => {
-        // Job not found or API error — clear stale localStorage
-        this.service.clearActiveJob();
+        // Keep local storage on transient errors; do not lose running job context.
       },
     });
   }
@@ -203,6 +217,10 @@ export class AddImageComponent implements OnInit, OnDestroy {
     // ── Show Swal only if there are rejections
     if (rejected.length > 0) {
       this.showRejectedFilesAlert(rejected, accepted.length);
+    }
+
+    if (accepted.length > 0 && this.rejectedFiles.length === 0 && !this.uploading) {
+      this.uploadFiles();
     }
   }
 
@@ -361,6 +379,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
     const formData = new FormData();
     this.selectedFiles.forEach((file) => formData.append('files', file));
+    formData.append('geminiModel', this.selectedGeminiModel);
 
     this.uploading = true;
     this.currentJobId = null;
@@ -408,12 +427,14 @@ export class AddImageComponent implements OnInit, OnDestroy {
           this.updateProgress(status);
           this.cd.detectChanges();
 
-          if (status.status === 'Completed') {
+          const normalizedStatus = (status?.status || '').toLowerCase();
+
+          if (normalizedStatus === 'completed') {
             this.stopPolling();
             this.stopElapsedTimer();
             this.service.clearActiveJob();
             this.loadResults(jobId);
-          } else if (status.status === 'Failed') {
+          } else if (normalizedStatus === 'failed') {
             this.stopPolling();
             this.stopElapsedTimer();
             this.service.clearActiveJob();
@@ -1106,6 +1127,23 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.cd.detectChanges();
   }
 
+  jumpToPage(rawValue: string | number) {
+    const total = this.pages.controls.length;
+    if (total === 0) return;
+
+    const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
+    if (Number.isNaN(parsed)) return;
+
+    const clampedPage = Math.max(1, Math.min(total, parsed));
+
+    const indexByPageNumber = this.pages.controls.findIndex(
+      (control) => Number(control.get('pageNumber')?.value) === clampedPage,
+    );
+
+    this.goToPage(indexByPageNumber >= 0 ? indexByPageNumber : clampedPage - 1);
+    this.pageJumpInput = '';
+  }
+
   shouldShowPageButton(i: number): boolean {
     const total = this.pages.controls.length;
     if (total <= 7) return true;
@@ -1140,7 +1178,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.retryingFailedPages.add(item.fileName);
     this.cd.detectChanges();
 
-    this.service.retryOcrResult(this.currentJobId, item.fileName).subscribe({
+    this.service.retryOcrResult(this.currentJobId, item.fileName, this.selectedGeminiModel).subscribe({
       next: (result) => {
         const parsedPage = this.parseSingleResult(result, item.pageNumber);
         if (!parsedPage) {

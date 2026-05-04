@@ -822,7 +822,15 @@ saveActiveJob(jobId: string, totalFiles: number) {
 // Get saved job from localStorage
 getActiveJob(): { jobId: string; totalFiles: number; startedAt: string } | null {
   const raw = localStorage.getItem(this.activeJobKey);
-  return raw ? JSON.parse(raw) : null;
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed?.jobId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 // Clear job from localStorage when done
@@ -839,11 +847,11 @@ getOcrJobResults(jobId: string) {
   );
 }
 
-retryOcrResult(jobId: string, fileName: string) {
+retryOcrResult(jobId: string, fileName: string, geminiModel?: string) {
   const headers = this.getAuthHeaders().set('Content-Type', 'application/json');
   return this.http.post<OcrFileResult>(
     environment.BaseUrl + 'api/OcrJob/RetryResult',
-    { jobId, fileName },
+    { jobId, fileName, geminiModel: geminiModel || null },
     { headers }
   );
 }
@@ -1052,4 +1060,15 @@ UsersGET(
 //   );
 // }
 
+getWord(documentId: number, roleId: number): Observable<Blob> {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+  });
+
+  return this.http.get(
+    `${environment.BaseUrl}api/DocumentPdf/GenerateWord?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}`,
+    { headers, responseType: 'blob' }
+  );
+}
 }

@@ -10,6 +10,8 @@ export const environment = {
   apiUrl: 'api',
   //BaseUrl: 'https://ocrapi.sharpflux.com/',
   BaseUrl: 'https://localhost:7045/',
+  // BaseUrl: 'https://ocrapi.sharpflux.com/',
+  //BaseUrl: 'https://localhost:7045/',
  
   appThemeName: 'Myhris',
   appPurchaseUrl: 'https://1.envato.market/EA4JP',

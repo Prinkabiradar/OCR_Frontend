@@ -34,6 +34,10 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   searchQuery         : string   = '';
   private searchDebounce: any;
 
+  // ── Per-document loading sets (fix: replaces shared loadingPages flag) ──
+  loadingPdfIds : Set<number> = new Set();
+  loadingWordIds: Set<number> = new Set();
+
   // ── Summary ─────────────────────────────────────────────────
   summaryId        : number    = 0;
   summaryFromCache  = false;
@@ -54,8 +58,6 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   suggestionEditor: Editor;
   pageTextEditor  : Editor;
   pageTextContent : string = '';
-
-  loadingPages = false;
 
   editorToolbar: Toolbar = [
     ['bold', 'italic', 'underline', 'strike'],
@@ -135,13 +137,22 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
   }
 
+  // ── Per-document loading helpers ─────────────────────────────
+
+  isPdfLoading(documentId: number): boolean {
+    return this.loadingPdfIds.has(documentId);
+  }
+
+  isWordLoading(documentId: number): boolean {
+    return this.loadingWordIds.has(documentId);
+  }
+
   // ── Document table + pagination ──────────────────────────────
 
   loadDocumentsDropdown(search: string = '') {
     this.loadingDropdown = true;
     this.cd.detectChanges();
 
-    // Pass docCurrentPage and docPageSize to the API
     this.service.dropdownAll(search, this.docCurrentPage.toString(), '6', this.docPageSize.toString()).subscribe({
       next: (res: any[]) => {
         this.documentDropdown = res.map(x => ({
@@ -150,7 +161,6 @@ export class AgentAddComponent implements OnInit, OnDestroy {
           totalRecords: x.totalRecords ?? x.totalrecords ?? 0
         }));
 
-        // Read total from first record if API returns it
         const total = this.documentDropdown[0]?.totalRecords ?? 0;
         this.docTotalRecords = total;
         this.docTotalPages   = Math.ceil(total / this.docPageSize) || 1;
@@ -438,17 +448,44 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   // ── PDF viewer ───────────────────────────────────────────────
 
   onViewPdf(doc: any): void {
-    this.loadingPages = true;
-    this.service.getPdf(doc.documentId, this.roleId).subscribe({
+    const id = doc.documentId;
+    this.loadingPdfIds.add(id);
+    this.cd.detectChanges();
+
+    this.service.getPdf(id, this.roleId).subscribe({
       next: (res: Blob) => {
         const fileURL = URL.createObjectURL(res);
         window.open(fileURL, '_blank');
-        this.loadingPages = false;
+        this.loadingPdfIds.delete(id);
         this.cd.detectChanges();
       },
       error: (err) => {
         console.error('Failed to load PDF:', err);
-        this.loadingPages = false;
+        this.loadingPdfIds.delete(id);
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  onDownloadWord(doc: any): void {
+    const id = doc.documentId;
+    this.loadingWordIds.add(id);
+    this.cd.detectChanges();
+
+    this.service.getWord(id, this.roleId).subscribe({
+      next: (blob: Blob) => {
+        const url    = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href     = url;
+        anchor.download = `Document_${id}.docx`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        this.loadingWordIds.delete(id);
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to download Word file:', err);
+        this.loadingWordIds.delete(id);
         this.cd.detectChanges();
       }
     });
