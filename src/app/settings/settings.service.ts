@@ -5,6 +5,7 @@ import {
   HttpHeaders,
   HttpEvent,
   HttpEventType,
+  HttpResponse,
 } from '@angular/common/http';
 import { environment } from '../../environments/environment';
 import { Observable, of, Subject, throwError } from 'rxjs';
@@ -1060,7 +1061,7 @@ UsersGET(
 //   );
 // }
 
-getWord(documentId: number, roleId: number): Observable<Blob> {
+getWord(documentId: number, roleId: number): Observable<HttpResponse<Blob>> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
   const headers = new HttpHeaders({
     Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
@@ -1068,7 +1069,7 @@ getWord(documentId: number, roleId: number): Observable<Blob> {
 
   return this.http.get(
     `${environment.BaseUrl}api/DocumentPdf/GenerateWord?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}`,
-    { headers, responseType: 'blob' }
+    { headers, responseType: 'blob', observe: 'response' }  // ← add observe: 'response'
   );
 }
 }

@@ -467,30 +467,46 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     });
   }
 
-  onDownloadWord(doc: any): void {
-    const id = doc.documentId;
-    this.loadingWordIds.add(id);
-    this.cd.detectChanges();
+onDownloadWord(doc: any): void {
+  const id = doc.documentId;
+  this.loadingWordIds.add(id);
+  console.log("Document doc content", doc);
+  this.cd.detectChanges();
 
-    this.service.getWord(id, this.roleId).subscribe({
-      next: (blob: Blob) => {
-        const url    = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href     = url;
-        anchor.download = `Document_${id}.docx`;
-        anchor.click();
-        URL.revokeObjectURL(url);
-        this.loadingWordIds.delete(id);
-        this.cd.detectChanges();
-      },
-      error: (err) => {
-        console.error('Failed to download Word file:', err);
-        this.loadingWordIds.delete(id);
-        this.cd.detectChanges();
+  this.service.getWord(id, this.roleId).subscribe({
+    next: (res: any) => {
+      // Read filename from Content-Disposition header
+      const disposition = res.headers?.get('Content-Disposition') ?? '';
+      let fileName = `Document_${id}.docx`; // fallback
+
+      // Try filename*= first (RFC 5987, handles unicode/spaces)
+      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+      if (utf8Match) {
+        fileName = decodeURIComponent(utf8Match[1]);
+      } else {
+        // Fallback to plain filename=
+        const plainMatch = disposition.match(/filename="?([^";\n]+)"?/i);
+        if (plainMatch) fileName = plainMatch[1].trim();
       }
-    });
-  }
 
+      const blob   = res.body as Blob;
+      const url    = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href     = url;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+
+      this.loadingWordIds.delete(id);
+      this.cd.detectChanges();
+    },
+    error: (err) => {
+      console.error('Failed to download Word file:', err);
+      this.loadingWordIds.delete(id);
+      this.cd.detectChanges();
+    }
+  });
+}
   // ── Text formatting ──────────────────────────────────────────
 
   private preserveLines(text: string): string {
