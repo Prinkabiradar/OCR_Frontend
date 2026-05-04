@@ -84,7 +84,7 @@
 
           <th *ngIf="roleId !== 5">Status</th>
           <th *ngIf="roleId !== 5 && roleId !== 4">Action</th>
-          <th *ngIf="roleId === 5 || roleId === 4" width="100">View PDF</th>
+          <th  >PDF / Word</th>
         </tr>
       </thead>
 
@@ -161,7 +161,7 @@
           </td>
 
           <!-- PDF View -->
-          <td *ngIf="roleId === 5 || roleId === 4">
+          <!-- <td *ngIf="roleId === 5 || roleId === 4">
             <button
               class="btn btn-primary btn-sm"
               (click)="onViewPdf(doc)"
@@ -169,7 +169,28 @@
             >
               {{ loadingPages ? "Loading..." : "View PDF" }}
             </button>
-          </td>
+          </td> -->
+          <td style="white-space: nowrap; width: 140px;">
+          <!-- PDF button -->
+          <button
+            class="btn btn-primary btn-sm"
+            (click)="onViewPdf(doc)"
+            [disabled]="isPdfLoading(doc.documentId)"
+            style="width: 60px;"
+          >
+            {{ isPdfLoading(doc.documentId) ? '...' : 'PDF' }}
+          </button>
+
+          <!-- Word button -->
+          <button
+            class="btn btn-success btn-sm ms-1"
+            (click)="onDownloadWord(doc)"
+            [disabled]="isWordLoading(doc.documentId)"
+            style="width: 60px;"
+          >
+            {{ isWordLoading(doc.documentId) ? '...' : 'Word' }}
+          </button>
+        </td>
         </tr>
       </tbody>
     </table>

@@ -47,6 +47,9 @@ export class OcrDataComponent implements OnInit {
   searchBy: string = '';
   searchTimeout: any;
 
+  loadingPdfIds : Set<number> = new Set();
+  loadingWordIds: Set<number> = new Set();
+
   @Output() statusUpdated = new EventEmitter<any>();
   // ── Modal ──────────────────────────────────────────────────
   @ViewChild('ocrModal') modalComponent!: OcrPageModalComponent;
@@ -75,7 +78,13 @@ export class OcrDataComponent implements OnInit {
     this.currentUserId = userData?.id ?? 0;
     this.roleId = userData?.roleId ?? 0;
   }
+  isPdfLoading(documentId: number): boolean {
+    return this.loadingPdfIds.has(documentId);
+  }
 
+  isWordLoading(documentId: number): boolean {
+    return this.loadingWordIds.has(documentId);
+  }
   // STEP 1 — load document types into dropdown
   documentTypeDropdown(): void {
     this.service
@@ -359,21 +368,47 @@ export class OcrDataComponent implements OnInit {
   // }
 
   // For role 5: download and open the PDF in a new tab
-  onViewPdf(doc: any): void {
-    this.loadingPages = true;
+    onViewPdf(doc: any): void {
+      const id = doc.documentId;
+      this.loadingPdfIds.add(id);
+      this.cdr.detectChanges();
 
-    this.service.getPdf(doc.documentId, this.roleId).subscribe({
-      next: (res: Blob) => {
-        const fileURL = URL.createObjectURL(res);
-        window.open(fileURL, '_blank');
-        this.loadingPages = false;
+      this.service.getPdf(id, this.roleId).subscribe({
+        next: (res: Blob) => {
+          const fileURL = URL.createObjectURL(res);
+          window.open(fileURL, '_blank');
+          this.loadingPdfIds.delete(id);
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Failed to load PDF:', err);
+          this.loadingPdfIds.delete(id);
+          this.cdr.detectChanges();
+        },
+      });
+    }
+
+    onDownloadWord(doc: any): void {
+    const id = doc.documentId;
+    this.loadingWordIds.add(id);
+    this.cdr.detectChanges();
+
+    this.service.getWord(id, this.roleId).subscribe({
+      next: (blob: Blob) => {
+        const url    = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href     = url;
+        anchor.download = `Document_${id}.docx`;
+        anchor.click();
+        URL.revokeObjectURL(url);
+        this.loadingWordIds.delete(id);
         this.cdr.detectChanges();
       },
       error: (err) => {
-        console.error('Failed to load PDF:', err);
-        this.loadingPages = false;
+        console.error('Failed to download Word file:', err);
+        this.loadingWordIds.delete(id);
         this.cdr.detectChanges();
-      },
+      }
     });
   }
 }
