@@ -363,9 +363,7 @@ export class OcrDataComponent implements OnInit {
   if (date.getFullYear() <= 1900) return 'NA';
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
-  // ngOnDestroy(): void {
-  //   this.unlockDocument();
-  // }
+ 
 
   // For role 5: download and open the PDF in a new tab
     onViewPdf(doc: any): void {
