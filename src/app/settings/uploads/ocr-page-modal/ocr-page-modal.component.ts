@@ -41,6 +41,8 @@ export class OcrPageModalComponent implements OnDestroy {
   selectedPageIndex: number = 0;
   pageJumpInput = '';
   textFileContent: string = '';
+  statusTargetPageNumbers: number[] = [];
+  loadingStatusTarget: boolean = false;
 
   editedTexts: any = {};
   savingRows: any = {};
@@ -353,6 +355,8 @@ getRawUrl(filePath: string): string {
     this.pageSize = 1;
     this.itemsPerPage = 1;
     this.textFileContent = '';
+    this.statusTargetPageNumbers = [];
+    this.loadingStatusTarget = false;
 
     this.summary = '';
     this.summaryId = 0;
@@ -445,6 +449,7 @@ getRawUrl(filePath: string): string {
           });
 
           this.loading = false;
+          this.loadStatusTargetPages();
           this.cdr.detectChanges();
         },
         error: () => {
@@ -605,6 +610,68 @@ getRawUrl(filePath: string): string {
     }
   }
 
+  get statusNavigationTarget(): { statusId: number; label: string } | null {
+    switch (this.roleId) {
+      case 1:
+        return { statusId: 0, label: 'Pending' };
+      case 2:
+        return { statusId: 1, label: 'Checked' };
+      case 3:
+        return { statusId: 2, label: 'Verified' };
+      default:
+        return null;
+    }
+  }
+
+  get showStatusNavigationButton(): boolean {
+    return !!this.statusNavigationTarget && this.statusTargetPageNumbers.length > 0;
+  }
+
+  get statusNavigationButtonLabel(): string {
+    const target = this.statusNavigationTarget;
+    return target ? `Go to ${target.label} Page` : '';
+  }
+
+  private loadStatusTargetPages(): void {
+    const target = this.statusNavigationTarget;
+    if (!this.documentId || !target || !this.totalRecords) {
+      this.statusTargetPageNumbers = [];
+      return;
+    }
+
+    this.loadingStatusTarget = true;
+    const pageSize = Math.max(this.totalRecords, 1);
+
+    this.service.getDocumentByDocumentName(this.documentId, 1, pageSize).subscribe({
+      next: (res: any) => {
+        const pages = Array.isArray(res) ? res : [];
+        this.statusTargetPageNumbers = pages
+          .filter((x: any) => Number(x.statusid ?? x.StatusId) === target.statusId)
+          .map((x: any) => Number(x.pagenumber ?? x.PageNumber))
+          .filter((pageNumber: number) => Number.isFinite(pageNumber))
+          .sort((a: number, b: number) => a - b);
+
+        this.loadingStatusTarget = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.statusTargetPageNumbers = [];
+        this.loadingStatusTarget = false;
+        this.cdr.detectChanges();
+      },
+    });
+  }
+
+  goToStatusTargetPage(): void {
+    if (!this.statusTargetPageNumbers.length) return;
+
+    const nextPage =
+      this.statusTargetPageNumbers.find((pageNumber) => pageNumber >= this.absolutePageNumber) ??
+      this.statusTargetPageNumbers[0];
+
+    this.jumpToPage(nextPage);
+  }
+
   get canReject(): boolean {
     return this.roleId === 2 || this.roleId === 3;
   }
@@ -664,6 +731,7 @@ getRawUrl(filePath: string): string {
       this.service.saveDocumentPage(payload).subscribe({
         next: () => {
           this.savingRows[item.DocumentPageId] = false;
+          this.loadStatusTargetPages();
           this.cdr.detectChanges();
         },
         error: () => {
@@ -711,6 +779,7 @@ getRawUrl(filePath: string): string {
       next: () => {
         this.savedRows[item.DocumentPageId] = true;
         this.savingRows[item.DocumentPageId] = false;
+        this.loadStatusTargetPages();
 
         Swal.fire({
           icon: 'success',

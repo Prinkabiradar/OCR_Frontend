@@ -332,6 +332,16 @@
       >
         Next Page →
       </button>
+
+      <button
+        *ngIf="showStatusNavigationButton"
+        type="button"
+        class="btn btn--status-nav btn--sm"
+        [disabled]="loadingStatusTarget"
+        (click)="goToStatusTargetPage()"
+      >
+        {{ loadingStatusTarget ? "Loading..." : statusNavigationButtonLabel }}
+      </button>
     </div>
 
     <!-- Action buttons -->

@@ -585,20 +585,6 @@ getDocumentsByTypeId(documentTypeId: number, startIndex: number = 1, pageSize: n
   );
 }
 
-// askAgent(question: string): Observable<any> {
-//   const lsValue = localStorage.getItem(this.authLocalStorageToken);
-
-//   const headers = new HttpHeaders({
-//     Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
-//   });
-
-//   return this.http.post<any>(
-//     environment.BaseUrl + 'api/Agent/ask',
-//     { question },
-//     { headers }
-//   );
-// }
-
 askAgent(
   question: string,
   startIndex: number,

@@ -445,6 +445,22 @@ $radius:   10px;
   }
 }
 
+.btn--status-nav {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid $warning;
+  border-radius: 7px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 600;
+
+  &:hover:not(:disabled) {
+    background: #ffedd5;
+    color: #7c2d12;
+  }
+}
+
 // ══════════════════════════════════════════════════════════════
 // LOADING / EMPTY STATES
 // ══════════════════════════════════════════════════════════════

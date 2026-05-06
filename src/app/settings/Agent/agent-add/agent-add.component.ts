@@ -34,7 +34,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   searchQuery         : string   = '';
   private searchDebounce: any;
 
-  // ── Per-document loading sets (fix: replaces shared loadingPages flag) ──
+  // ── Per-document loading sets ────────────────────────────────
   loadingPdfIds : Set<number> = new Set();
   loadingWordIds: Set<number> = new Set();
 
@@ -52,6 +52,9 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   showSuggestionModal = false;
   suggestionText      = '';
   isSavingSuggestion  = false;
+
+  // ── Page jump ────────────────────────────────────────────────
+  pageJumpInput: string = '';
 
   // ── Editors ──────────────────────────────────────────────────
   summaryEditor   : Editor;
@@ -176,7 +179,6 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     });
   }
 
-  /** Search input — debounced, resets to page 1 */
   onSearchChange(value: string) {
     this.searchQuery = value;
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
@@ -186,20 +188,17 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     }, 400);
   }
 
-  /** Table pagination page change */
   onDocPageChange(page: number) {
     this.docCurrentPage = page;
     this.loadDocumentsDropdown(this.searchQuery);
   }
 
-  /** Table pagination page size change */
   onDocPageSizeChange(size: number) {
     this.docPageSize    = size;
     this.docCurrentPage = 1;
     this.loadDocumentsDropdown(this.searchQuery);
   }
 
-  /** "View" button clicked — hide table, show result card */
   selectDocument(doc: any) {
     this.selectedDocumentId   = Number(doc.id);
     this.selectedDocumentName = doc.text;
@@ -208,10 +207,10 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     this.pages                = [];
     this.notFound             = false;
     this.showSummary          = false;
+    this.pageJumpInput        = '';
     this.AgentGET();
   }
 
-  /** "← Back" button — show table again, clear result */
   backToTable() {
     this.selectedDocumentName = '';
     this.selectedDocumentId   = 0;
@@ -222,12 +221,13 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     this.showSummary          = false;
     this.summary              = '';
     this.currentPage          = 1;
+    this.pageJumpInput        = '';
     this.cd.detectChanges();
   }
 
   // ── Main data fetch ──────────────────────────────────────────
 
-  AgentGET() {
+  AgentGET(selectedPageIndex: number = 0) {
     this.isLoading = true;
     this.notFound  = false;
     this.cd.detectChanges();
@@ -247,7 +247,9 @@ export class AgentAddComponent implements OnInit, OnDestroy {
         this.totalRecords      = response.totalCount;
         this.notFound          = response.pages.length === 0;
         this.pages             = response.pages;
-        this.selectedPageIndex = 0;
+        this.selectedPageIndex = this.pages.length
+          ? Math.max(0, Math.min(selectedPageIndex, this.pages.length - 1))
+          : 0;
         this.pageListSubject.next(response.pages);
         this.updatePageContent();
 
@@ -267,13 +269,14 @@ export class AgentAddComponent implements OnInit, OnDestroy {
 
   onPageChange(page: number) {
     this.currentPage = page;
-    this.AgentGET();
+    this.AgentGET(0);
     this.cd.detectChanges();
   }
 
   onPageSizeChange(newSize: number) {
     this.itemsPerPage = newSize;
-    this.AgentGET();
+    this.currentPage = 1;
+    this.AgentGET(0);
     this.cd.detectChanges();
   }
 
@@ -299,11 +302,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
       this.updatePageContent();
     } else if (this.currentPage > 1) {
       this.currentPage--;
-      this.AgentGET();
-      setTimeout(() => {
-        this.selectedPageIndex = this.pages.length - 1;
-        this.updatePageContent();
-      }, 500);
+      this.AgentGET(this.itemsPerPage - 1);
     }
     this.cd.detectChanges();
   }
@@ -314,10 +313,27 @@ export class AgentAddComponent implements OnInit, OnDestroy {
       this.updatePageContent();
     } else if (this.currentPage < this.totalPages) {
       this.currentPage++;
-      this.selectedPageIndex = 0;
-      this.AgentGET();
+      this.AgentGET(0);
     }
     this.cd.detectChanges();
+  }
+
+  // ── Page jump ────────────────────────────────────────────────
+
+  jumpToPage(rawValue: string | number) {
+    const total = this.totalRecords;
+    if (total === 0) return;
+
+    const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
+    if (Number.isNaN(parsed)) return;
+
+    const clampedPage = Math.max(1, Math.min(total, parsed));
+    const pageSize    = Math.max(1, this.itemsPerPage || 1);
+
+    this.selectedPageIndex = (clampedPage - 1) % pageSize;
+    this.currentPage       = Math.ceil(clampedPage / pageSize);
+    this.pageJumpInput     = '';
+    this.AgentGET(this.selectedPageIndex);
   }
 
   // ── Legacy helpers ───────────────────────────────────────────
@@ -326,14 +342,14 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     if (target instanceof HTMLInputElement) {
       this.userQuestion = target.value;
       this.currentPage  = 1;
-      this.AgentGET();
+      this.AgentGET(0);
     }
   }
 
   askQuestion() {
     if (!this.userQuestion?.trim()) return;
     this.currentPage = 1;
-    this.AgentGET();
+    this.AgentGET(0);
   }
 
   // ── Summary ──────────────────────────────────────────────────
@@ -467,46 +483,43 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     });
   }
 
-onDownloadWord(doc: any): void {
-  const id = doc.documentId;
-  this.loadingWordIds.add(id);
-  console.log("Document doc content", doc);
-  this.cd.detectChanges();
+  onDownloadWord(doc: any): void {
+    const id = doc.documentId;
+    this.loadingWordIds.add(id);
+    this.cd.detectChanges();
 
-  this.service.getWord(id, this.roleId).subscribe({
-    next: (res: any) => {
-      // Read filename from Content-Disposition header
-      const disposition = res.headers?.get('Content-Disposition') ?? '';
-      let fileName = `Document_${id}.docx`; // fallback
+    this.service.getWord(id, this.roleId).subscribe({
+      next: (res: any) => {
+        const disposition = res.headers?.get('Content-Disposition') ?? '';
+        let fileName = `Document_${id}.docx`;
 
-      // Try filename*= first (RFC 5987, handles unicode/spaces)
-      const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
-      if (utf8Match) {
-        fileName = decodeURIComponent(utf8Match[1]);
-      } else {
-        // Fallback to plain filename=
-        const plainMatch = disposition.match(/filename="?([^";\n]+)"?/i);
-        if (plainMatch) fileName = plainMatch[1].trim();
+        const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+        if (utf8Match) {
+          fileName = decodeURIComponent(utf8Match[1]);
+        } else {
+          const plainMatch = disposition.match(/filename="?([^";\n]+)"?/i);
+          if (plainMatch) fileName = plainMatch[1].trim();
+        }
+
+        const blob   = res.body as Blob;
+        const url    = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href     = url;
+        anchor.download = fileName;
+        anchor.click();
+        URL.revokeObjectURL(url);
+
+        this.loadingWordIds.delete(id);
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Failed to download Word file:', err);
+        this.loadingWordIds.delete(id);
+        this.cd.detectChanges();
       }
+    });
+  }
 
-      const blob   = res.body as Blob;
-      const url    = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href     = url;
-      anchor.download = fileName;
-      anchor.click();
-      URL.revokeObjectURL(url);
-
-      this.loadingWordIds.delete(id);
-      this.cd.detectChanges();
-    },
-    error: (err) => {
-      console.error('Failed to download Word file:', err);
-      this.loadingWordIds.delete(id);
-      this.cd.detectChanges();
-    }
-  });
-}
   // ── Text formatting ──────────────────────────────────────────
 
   private preserveLines(text: string): string {
