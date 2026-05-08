@@ -62,6 +62,13 @@ export class AddImageComponent implements OnInit, OnDestroy {
   selectedGeminiModel = 'gemini-2.5-flash';
   pageJumpInput = '';
 
+  // ── Gemini health check status ────────────────────────
+  geminiHealthy: boolean | null = null;
+  geminiStatusMessage = '';
+  geminiStatusChecked = false;
+  private healthCheckInterval: any = null;
+  private readonly HEALTH_CHECK_INTERVAL = 30000; // 30 seconds
+
   pageEditor: Editor;
   pageToolbar: Toolbar = [
     ['bold', 'italic', 'underline', 'strike'],
@@ -119,12 +126,55 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.documentropdown();
     this.documentTyperopdown();
     this.checkForActiveJob(); // ← Resume polling if job was running
+    this.checkGeminiHealthStatus(); // ← Check API status on load
+    this.startHealthCheckRefresh(); // ← Auto-refresh health status
   }
 
   ngOnDestroy(): void {
     this.pageEditor.destroy();
     this.stopPolling();
     this.stopElapsedTimer();
+    this.stopHealthCheckRefresh(); // ← Clean up health check interval
+  }
+
+  // ── Start periodic health check refresh ────────────────
+  private startHealthCheckRefresh() {
+    this.stopHealthCheckRefresh(); // Clear any existing interval
+    this.healthCheckInterval = setInterval(() => {
+      this.checkGeminiHealthStatus();
+    }, this.HEALTH_CHECK_INTERVAL);
+  }
+
+  // ── Stop periodic health check refresh ────────────────
+  private stopHealthCheckRefresh() {
+    if (this.healthCheckInterval) {
+      clearInterval(this.healthCheckInterval);
+      this.healthCheckInterval = null;
+    }
+  }
+
+  // ── Check Gemini health and display status ────────────────────────
+  private checkGeminiHealthStatus() {
+    this.service.checkGeminiHealth(this.selectedGeminiModel).subscribe({
+      next: (response) => {
+        this.geminiHealthy = response.canProcess;
+        this.geminiStatusMessage = response.message;
+        this.geminiStatusChecked = true;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        // ← Extract error response from 503, 429, etc.
+        if (err?.error?.canProcess === false && err?.error?.message) {
+          this.geminiHealthy = false;
+          this.geminiStatusMessage = err.error.message;
+        } else {
+          this.geminiHealthy = false;
+          this.geminiStatusMessage = 'Unable to reach API';
+        }
+        this.geminiStatusChecked = true;
+        this.cd.detectChanges();
+      }
+    });
   }
 
   checkForActiveJob() {
@@ -377,6 +427,68 @@ export class AddImageComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // ── NEW: Check Gemini health before proceeding with upload ──────────
+    Swal.fire({
+      icon: 'info',
+      title: 'Checking Gemini API Status...',
+      html: 'Please wait while we verify the API is available.',
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      didOpen: () => {
+        Swal.showLoading();
+      }
+    });
+
+    this.service.checkGeminiHealth(this.selectedGeminiModel).subscribe({
+      next: (response) => {
+        if (!response.canProcess) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Gemini API Unavailable',
+            html: `
+              <div style="text-align:left;font-size:14px;">
+                <p style="color:#555;margin-bottom:12px;">
+                  <strong>❌ Cannot process documents right now</strong>
+                </p>
+                <p style="color:#c0392b;margin:12px 0;font-size:13px;
+                         background:#fff0f0;padding:10px;border-radius:6px;">
+                  ${response.message}
+                </p>
+                <p style="color:#888;font-size:12px;margin-top:12px;">
+                  Please wait a few moments and try again.
+                </p>
+              </div>
+            `,
+            confirmButtonText: 'OK',
+            width: '500px'
+          });
+          return;
+        }
+
+        // ← Gemini is healthy — proceed with upload
+        this.proceedWithUpload();
+      },
+      error: (err) => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Cannot Verify API Status',
+          html: `
+            <p style="font-size:13px;color:#555;">
+              Unable to check Gemini availability. Please try again.
+            </p>
+            <p style="font-size:12px;color:#888;margin-top:8px;">
+              ${err?.error?.message || 'Connection error'}
+            </p>
+          `,
+          confirmButtonText: 'OK',
+          width: '450px'
+        });
+      }
+    });
+  }
+
+  // ── New helper method for actual upload after health check passes ──
+  private proceedWithUpload() {
     const formData = new FormData();
     this.selectedFiles.forEach((file) => formData.append('files', file));
     formData.append('geminiModel', this.selectedGeminiModel);
@@ -406,12 +518,35 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.uploading = false;
         this.screenState = 'upload';
         this.pollingMessage = '';
-        Swal.fire({
-          icon: 'error',
-          title: 'Upload Failed',
-          text: err?.error?.message || 'Something went wrong while uploading.',
-          confirmButtonText: 'OK',
-        });
+
+        // ── Handle 503 specifically (Gemini unavailable) ────────────────
+        if (err?.status === 503) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Service Temporarily Unavailable',
+            html: `
+              <div style="text-align:left;font-size:14px;">
+                <p style="color:#555;margin-bottom:12px;">
+                  <strong>❌ Gemini API is currently unavailable</strong>
+                </p>
+                <p style="color:#c0392b;margin:12px 0;font-size:13px;
+                         background:#fff0f0;padding:10px;border-radius:6px;">
+                  ${err?.error?.details || err?.error?.message || 'The service is experiencing high demand. Please try again in a few moments.'}
+                </p>
+              </div>
+            `,
+            confirmButtonText: 'OK',
+            width: '500px'
+          });
+        } else {
+          // ← Generic error handling for other errors
+          Swal.fire({
+            icon: 'error',
+            title: 'Upload Failed',
+            text: err?.error?.message || 'Something went wrong while uploading.',
+            confirmButtonText: 'OK',
+          });
+        }
         this.cd.detectChanges();
       },
     });

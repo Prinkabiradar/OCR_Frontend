@@ -861,6 +861,20 @@ getOcrJobs(startIndex = 0, pageSize = 10) {
   );
 }
 
+// ── Check Gemini API health before processing
+checkGeminiHealth(model?: string) {
+  const headers = this.getAuthHeaders();
+  let url = environment.BaseUrl + 'api/OcrJob/CheckGeminiHealth';
+  if (model) {
+    url += '?model=' + encodeURIComponent(model);
+  }
+  return this.http.get<{
+    status: 'healthy' | 'unavailable' | 'error';
+    message: string;
+    canProcess: boolean;
+  }>(url, { headers });
+}
+
 // ── Helper to avoid repeating auth header logic
 private getAuthHeaders(): HttpHeaders {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);

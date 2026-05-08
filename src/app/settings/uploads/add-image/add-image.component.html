@@ -40,6 +40,12 @@
               </span>
             </label>
           </div>
+
+          <!-- ── Gemini API Status Indicator ────────────────────────────── -->
+          <div class="gemini-status-badge" *ngIf="geminiStatusChecked" [class.status--healthy]="geminiHealthy" [class.status--unavailable]="!geminiHealthy" [title]="geminiStatusMessage">
+            <span class="status-icon">{{ geminiHealthy ? '✅' : '⚠️' }}</span>
+            <span class="status-text">{{ geminiHealthy ? 'API Ready' : 'API Unavailable' }}</span>
+          </div>
         </div>
 
         <div class="file-list" *ngIf="selectedFiles.length > 0">
@@ -102,11 +108,12 @@
 
         <div class="action-row">
 
-          <!-- Upload button — disabled if rejected files exist -->
+          <!-- Upload button — disabled if rejected files exist OR Gemini unavailable -->
           <button
             class="btn btn--primary"
-            [disabled]="uploading || selectedFiles.length === 0 || hasRejectedFiles"
-            (click)="uploadFiles()">
+            [disabled]="uploading || selectedFiles.length === 0 || hasRejectedFiles || (geminiStatusChecked && !geminiHealthy)"
+            (click)="uploadFiles()"
+            [title]="(geminiStatusChecked && !geminiHealthy) ? 'Gemini API is unavailable. Please try again later.' : ''">
             <span *ngIf="!uploading">🙏&nbsp; Upload Documents</span>
             <span *ngIf="uploading" class="btn--loading-inner">
               <span class="spinner-ring"></span> Processing Seva…
