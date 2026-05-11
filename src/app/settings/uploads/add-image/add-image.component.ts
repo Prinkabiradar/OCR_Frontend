@@ -465,6 +465,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
           return;
         }
 
+        // Close health-check loader before starting the upload flow.
+        Swal.close();
         // ← Gemini is healthy — proceed with upload
         this.proceedWithUpload();
       },
