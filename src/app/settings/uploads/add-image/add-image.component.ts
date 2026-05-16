@@ -61,6 +61,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
   ];
   selectedGeminiModel = 'gemini-2.5-flash';
   pageJumpInput = '';
+  swapToPageInput = '';
 
   // ── Gemini health check status ────────────────────────
   geminiHealthy: boolean | null = null;
@@ -1250,6 +1251,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
       }
       this.cd.detectChanges();
     });
+
+    this.normalizePageNumbers();
   }
 
   get pages(): FormArray<FormGroup> {
@@ -1262,6 +1265,89 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.pageEditor = new Editor();
     this.currentPageIndex = index;
     this.cd.detectChanges();
+  }
+
+  swapCurrentPageWithPrevious() {
+    this.swapPages(this.currentPageIndex, this.currentPageIndex - 1);
+  }
+
+  swapCurrentPageWithNext() {
+    this.swapPages(this.currentPageIndex, this.currentPageIndex + 1);
+  }
+
+  swapCurrentPageToTarget(rawValue: string | number) {
+    const total = this.pages.controls.length;
+    if (total < 2) return;
+
+    const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
+    if (Number.isNaN(parsed)) return;
+
+    const clampedPage = Math.max(1, Math.min(total, parsed));
+    const targetIndex = clampedPage - 1;
+    if (targetIndex === this.currentPageIndex) {
+      this.swapToPageInput = '';
+      return;
+    }
+
+    this.swapPages(this.currentPageIndex, targetIndex);
+    this.swapToPageInput = '';
+  }
+
+  private swapPages(indexA: number, indexB: number) {
+    const total = this.pages.controls.length;
+    if (total < 2) return;
+    if (indexA < 0 || indexB < 0 || indexA >= total || indexB >= total || indexA === indexB) return;
+
+    const firstIndex = Math.min(indexA, indexB);
+    const secondIndex = Math.max(indexA, indexB);
+
+    const firstControl = this.pages.at(firstIndex);
+    const secondControl = this.pages.at(secondIndex);
+
+    this.pages.removeAt(secondIndex);
+    this.pages.removeAt(firstIndex);
+    this.pages.insert(firstIndex, secondControl);
+    this.pages.insert(secondIndex, firstControl);
+
+    this.savedPages = this.remapSavedPagesAfterSwap(firstIndex, secondIndex);
+    this.normalizePageNumbers();
+    this.currentPageIndex = indexB;
+    this.cd.detectChanges();
+  }
+
+  private remapSavedPagesAfterSwap(indexA: number, indexB: number): Set<number> {
+    const updated = new Set<number>();
+
+    this.savedPages.forEach((index) => {
+      if (index === indexA) {
+        updated.add(indexB);
+      } else if (index === indexB) {
+        updated.add(indexA);
+      } else {
+        updated.add(index);
+      }
+    });
+
+    return updated;
+  }
+
+  private normalizePageNumbers() {
+    this.pages.controls.forEach((control, index) => {
+      control.get('pageNumber')?.setValue(index + 1, { emitEvent: false });
+
+      const currentFileName = String(control.get('fileName')?.value ?? '');
+      control
+        .get('fileName')
+        ?.setValue(this.updateFileNamePageSuffix(currentFileName, index + 1), {
+          emitEvent: false,
+        });
+    });
+  }
+
+  private updateFileNamePageSuffix(fileName: string, newPageNumber: number): string {
+    const match = fileName.match(/^(.*)_p\d+(\.[^.]+)$/i);
+    if (!match) return fileName;
+    return `${match[1]}_p${newPageNumber}${match[2]}`;
   }
 
   jumpToPage(rawValue: string | number) {
@@ -1658,6 +1744,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
           this.currentPageIndex = Math.max(0, this.pages.controls.length - 1);
         }
 
+        this.normalizePageNumbers();
         this.cd.detectChanges();
 
         Swal.fire({

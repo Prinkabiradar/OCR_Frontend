@@ -934,22 +934,37 @@
 // ─────────────────────────────────────────────────────────────────────────────
 .pagination-controls {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   padding: 14px 16px;
   background: #FAFAFA;
   border: 1px solid var(--border);
   border-radius: 0 0 10px 10px;
   border-top: none;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 20px;
+}
+
+.pagination-controls__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pagination-controls__row--top {
+  justify-content: space-between;
+}
+
+.pagination-controls__row--bottom {
+  justify-content: flex-start;
 }
 
 .page-jump {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin: 0 8px;
+  margin-right: 8px;
 
   &__label {
     font-size: 12px;
@@ -979,8 +994,20 @@
 .pagination-pages {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
   flex-wrap: wrap;
+}
+
+.page-swap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.page-jump--swap {
+  margin-right: 0;
 }
 
 .pag-ellipsis {

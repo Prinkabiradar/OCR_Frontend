@@ -374,51 +374,83 @@
           </div>
 
           <div class="pagination-controls" *ngIf="pages.controls.length > 0">
-            <button type="button" class="btn btn--pag"
-              [disabled]="currentPageIndex === 0"
-              (click)="goToPage(currentPageIndex - 1)">← Previous</button>
+            <div class="pagination-controls__row pagination-controls__row--top">
+              <button type="button" class="btn btn--pag"
+                [disabled]="currentPageIndex === 0"
+                (click)="goToPage(currentPageIndex - 1)">← Previous</button>
 
-            <div class="pagination-pages">
-              <ng-container *ngFor="let page of pages.controls; let i = index">
-                <button *ngIf="shouldShowPageButton(i)" type="button"
-                  class="btn btn--pag-num"
-                  [class.btn--pag-num--active]="i === currentPageIndex"
-                  [class.btn--pag-num--saved]="savedPages.has(i)"
-                  (click)="goToPage(i)">{{ page.get('pageNumber')?.value }}</button>
-                <span *ngIf="shouldShowEllipsisBefore(i)" class="pag-ellipsis">…</span>
-              </ng-container>
-            </div>
-            <div class="page-jump">
-              <label class="page-jump__label">Go to</label>
-              <input
-                class="page-jump__input"
-                type="number"
-                min="1"
-                [max]="pages.controls.length"
-                [value]="pageJumpInput"
-                (input)="pageJumpInput = $any($event.target).value"
-                (keyup.enter)="jumpToPage(pageJumpInput)"
-                placeholder="0">
-              <button type="button" class="btn btn--pag-go" (click)="jumpToPage(pageJumpInput)">
-                Go
-              </button>
+              <div class="pagination-pages">
+                <ng-container *ngFor="let page of pages.controls; let i = index">
+                  <button *ngIf="shouldShowPageButton(i)" type="button"
+                    class="btn btn--pag-num"
+                    [class.btn--pag-num--active]="i === currentPageIndex"
+                    [class.btn--pag-num--saved]="savedPages.has(i)"
+                    (click)="goToPage(i)">{{ page.get('pageNumber')?.value }}</button>
+                  <span *ngIf="shouldShowEllipsisBefore(i)" class="pag-ellipsis">…</span>
+                </ng-container>
+              </div>
+
+              <button type="button" class="btn btn--pag"
+                [disabled]="currentPageIndex === pages.controls.length - 1"
+                (click)="goToPage(currentPageIndex + 1)">Next →</button>
             </div>
 
-            <button type="button" class="btn btn--pag"
-              [disabled]="currentPageIndex === pages.controls.length - 1"
-              (click)="goToPage(currentPageIndex + 1)">Next →</button>
-              <!-- ✕ Remove button — NEW -->
-              <button type="button" class="btn btn--remove-page ms-3"
+            <div class="pagination-controls__row pagination-controls__row--bottom">
+              <div class="page-jump">
+                <label class="page-jump__label">Go to</label>
+                <input
+                  class="page-jump__input"
+                  type="number"
+                  min="1"
+                  [max]="pages.controls.length"
+                  [value]="pageJumpInput"
+                  (input)="pageJumpInput = $any($event.target).value"
+                  (keyup.enter)="jumpToPage(pageJumpInput)"
+                  placeholder="1">
+                <button type="button" class="btn btn--pag-go" (click)="jumpToPage(pageJumpInput)">
+                  Go
+                </button>
+              </div>
+
+              <div class="page-swap">
+                <button type="button" class="btn btn--pag"
+                  [disabled]="currentPageIndex === 0"
+                  (click)="swapCurrentPageWithPrevious()">⇄ Swap With Previous</button>
+
+                <button type="button" class="btn btn--pag"
+                  [disabled]="currentPageIndex === pages.controls.length - 1"
+                  (click)="swapCurrentPageWithNext()">Swap With Next ⇄</button>
+
+                <div class="page-jump page-jump--swap">
+                  <label class="page-jump__label">Swap to</label>
+                  <input
+                    class="page-jump__input"
+                    type="number"
+                    min="1"
+                    [max]="pages.controls.length"
+                    [value]="swapToPageInput"
+                    (input)="swapToPageInput = $any($event.target).value"
+                    (keyup.enter)="swapCurrentPageToTarget(swapToPageInput)"
+                    placeholder="1">
+                  <button type="button" class="btn btn--pag-go" (click)="swapCurrentPageToTarget(swapToPageInput)">
+                    Swap
+                  </button>
+                </div>
+              </div>
+
+              <button type="button" class="btn btn--remove-page"
                 (click)="removePage(currentPageIndex)"
                 title="Remove this page">
                 ✕ Remove Page {{ getCurrentPageNumber() }}
               </button>
-            <button type="button" class="btn btn--save-page ms-3"
-              [class.btn--saved]="savedPages.has(currentPageIndex)"
-              [disabled]="!documentId || savedPages.has(currentPageIndex)"
-              (click)="savePage(currentPageIndex)">
-              {{ savedPages.has(currentPageIndex) ? '✅ Saved' : 'Save Page ' + getCurrentPageNumber() }}
-            </button>
+
+              <button type="button" class="btn btn--save-page"
+                [class.btn--saved]="savedPages.has(currentPageIndex)"
+                [disabled]="!documentId || savedPages.has(currentPageIndex)"
+                (click)="savePage(currentPageIndex)">
+                {{ savedPages.has(currentPageIndex) ? '✅ Saved' : 'Save Page ' + getCurrentPageNumber() }}
+              </button>
+            </div>
           </div>
 
           <div class="save-all-row">
