@@ -14,11 +14,29 @@
 
         <div class="upload-zone" [class.upload-zone--disabled]="uploading">
           <input type="file" multiple [disabled]="uploading" (change)="onFileSelect($event)">
+          <input
+            #folderInput
+            type="file"
+            multiple
+            webkitdirectory
+            directory
+            [disabled]="uploading"
+            (change)="onFileSelect($event)"
+            style="display:none">
           <div class="upload-zone__inner">
             <div class="upload-zone__icon">📜</div>
             <div class="upload-zone__label">Click or drag files here to upload</div>
             <div class="upload-zone__hint">PDF, JPG, PNG accepted</div>
           </div>
+        </div>
+        <div class="upload-zone-actions">
+          <button
+            type="button"
+            class="btn btn--outline-peacock btn--sm"
+            [disabled]="uploading"
+            (click)="folderInput.click()">
+            Select Folder to Upload
+          </button>
         </div>
 
         <div class="form-group" style="margin-top:12px;">
@@ -275,7 +293,7 @@
               <ng-select2 [data]="documentdata" formControlName="documentId"
                 [options]="documentoptions" class="mandir-select"></ng-select2>
               <span class="inline-or">or</span>
-              <input type="text" class="form-control" formControlName="documentName"
+              <input type="text" class="form-control form-control--title" formControlName="documentName"
                 placeholder="Enter new document name…">
                 <span class="ai-suggest-badge" *ngIf="editForm.get('documentType')?.value">
                   ✨ AI suggested — edit if needed

@@ -10,14 +10,12 @@ interface ParsedOcrPage {
   fileName: string;
   extractedText: string;
   pageNumber: number;
-  uploadOrder?: number;
 }
 
 interface FailedOcrPage {
   fileName: string;
   pageNumber: number;
   message: string;
-  uploadOrder?: number;
 }
 
 @Component({
@@ -255,6 +253,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       }
     }
     this.selectedFiles.push(...accepted);
+    this.sortSelectedFiles();
     this.rejectedFiles.push(...rejected);
 
     event.target.value = null;
@@ -503,10 +502,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
   private proceedWithUpload() {
     this.uploadOrderIndexByFileName.clear();
     this.selectedFiles.forEach((file, index) => {
-      const existing = this.uploadOrderIndexByFileName.get(file.name);
-      if (typeof existing !== 'number') {
-        this.uploadOrderIndexByFileName.set(file.name, index + 1);
-      }
+      this.uploadOrderIndexByFileName.set(file.name, index + 1);
     });
 
     const formData = new FormData();
@@ -871,15 +867,14 @@ export class AddImageComponent implements OnInit, OnDestroy {
         const errorFiles: FailedOcrPage[] = [];
   
         results.forEach((fileResult, index) => {
-          const uploadOrder = this.getUploadOrder(fileResult.file_name, index + 1);
-          const fallbackPageNumber = this.extractPageNumber(fileResult.file_name, uploadOrder);
+          const orderedFallbackPageNumber = this.uploadOrderIndexByFileName.get(fileResult.file_name) ?? index + 1;
+          const fallbackPageNumber = this.extractPageNumber(fileResult.file_name, orderedFallbackPageNumber);
 
           if (!fileResult.success || !fileResult.ocr_text) {
             errorFiles.push({
               fileName: fileResult.file_name || `File ${index + 1}`,
               pageNumber: fallbackPageNumber,
-              message: fileResult.error || 'OCR processing failed',
-              uploadOrder
+              message: fileResult.error || 'OCR processing failed'
             });
             return;
           }
@@ -892,8 +887,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
               errorFiles.push({
                 fileName: fileResult.file_name || `File ${index + 1}`,
                 pageNumber: fallbackPageNumber,
-                message: geminiObj.error.message || 'Unknown API error',
-                uploadOrder
+                message: geminiObj.error.message || 'Unknown API error'
               });
               return;
             }
@@ -920,30 +914,20 @@ export class AddImageComponent implements OnInit, OnDestroy {
             parsed.push({
               fileName: fileResult.file_name,
               extractedText: this.preserveLines(extractedText),
-              pageNumber: fallbackPageNumber,
-              uploadOrder
+              pageNumber: fallbackPageNumber
             });
   
           } catch {
             errorFiles.push({
               fileName: fileResult.file_name || `File ${index + 1}`,
               pageNumber: fallbackPageNumber,
-              message: 'Failed to parse OCR response',
-              uploadOrder
+              message: 'Failed to parse OCR response'
             });
           }
         });
 
-        parsed.sort((a, b) =>
-          (a.uploadOrder ?? Number.MAX_SAFE_INTEGER) - (b.uploadOrder ?? Number.MAX_SAFE_INTEGER) ||
-          a.pageNumber - b.pageNumber ||
-          a.fileName.localeCompare(b.fileName),
-        );
-        errorFiles.sort((a, b) =>
-          (a.uploadOrder ?? Number.MAX_SAFE_INTEGER) - (b.uploadOrder ?? Number.MAX_SAFE_INTEGER) ||
-          a.pageNumber - b.pageNumber ||
-          a.fileName.localeCompare(b.fileName),
-        );
+        parsed.sort((a, b) => a.pageNumber - b.pageNumber || a.fileName.localeCompare(b.fileName));
+        errorFiles.sort((a, b) => a.pageNumber - b.pageNumber || a.fileName.localeCompare(b.fileName));
   
         // ── Helper to proceed to edit screen ──
         const proceedToEdit = () => {
@@ -1195,23 +1179,6 @@ export class AddImageComponent implements OnInit, OnDestroy {
     if (trailingNumberMatch) return Number(trailingNumberMatch[1]);
 
     return fallbackPageNumber;
-  }
-
-  private getUploadOrder(fileName: string, defaultOrder: number): number {
-    if (!fileName) return defaultOrder;
-
-    const exact = this.uploadOrderIndexByFileName.get(fileName);
-    if (typeof exact === 'number') return exact;
-
-    const splitPdfMatch = fileName.match(/^(.*)_p\d+(\.[^.]+)$/i);
-    const sourceName = splitPdfMatch
-      ? `${splitPdfMatch[1]}${splitPdfMatch[2]}`
-      : this.getSourceDocumentName(fileName);
-
-    const sourceMatch = this.uploadOrderIndexByFileName.get(sourceName);
-    if (typeof sourceMatch === 'number') return sourceMatch;
-
-    return defaultOrder;
   }
 
   private topVote(votes: Record<string, number>): string {

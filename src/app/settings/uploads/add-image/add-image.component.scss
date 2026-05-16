@@ -205,6 +205,12 @@
   }
 }
 
+.upload-zone-actions {
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+}
+
 .model-picker {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -806,6 +812,11 @@
     cursor: not-allowed;
     border-color: #E0E0E0;
   }
+}
+
+.form-control--title {
+  width: min(520px, 100%);
+  flex: 1 1 420px;
 }
 
 .mandir-select {
