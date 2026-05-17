@@ -40,9 +40,11 @@ export class OcrPageModalComponent implements OnDestroy {
   totalRecords: number = 0;
   selectedPageIndex: number = 0;
   pageJumpInput = '';
+  swapToPageInput = '';
   textFileContent: string = '';
   statusTargetPageNumbers: number[] = [];
   loadingStatusTarget: boolean = false;
+  swappingPages: boolean = false;
 
   editedTexts: any = {};
   savingRows: any = {};
@@ -74,7 +76,8 @@ export class OcrPageModalComponent implements OnDestroy {
     ['ordered_list', 'bullet_list'],
     [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
     ['blockquote'],
-    ['align_left', 'align_center', 'align_right'],
+    ['align_left', 'align_center', 'align_right', 'align_justify'],
+    ['indent', 'outdent'],
     ['format_clear'],
   ];
 
@@ -84,7 +87,8 @@ export class OcrPageModalComponent implements OnDestroy {
     ['ordered_list', 'bullet_list'],
     [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
     ['blockquote'],
-    ['align_left', 'align_center', 'align_right'],
+    ['align_left', 'align_center', 'align_right', 'align_justify'],
+    ['indent', 'outdent'],
     ['format_clear'],
   ];
 
@@ -97,6 +101,26 @@ export class OcrPageModalComponent implements OnDestroy {
   showSummary: boolean = false;
   isSpeaking: boolean = false;
   summaryUpdatedAt: Date | null = null;
+  previewZoomByPage: { [documentPageId: number]: number } = {};
+
+  readonly minPreviewZoom = 0.5;
+  readonly maxPreviewZoom = 3;
+  readonly previewZoomStep = 0.25;
+  private dragPreviewState: {
+    active: boolean;
+    pageId: number | null;
+    startX: number;
+    startY: number;
+    startScrollLeft: number;
+    startScrollTop: number;
+  } = {
+    active: false,
+    pageId: null,
+    startX: 0,
+    startY: 0,
+    startScrollLeft: 0,
+    startScrollTop: 0,
+  };
 
   // ─── FILE PREVIEW HELPERS ───────────────────────────────────────────────────
 
@@ -171,6 +195,73 @@ getRawUrl(filePath: string): string {
   }
   return `${baseUrl}uploads/${normalized}`;
 }
+
+  getPreviewZoom(item: any): number {
+    const key = Number(item?.DocumentPageId);
+    if (!Number.isFinite(key)) return 1;
+    return this.previewZoomByPage[key] ?? 1;
+  }
+
+  zoomInPreview(item: any): void {
+    this.setPreviewZoom(item, this.getPreviewZoom(item) + this.previewZoomStep);
+  }
+
+  zoomOutPreview(item: any): void {
+    this.setPreviewZoom(item, this.getPreviewZoom(item) - this.previewZoomStep);
+  }
+
+  resetPreviewZoom(item: any): void {
+    this.setPreviewZoom(item, 1);
+  }
+
+  private setPreviewZoom(item: any, zoom: number): void {
+    const key = Number(item?.DocumentPageId);
+    if (!Number.isFinite(key)) return;
+    const clamped = Math.max(this.minPreviewZoom, Math.min(this.maxPreviewZoom, zoom));
+    this.previewZoomByPage[key] = Number(clamped.toFixed(2));
+  }
+
+  onImagePanStart(event: MouseEvent, item: any): void {
+    if (this.getFileType(item?.FilePath) !== 'image') return;
+    if (this.getPreviewZoom(item) <= 1) return;
+
+    const container = event.currentTarget as HTMLElement | null;
+    const pageId = Number(item?.DocumentPageId);
+    if (!container || !Number.isFinite(pageId)) return;
+
+    this.dragPreviewState = {
+      active: true,
+      pageId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startScrollLeft: container.scrollLeft,
+      startScrollTop: container.scrollTop,
+    };
+  }
+
+  onImagePanMove(event: MouseEvent): void {
+    if (!this.dragPreviewState.active) return;
+    const container = event.currentTarget as HTMLElement | null;
+    if (!container) return;
+
+    const dx = event.clientX - this.dragPreviewState.startX;
+    const dy = event.clientY - this.dragPreviewState.startY;
+    container.scrollLeft = this.dragPreviewState.startScrollLeft - dx;
+    container.scrollTop = this.dragPreviewState.startScrollTop - dy;
+    event.preventDefault();
+  }
+
+  onImagePanEnd(): void {
+    this.dragPreviewState.active = false;
+    this.dragPreviewState.pageId = null;
+  }
+
+  isImagePanning(item: any): boolean {
+    return (
+      this.dragPreviewState.active &&
+      this.dragPreviewState.pageId === Number(item?.DocumentPageId)
+    );
+  }
   // ─── SUMMARY ────────────────────────────────────────────────────────────────
 
   summarizeDocument() {
@@ -352,11 +443,14 @@ getRawUrl(filePath: string): string {
     this.savedRows = {};
     this.selectedPageIndex = 0;
     this.pageJumpInput = '';
+    this.swapToPageInput = '';
     this.pageSize = 1;
     this.itemsPerPage = 1;
     this.textFileContent = '';
     this.statusTargetPageNumbers = [];
     this.loadingStatusTarget = false;
+    this.previewZoomByPage = {};
+    this.swappingPages = false;
 
     this.summary = '';
     this.summaryId = 0;
@@ -381,31 +475,7 @@ getRawUrl(filePath: string): string {
         next: (res: any) => {
           const safeRes = Array.isArray(res) ? res : [];
 
-          this.pageList = safeRes.map((x: any) => ({
-            DocumentPageId: x.documentpageid,
-            DocumentId: x.documentid,
-            PageNumber: x.pagenumber,
-            ExtractedText: x.extractedtext,
-            StatusId: x.statusid,
-            RejectionReason: x.rejectionreason,
-            totalRecords: x.totalrecords,
-            FilePath: x.filepath ?? null, // ← from DB via SQL function
-            ResultId: x.resultid ?? null, // ← from DB via SQL function
-
-            Suggestion:
-              typeof x.suggestiontext === 'string' &&
-              x.suggestiontext.trim() !== ''
-                ? x.suggestiontext
-                : '',
-
-            SuggestedPage:
-              typeof x.suggestionpagenumber === 'number'
-                ? x.suggestionpagenumber
-                : null,
-
-            SuggestionId:
-              typeof x.suggestionid === 'number' ? x.suggestionid : null,
-          }));
+          this.pageList = safeRes.map((x: any) => this.mapDocumentPage(x));
 
           if (safeRes.length > 0) {
             this.totalRecords = safeRes[0].totalrecords;
@@ -457,6 +527,50 @@ getRawUrl(filePath: string): string {
           this.cdr.detectChanges();
         },
       });
+  }
+
+  private mapDocumentPage(x: any): any {
+    return {
+      DocumentPageId: x.documentpageid ?? x.DocumentPageId,
+      DocumentId: x.documentid ?? x.DocumentId,
+      PageNumber: x.pagenumber ?? x.PageNumber,
+      ExtractedText: x.extractedtext ?? x.ExtractedText,
+      StatusId: x.statusid ?? x.StatusId,
+      RejectionReason: x.rejectionreason ?? x.RejectionReason,
+      totalRecords: x.totalrecords ?? x.totalRecords,
+      FilePath: x.filepath ?? x.FilePath ?? null,
+      ResultId: x.resultid ?? x.ResultId ?? null,
+      Suggestion:
+        typeof (x.suggestiontext ?? x.Suggestion) === 'string' &&
+        String(x.suggestiontext ?? x.Suggestion).trim() !== ''
+          ? String(x.suggestiontext ?? x.Suggestion)
+          : '',
+      SuggestedPage:
+        typeof (x.suggestionpagenumber ?? x.SuggestedPage) === 'number'
+          ? x.suggestionpagenumber ?? x.SuggestedPage
+          : null,
+      SuggestionId:
+        typeof (x.suggestionid ?? x.SuggestionId) === 'number'
+          ? x.suggestionid ?? x.SuggestionId
+          : null,
+    };
+  }
+
+  private loadSinglePageByNumber(pageNumber: number, onSuccess: (page: any | null) => void, onError?: () => void): void {
+    if (!this.documentId) {
+      onSuccess(null);
+      return;
+    }
+
+    this.service.getDocumentByDocumentName(this.documentId, pageNumber, 1).subscribe({
+      next: (res: any) => {
+        const list = Array.isArray(res) ? res : [];
+        onSuccess(list.length ? this.mapDocumentPage(list[0]) : null);
+      },
+      error: () => {
+        if (onError) onError();
+      },
+    });
   }
 
   // ─── SUGGESTION REVIEW ──────────────────────────────────────────────────────
@@ -520,6 +634,42 @@ getRawUrl(filePath: string): string {
 
   get hasDirtyRows(): boolean {
     return this.pageList.some((x) => this.isDirty(x));
+  }
+
+  private htmlToPlainText(value: string): string {
+    if (!value) return '';
+    return value
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  getWordCount(item: any): number {
+    const text = this.htmlToPlainText(
+      this.editedTexts[item.DocumentPageId] ?? item.ExtractedText ?? '',
+    );
+    if (!text) return 0;
+    return text.split(' ').filter(Boolean).length;
+  }
+
+  getCharacterCount(item: any): number {
+    const text = this.htmlToPlainText(
+      this.editedTexts[item.DocumentPageId] ?? item.ExtractedText ?? '',
+    );
+    return text.length;
+  }
+
+  get reviewProgressPercent(): number {
+    if (!this.totalRecords) return 0;
+    return Math.round((this.absolutePageNumber / this.totalRecords) * 100);
+  }
+
+  get editorGuidanceText(): string {
+    if (this.roleId === 1) return 'Check OCR text against the original page.';
+    if (this.roleId === 2) return 'Verify corrections and confirm page quality.';
+    if (this.roleId === 3) return 'Finalize proofreading and approve the page.';
+    return 'Review OCR text carefully before saving.';
   }
 
   get saveButtonLabel(): string {
@@ -670,6 +820,143 @@ getRawUrl(filePath: string): string {
       this.statusTargetPageNumbers[0];
 
     this.jumpToPage(nextPage);
+  }
+
+  swapCurrentPageWithPrevious(): void {
+    this.swapPagesByNumber(this.absolutePageNumber, this.absolutePageNumber - 1);
+  }
+
+  swapCurrentPageWithNext(): void {
+    this.swapPagesByNumber(this.absolutePageNumber, this.absolutePageNumber + 1);
+  }
+
+  swapCurrentPageToTarget(rawValue: string | number): void {
+    const total = this.totalRecords;
+    if (total < 2) return;
+
+    const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
+    if (Number.isNaN(parsed)) return;
+
+    const targetPage = Math.max(1, Math.min(total, parsed));
+    if (targetPage === this.absolutePageNumber) {
+      this.swapToPageInput = '';
+      return;
+    }
+
+    this.swapPagesByNumber(this.absolutePageNumber, targetPage);
+    this.swapToPageInput = '';
+  }
+
+  private swapPagesByNumber(pageA: number, pageB: number): void {
+    if (!this.documentId || this.swappingPages) return;
+    if (pageA < 1 || pageB < 1 || pageA > this.totalRecords || pageB > this.totalRecords || pageA === pageB) return;
+    if (!this.selectedItem || !this.canEdit(this.selectedItem)) {
+      Swal.fire('Not Allowed', 'You cannot swap pages at this stage.', 'warning');
+      return;
+    }
+
+    this.swappingPages = true;
+    this.cdr.detectChanges();
+
+    this.loadSinglePageByNumber(pageA, (firstPage) => {
+      if (!firstPage) {
+        this.swappingPages = false;
+        this.cdr.detectChanges();
+        Swal.fire('Error', 'Unable to load source page for swapping.', 'error');
+        return;
+      }
+
+      this.loadSinglePageByNumber(pageB, (secondPage) => {
+        if (!secondPage) {
+          this.swappingPages = false;
+          this.cdr.detectChanges();
+          Swal.fire('Error', 'Unable to load target page for swapping.', 'error');
+          return;
+        }
+
+        const firstText = this.editedTexts[firstPage.DocumentPageId] ?? firstPage.ExtractedText ?? '';
+        const secondText = this.editedTexts[secondPage.DocumentPageId] ?? secondPage.ExtractedText ?? '';
+
+        const firstPayload = {
+          documentPageId: firstPage.DocumentPageId,
+          documentId: firstPage.DocumentId,
+          pageNumber: pageB,
+          extractedText: firstText,
+          statusId: Number(firstPage.StatusId),
+          userId: this.currentUserId,
+          roleId: this.roleId,
+          rejectionReason: firstPage.RejectionReason ?? '',
+        };
+
+        const secondPayload = {
+          documentPageId: secondPage.DocumentPageId,
+          documentId: secondPage.DocumentId,
+          pageNumber: pageA,
+          extractedText: secondText,
+          statusId: Number(secondPage.StatusId),
+          userId: this.currentUserId,
+          roleId: this.roleId,
+          rejectionReason: secondPage.RejectionReason ?? '',
+        };
+
+        // Use a temporary page number to avoid duplicate key/conflict while swapping.
+        const tempPageNumber = Math.max(this.totalRecords + 1000, 9999);
+        const firstToTempPayload = { ...firstPayload, pageNumber: tempPageNumber };
+
+        this.service.saveDocumentPage(firstToTempPayload).subscribe({
+          next: () => {
+            this.service.saveDocumentPage(secondPayload).subscribe({
+              next: () => {
+                this.service.saveDocumentPage(firstPayload).subscribe({
+                  next: () => {
+                    this.swappingPages = false;
+                    this.loadStatusTargetPages();
+                    this.jumpToPage(pageB);
+                    this.cdr.detectChanges();
+                    Swal.fire('Swapped', `Page ${pageA} and Page ${pageB} swapped successfully.`, 'success');
+                  },
+                  error: (err) => {
+                    this.swappingPages = false;
+                    this.cdr.detectChanges();
+                    Swal.fire(
+                      'Error',
+                      err?.error?.message || 'Failed to finalize page swap.',
+                      'error',
+                    );
+                  },
+                });
+              },
+              error: (err) => {
+                this.swappingPages = false;
+                this.cdr.detectChanges();
+                Swal.fire(
+                  'Error',
+                  err?.error?.message || 'Failed to move target page during swap.',
+                  'error',
+                );
+              },
+            });
+          },
+          error: (err) => {
+            this.swappingPages = false;
+            this.cdr.detectChanges();
+            Swal.fire(
+              'Error',
+              err?.error?.message || 'Failed to prepare page swap.',
+              'error',
+            );
+          },
+        });
+      }, () => {
+        this.swappingPages = false;
+        this.cdr.detectChanges();
+        Swal.fire('Error', 'Unable to load target page for swapping.', 'error');
+      });
+    }, () => {
+      this.swappingPages = false;
+      this.cdr.detectChanges();
+      Swal.fire('Error', 'Unable to load source page for swapping.', 'error');
+    });
   }
 
   get canReject(): boolean {
