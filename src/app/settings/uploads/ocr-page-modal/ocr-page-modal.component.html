@@ -24,6 +24,61 @@
 
   <!-- ═══════════════════════════════════════════════════════════ BODY -->
   <div class="modal-body ocr-body">
+    <div
+      class="summary-panel"
+      [class.summary-panel--expanded]="summaryExpanded"
+      *ngIf="showSummary && !isSummarizing"
+    >
+      <div
+        class="summary-panel__header d-flex justify-content-between align-items-center p-2 border-bottom"
+      >
+        <div>
+          <strong>📋 {{ documentName }}</strong>
+        </div>
+        <div class="d-flex gap-2">
+          <button
+            class="btn btn-outline-primary btn-sm"
+            (click)="summaryExpanded = !summaryExpanded"
+          >
+            {{ summaryExpanded ? "Collapse" : "Expand" }}
+          </button>
+          <button
+            class="btn btn-success btn-sm"
+            [disabled]="isSavingSummary || (!summaryDirty && summaryFromCache)"
+            (click)="saveSummary()"
+          >
+            {{ isSavingSummary ? "⏳ Saving…" : "Save Summary" }}
+          </button>
+          <button
+            class="btn btn-outline-secondary btn-sm"
+            (click)="showSummary = false"
+          >
+            ✖ Close
+          </button>
+        </div>
+      </div>
+
+      <div class="ocr-editor-wrap p-2">
+        <ngx-editor-menu
+          [editor]="summaryEditor"
+          [toolbar]="summaryToolbar"
+        ></ngx-editor-menu>
+        <ngx-editor
+          class="summary-editor"
+          [editor]="summaryEditor"
+          [(ngModel)]="summary"
+          (ngModelChange)="onSummaryEdit()"
+          placeholder="Summary will appear here…"
+        >
+        </ngx-editor>
+      </div>
+    </div>
+
+    <div *ngIf="isSummarizing" class="text-center py-3 summary-loader">
+      <div class="spinner-border text-primary spinner-border-sm"></div>
+      <p class="text-muted mt-1 mb-0">Generating summary…</p>
+    </div>
+
     <!-- 🔄 LOADING -->
     <div *ngIf="loading" class="ocr-state-center">
       <div class="spinner-border text-primary"></div>
@@ -68,73 +123,6 @@
             <!-- ← item not s -->
             ✖ Reject
           </button>
-        </div>
-        <!-- ✅ SUMMARY PANEL — mirrors summary-add component -->
-        <div class="summary-panel mt-3" *ngIf="showSummary && !isSummarizing">
-          <!-- Header -->
-          <div
-            class="summary-panel__header d-flex justify-content-between align-items-center p-2 border-bottom"
-          >
-            <div>
-              <strong>📋 {{ documentName }}</strong>
-              <!-- <span
-                *ngIf="summaryFromCache"
-                class="badge bg-secondary ms-2"
-                style="font-size: 0.7rem"
->
-                💾 Saved
-</span> -->
-            </div>
-            <div class="d-flex gap-2">
-              <!-- <button class="btn btn-outline-primary btn-sm" (click)="speakText(summary)">
-        🔊 Read
-</button>
-<button class="btn btn-outline-danger btn-sm" [disabled]="!isSpeaking" (click)="stopSpeaking()">
-        ⏹ Stop
-</button> -->
-              <div class="d-flex justify-content-end p-2 border-top">
-                <button
-                  class="btn btn-success btn-sm"
-                  [disabled]="
-                    isSavingSummary || (!summaryDirty && summaryFromCache)
-                  "
-                  (click)="saveSummary()"
-                >
-                  {{ isSavingSummary ? "⏳ Saving…" : "Save Summary" }}
-                </button>
-              </div>
-              <button
-                class="btn btn-outline-secondary btn-sm"
-                (click)="showSummary = false"
-              >
-                ✖ Close
-              </button>
-            </div>
-          </div>
-
-          <!-- Editor -->
-          <div class="ocr-editor-wrap p-2">
-            <ngx-editor-menu
-              [editor]="summaryEditor"
-              [toolbar]="summaryToolbar"
-            ></ngx-editor-menu>
-            <ngx-editor
-              style="border: none; min-height: 150px"
-              [editor]="summaryEditor"
-              [(ngModel)]="summary"
-              (ngModelChange)="onSummaryEdit()"
-              placeholder="Summary will appear here…"
-            >
-            </ngx-editor>
-          </div>
-
-          <!-- Save Footer -->
-        </div>
-
-        <!-- Summarizing Loader -->
-        <div *ngIf="isSummarizing" class="text-center py-3">
-          <div class="spinner-border text-primary spinner-border-sm"></div>
-          <p class="text-muted mt-1 mb-0">Generating summary…</p>
         </div>
         <!-- Card header -->
         <div

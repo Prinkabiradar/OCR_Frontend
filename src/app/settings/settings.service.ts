@@ -36,6 +36,29 @@ export interface OcrFileResult {
   suggested_document_type?: string;
   suggested_document_name?: string;
 }
+
+export interface OcrPageVerificationIssue {
+  type: string;
+  message: string;
+  pageNumbers?: number[];
+  files?: string[];
+}
+
+export interface OcrPageVerificationResult {
+  jobId: string;
+  expectedTotalPages: number;
+  processedResultCount: number;
+  detectedNumberedPageCount: number;
+  isPageOrderValid: boolean;
+  hasMissingPages: boolean;
+  hasDuplicatePages: boolean;
+  hasDuplicateContent: boolean;
+  canFinalize: boolean;
+  detectedPageOrder: number[];
+  missingPages: number[];
+  duplicatePages: number[];
+  issues: OcrPageVerificationIssue[];
+}
 @Injectable({
   providedIn: 'root',
 })
@@ -873,6 +896,18 @@ checkGeminiHealth(model?: string) {
     message: string;
     canProcess: boolean;
   }>(url, { headers });
+}
+
+verifyOcrPageIntegrity(jobId: string, expectedTotalPages?: number) {
+  const headers = this.getAuthHeaders().set('Content-Type', 'application/json');
+  return this.http.post<OcrPageVerificationResult>(
+    environment.BaseUrl + 'api/OcrJob/VerifyPageIntegrity',
+    {
+      jobId,
+      expectedTotalPages: typeof expectedTotalPages === 'number' ? expectedTotalPages : null
+    },
+    { headers }
+  );
 }
 
 // ── Helper to avoid repeating auth header logic

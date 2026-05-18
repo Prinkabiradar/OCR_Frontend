@@ -99,6 +99,7 @@ export class OcrPageModalComponent implements OnDestroy {
   isSummarizing: boolean = false;
   isSavingSummary: boolean = false;
   showSummary: boolean = false;
+  summaryExpanded: boolean = false;
   isSpeaking: boolean = false;
   summaryUpdatedAt: Date | null = null;
   previewZoomByPage: { [documentPageId: number]: number } = {};
@@ -269,6 +270,7 @@ getRawUrl(filePath: string): string {
     this.isSummarizing = true;
     this.summary = '';
     this.showSummary = false;
+    this.summaryExpanded = false;
     this.summaryDirty = false;
     this.summaryId = 0;
     this.cdr.detectChanges();
@@ -457,6 +459,7 @@ getRawUrl(filePath: string): string {
     this.summaryFromCache = false;
     this.summaryDirty = false;
     this.showSummary = false;
+    this.summaryExpanded = false;
     this.isSummarizing = false;
     this.isSavingSummary = false;
   }

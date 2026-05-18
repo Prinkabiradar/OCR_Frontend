@@ -1,6 +1,11 @@
 import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, FormControl } from '@angular/forms';
-import { ServiceService, OcrJobStatus, OcrFileResult } from '../../settings.service';
+import {
+  ServiceService,
+  OcrJobStatus,
+  OcrFileResult,
+  OcrPageVerificationResult,
+} from '../../settings.service';
 import { Options } from 'select2';
 import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
@@ -103,6 +108,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
   // ── Edit form
   ocrResults: ParsedOcrPage[] = [];
   failedOcrPages: FailedOcrPage[] = [];
+  pageIntegrityIssues: string[] = [];
   retryingFailedPages = new Set<string>();
   editForm!: FormGroup;
   documentId: number = 0;
@@ -956,6 +962,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
           this.uploading   = false;
           this.screenState = 'edit';
           this.cd.detectChanges();
+
+          this.runSilentPageIntegrityCheck(jobId, parsed.length);
         };
   
         // ── All files failed — go back to upload screen ──
@@ -1218,6 +1226,93 @@ export class AddImageComponent implements OnInit, OnDestroy {
     const entries = Object.entries(votes);
     if (!entries.length) return '';
     return entries.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+  }
+
+  private runSilentPageIntegrityCheck(jobId: string, expectedTotalPages: number): void {
+    if (!jobId) return;
+
+    this.service.verifyOcrPageIntegrity(jobId, expectedTotalPages).subscribe({
+      next: (verification: OcrPageVerificationResult) => {
+        if (verification?.canFinalize || this.shouldSuppressBenignVerificationAlert(verification)) {
+          this.pageIntegrityIssues = [];
+          return;
+        }
+
+        const issueLines = this.buildVerificationIssueLines(verification);
+        this.pageIntegrityIssues = issueLines;
+
+        Swal.fire({
+          icon: 'warning',
+          title: 'Page Integrity Mismatch Detected',
+          html: `
+            <p style="font-size:14px;color:#555;margin-bottom:10px;text-align:left;">
+              OCR output has page consistency issues. Please review before finalizing.
+            </p>
+            <div style="text-align:left;background:#fff8e1;padding:10px;border-radius:6px;border:1px solid #f0d58a;">
+              ${issueLines.map(line => `<p style="margin:4px 0;font-size:13px;color:#6b4f00;">• ${line}</p>`).join('')}
+            </div>
+          `,
+          confirmButtonText: 'Review Pages',
+          width: '620px'
+        });
+      },
+      error: (err) => {
+        const message = err?.error?.message || 'Could not verify page integrity.';
+        console.warn('Silent page integrity check failed:', message);
+      },
+    });
+  }
+
+  private shouldSuppressBenignVerificationAlert(verification: OcrPageVerificationResult): boolean {
+    if (!verification) return false;
+
+    const hasOnlyUnverifiableIssue =
+      (verification.issues || []).length > 0 &&
+      (verification.issues || []).every((issue) => issue?.type === 'unverifiable_page_numbers');
+
+    if (!hasOnlyUnverifiableIssue) return false;
+
+    const hasNoRealMismatch =
+      verification.hasDuplicatePages !== true &&
+      verification.hasDuplicateContent !== true &&
+      verification.isPageOrderValid === true;
+
+    // If backend reported missing pages only because filenames are not *_pN,
+    // and result count still matches expected pages, treat as benign.
+    const countsMatch =
+      verification.expectedTotalPages > 0 &&
+      verification.processedResultCount >= verification.expectedTotalPages;
+
+    return hasNoRealMismatch && countsMatch;
+  }
+
+  private buildVerificationIssueLines(verification: OcrPageVerificationResult): string[] {
+    const lines: string[] = [];
+
+    if (!verification.isPageOrderValid) {
+      lines.push(`Page order is not ascending: ${verification.detectedPageOrder.join(', ') || 'unknown sequence'}`);
+    }
+    if (verification.hasMissingPages && verification.missingPages?.length) {
+      lines.push(`Missing pages: ${verification.missingPages.join(', ')}`);
+    }
+    if (verification.hasDuplicatePages && verification.duplicatePages?.length) {
+      lines.push(`Duplicate page numbers: ${verification.duplicatePages.join(', ')}`);
+    }
+    if (verification.hasDuplicateContent) {
+      lines.push('Duplicate OCR content detected across multiple files.');
+    }
+
+    for (const issue of verification.issues || []) {
+      if (!issue?.message) continue;
+      if (lines.includes(issue.message)) continue;
+      lines.push(issue.message);
+    }
+
+    if (lines.length === 0) {
+      lines.push('Page verification reported a mismatch. Please review all pages.');
+    }
+
+    return lines;
   }
 
 
