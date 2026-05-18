@@ -85,7 +85,24 @@
         <ngx-editor-menu
           [editor]="summaryEditor"
           [toolbar]="summaryToolbar"
+          [colorPresets]="colorPresets"
         ></ngx-editor-menu>
+        <div class="d-flex gap-2 py-1">
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="clearTextColor(summaryEditor)"
+          >
+            Clear Text Color
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="clearBackgroundColor(summaryEditor)"
+          >
+            Clear Highlight
+          </button>
+        </div>
         <ngx-editor
           class="summary-editor"
           [editor]="summaryEditor"
@@ -318,8 +335,27 @@
               <ngx-editor-menu
                 [editor]="getOrCreateEditor(item.DocumentPageId)"
                 [toolbar]="pageToolbar"
+                [colorPresets]="colorPresets"
               >
               </ngx-editor-menu>
+              <div class="d-flex gap-2 py-1">
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="clearTextColor(getOrCreateEditor(item.DocumentPageId))"
+                >
+                  Clear Text Color
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="
+                    clearBackgroundColor(getOrCreateEditor(item.DocumentPageId))
+                  "
+                >
+                  Clear Highlight
+                </button>
+              </div>
               <ngx-editor
                 [editor]="getOrCreateEditor(item.DocumentPageId)"
                 [(ngModel)]="editedTexts[item.DocumentPageId]"

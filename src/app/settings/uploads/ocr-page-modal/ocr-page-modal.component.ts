@@ -17,6 +17,7 @@ import { Editor, Toolbar } from 'ngx-editor';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { removeMark } from 'ngx-editor/commands';
 
 @Component({
   selector: 'app-ocr-page-modal',
@@ -72,25 +73,43 @@ export class OcrPageModalComponent implements OnDestroy {
   ) {}
 
   pageEditors: { [id: number]: Editor } = {};
+  colorPresets: string[] = [
+    '#000000',
+    '#111827',
+    '#374151',
+    '#6B7280',
+    '#EF4444',
+    '#F59E0B',
+    '#10B981',
+    '#3B82F6',
+    '#8B5CF6',
+    '#EC4899',
+  ];
 
   pageToolbar: Toolbar = [
+    ['undo', 'redo'],
     ['bold', 'italic', 'underline', 'strike'],
     ['ordered_list', 'bullet_list'],
     [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
     ['blockquote'],
     ['align_left', 'align_center', 'align_right', 'align_justify'],
     ['indent', 'outdent'],
+    ['link', 'image'],
+    ['text_color', 'background_color'],
     ['format_clear'],
   ];
 
   summaryEditor: Editor = new Editor();
   summaryToolbar: Toolbar = [
+    ['undo', 'redo'],
     ['bold', 'italic', 'underline', 'strike'],
     ['ordered_list', 'bullet_list'],
     [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
     ['blockquote'],
     ['align_left', 'align_center', 'align_right', 'align_justify'],
     ['indent', 'outdent'],
+    ['link', 'image'],
+    ['text_color', 'background_color'],
     ['format_clear'],
   ];
 
@@ -317,6 +336,28 @@ getRawUrl(filePath: string): string {
       .replace(/<p><\/p>/g, '');
   }
 
+  clearTextColor(editor: Editor): void {
+    this.removeEditorMark(editor, 'text_color');
+  }
+
+  clearBackgroundColor(editor: Editor): void {
+    this.removeEditorMark(editor, 'text_background_color');
+  }
+
+  private removeEditorMark(
+    editor: Editor | undefined,
+    markName: 'text_color' | 'text_background_color',
+  ): void {
+    if (!editor?.view) return;
+
+    const { state, dispatch } = editor.view;
+    const markType = state.schema.marks[markName];
+    if (!markType) return;
+
+    removeMark(markType)(state, dispatch);
+    editor.view.focus();
+  }
+
   saveSummary() {
     if (!this.documentName || !this.summary.trim()) return;
     this.isSavingSummary = true;
@@ -486,9 +527,11 @@ getRawUrl(filePath: string): string {
 
   private preserveLines(text: string): string {
     if (!text) return '';
-    if (text.trim().startsWith('<')) return text;
+    const normalized = this.normalizeForEditor(text);
+    if (!normalized) return '';
+    if (normalized.trim().startsWith('<')) return normalized;
 
-    return text
+    return normalized
       .split('\n')
       .map((line) => {
         const trimmed = line.trimEnd();
@@ -510,6 +553,20 @@ getRawUrl(filePath: string): string {
     return text
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
+
+  private normalizeForEditor(value: string): string {
+    if (!value) return '';
+
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = value;
+    const decoded = textarea.value;
+
+    return decoded
+      .replace(/\\r/g, '\r')
+      .replace(/\\n/g, '\n')
+      .replace(/\r\n/g, '\n')
+      .trim();
   }
 
   getOrCreateEditor(id: number): Editor {
@@ -637,11 +694,15 @@ getRawUrl(filePath: string): string {
   }
 
   private mapDocumentPage(x: any): any {
+    const extractedText = this.normalizeForEditor(
+      x.extractedtext ?? x.ExtractedText ?? '',
+    );
+
     return {
       DocumentPageId: x.documentpageid ?? x.DocumentPageId,
       DocumentId: x.documentid ?? x.DocumentId,
       PageNumber: x.pagenumber ?? x.PageNumber,
-      ExtractedText: x.extractedtext ?? x.ExtractedText,
+      ExtractedText: extractedText,
       StatusId: x.statusid ?? x.StatusId,
       RejectionReason: x.rejectionreason ?? x.RejectionReason,
       totalRecords: x.totalrecords ?? x.totalRecords,

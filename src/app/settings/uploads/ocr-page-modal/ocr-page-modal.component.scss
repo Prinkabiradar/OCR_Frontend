@@ -435,6 +435,17 @@ $radius:   10px;
   padding: 12px;
 }
 
+// Keep ngx color popups inside modal viewport and hide unused "Remove" action.
+::ng-deep ngx-color-picker .NgxEditor__Popup {
+  left: auto;
+  right: 0;
+  max-width: min(230px, calc(100vw - 32px));
+}
+
+::ng-deep ngx-color-picker .NgxEditor__Popup .NgxEditor__MenuItem--Button {
+  display: none !important;
+}
+
 .summary-panel.summary-panel--expanded
   .ocr-editor-wrap
   ::ng-deep

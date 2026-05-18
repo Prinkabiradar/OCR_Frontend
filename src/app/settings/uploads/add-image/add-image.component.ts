@@ -87,11 +87,14 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   pageEditor: Editor;
   pageToolbar: Toolbar = [
+    ['undo', 'redo'],
     ['bold', 'italic', 'underline', 'strike'],
     ['ordered_list', 'bullet_list'],
     [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
     ['blockquote'],
     ['align_left', 'align_center', 'align_right'],
+    ['link', 'image'],
+    ['text_color', 'background_color'],
     ['format_clear'],
   ];
 
