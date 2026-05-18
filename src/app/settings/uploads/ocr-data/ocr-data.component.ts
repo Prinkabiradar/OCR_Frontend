@@ -118,6 +118,8 @@ export class OcrDataComponent implements OnInit {
 
     this.loadDocuments();
   }
+
+
   clearDropdown(): void {
     this.selectedTypeId = 0;
     this.docCurrentPage = 1;
@@ -296,8 +298,8 @@ export class OcrDataComponent implements OnInit {
     this.loadDocuments();
   }
 
-  onDocPageSizeChange(size: number): void {
-    this.docPageSize = size;
+  onDocPageSizeChange(size: any): void {
+    this.docPageSize = size ? Number(size) : 10;
     this.docCurrentPage = 1;
     this.loadDocuments();
   }

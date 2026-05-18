@@ -201,40 +201,15 @@
     </div>
 
     <!-- 📄 Pagination -->
-    <div class="pagination-wrapper">
-      <!-- LEFT -->
-      <div class="pagination-left">
-        <app-pagination-data
-          [currentPage]="docCurrentPage"
-          [totalPages]="totalPages"
-          (pageChange)="onDocPageChange($event)"
-        >
-        </app-pagination-data>
-      </div>
-
-      <!-- CENTER -->
-      <!-- <div class="pagination-center">
-    <select [(ngModel)]="docPageSize"
-            (change)="onDocPageSizeChange(docPageSize)">
-      <option [value]="5">5</option>
-      <option [value]="10">10</option>
-      <option [value]="20">20</option>
-    </select>
-  </div> -->
-
-      <!-- RIGHT -->
-      <!-- <div class="pagination-right">
-    Displaying
-    {{ (docCurrentPage - 1) * docPageSize + 1 }}
-    to
-    {{
-      docCurrentPage * docPageSize > totalRecords
-        ? totalRecords
-        : docCurrentPage * docPageSize
-    }}
-    of {{ totalRecords }} records
-  </div> -->
-    </div>
+    <app-pagination-data
+      [currentPage]="docCurrentPage"
+      [totalPages]="totalPages"
+      [pageSize]="docPageSize"
+      [totalRecords]="totalRecords"
+      (pageChange)="onDocPageChange($event)"
+      (pageSizeChange)="onDocPageSizeChange($event)"
+    >
+    </app-pagination-data>
   </div>
 
   <!-- 📦 Modal -->
