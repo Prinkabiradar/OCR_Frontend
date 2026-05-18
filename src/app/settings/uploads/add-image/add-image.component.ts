@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, OnDestroy, OnInit } from '@angular/core';
+import { Component, ChangeDetectorRef, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, FormArray, FormControl } from '@angular/forms';
 import {
   ServiceService,
@@ -31,6 +31,8 @@ interface FailedOcrPage {
   styleUrls: ['./add-image.component.scss'],
 })
 export class AddImageComponent implements OnInit, OnDestroy {
+  @ViewChild('pageEditorContainer') pageEditorContainer?: ElementRef<HTMLElement>;
+
   // ── File selection
   selectedFiles: File[] = [];
   private uploadOrderIndexByFileName = new Map<string, number>();
@@ -70,6 +72,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
   selectedGeminiModel = 'gemini-2.5-flash';
   pageJumpInput = '';
   swapToPageInput = '';
+  pageSearchTerm = '';
+  private lastPageSearchTerm = '';
 
   // ── Gemini health check status ────────────────────────
   geminiHealthy: boolean | null = null;
@@ -1408,11 +1412,94 @@ export class AddImageComponent implements OnInit, OnDestroy {
     return this.editForm.get('pages') as FormArray<FormGroup>;
   }
 
+  findInPage(direction: 'next' | 'prev' = 'next') {
+    const query = this.pageSearchTerm?.trim();
+    if (!query) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Enter search text',
+        text: 'Type a word or phrase to search in this page.',
+        confirmButtonText: 'OK',
+      });
+      return;
+    }
+
+    this.focusPageEditor();
+
+    // Reset cursor to start when term changes for a predictable first match.
+    if (this.lastPageSearchTerm !== query) {
+      const selection = window.getSelection();
+      if (selection) {
+        selection.removeAllRanges();
+      }
+    }
+
+    const found = this.runBrowserFind(query, direction === 'prev');
+    this.lastPageSearchTerm = query;
+
+    if (found) {
+      this.scrollCurrentSelectionIntoView();
+    }
+
+    if (!found) {
+      Swal.fire({
+        icon: 'info',
+        title: 'No match found',
+        text: `Could not find "${query}" on this page.`,
+        confirmButtonText: 'OK',
+      });
+    }
+  }
+
+  private focusPageEditor() {
+    const host = this.pageEditorContainer?.nativeElement;
+    if (!host) return;
+    const contentEditable = host.querySelector('[contenteditable="true"]') as HTMLElement | null;
+    contentEditable?.focus();
+  }
+
+  private runBrowserFind(query: string, backwards = false): boolean {
+    const browserWindow = window as Window & {
+      find?: (
+        text: string,
+        caseSensitive?: boolean,
+        backwards?: boolean,
+        wrapAround?: boolean,
+        wholeWord?: boolean,
+        searchInFrames?: boolean,
+        showDialog?: boolean,
+      ) => boolean;
+    };
+
+    if (typeof browserWindow.find !== 'function') {
+      return false;
+    }
+
+    return browserWindow.find(
+      query,
+      false,
+      backwards,
+      true,
+      false,
+      false,
+      false,
+    );
+  }
+
+  private scrollCurrentSelectionIntoView() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer?.parentElement;
+    node?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+  }
+
   goToPage(index: number) {
     if (index < 0 || index >= this.pages.controls.length) return;
     this.pageEditor.destroy();
     this.pageEditor = new Editor();
     this.currentPageIndex = index;
+    this.lastPageSearchTerm = '';
     this.cd.detectChanges();
   }
 

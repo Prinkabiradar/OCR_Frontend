@@ -1,6 +1,7 @@
 import {
   ChangeDetectorRef,
   Component,
+  ElementRef,
   Input,
   TemplateRef,
   ViewChild,
@@ -64,6 +65,7 @@ export class OcrPageModalComponent implements OnDestroy {
     private modalService: NgbModal,
     private service: ServiceService,
     private cdr: ChangeDetectorRef,
+    private elementRef: ElementRef<HTMLElement>,
     private sanitizer: DomSanitizer,
     private http: HttpClient,
     private router: Router,
@@ -102,6 +104,10 @@ export class OcrPageModalComponent implements OnDestroy {
   summaryExpanded: boolean = false;
   isSpeaking: boolean = false;
   summaryUpdatedAt: Date | null = null;
+  summarySearchTerm: string = '';
+  pageSearchTerms: { [id: number]: string } = {};
+  private lastSummarySearchTerm: string = '';
+  private lastPageSearchTerms: { [id: number]: string } = {};
   previewZoomByPage: { [documentPageId: number]: number } = {};
 
   readonly minPreviewZoom = 0.5;
@@ -363,6 +369,100 @@ getRawUrl(filePath: string): string {
     this.summaryDirty = true;
   }
 
+  findInSummaryEditor(direction: 'next' | 'prev' = 'next') {
+    const query = this.summarySearchTerm?.trim();
+    if (!query) {
+      Swal.fire('Enter search text', 'Type a word or phrase to search in summary.', 'info');
+      return;
+    }
+
+    this.focusEditorWithin('[data-summary-editor-wrap="true"]');
+
+    if (this.lastSummarySearchTerm !== query) {
+      window.getSelection()?.removeAllRanges();
+    }
+
+    const found = this.runBrowserFind(query, direction === 'prev');
+    this.lastSummarySearchTerm = query;
+
+    if (found) {
+      this.scrollCurrentSelectionIntoView();
+    }
+
+    if (!found) {
+      Swal.fire('No match found', `Could not find "${query}" in summary.`, 'info');
+    }
+  }
+
+  findInPageEditor(pageId: number, direction: 'next' | 'prev' = 'next') {
+    const query = (this.pageSearchTerms[pageId] || '').trim();
+    if (!query) {
+      Swal.fire('Enter search text', 'Type a word or phrase to search in page text.', 'info');
+      return;
+    }
+
+    this.focusEditorWithin(`[data-page-editor-wrap="${pageId}"]`);
+
+    if (this.lastPageSearchTerms[pageId] !== query) {
+      window.getSelection()?.removeAllRanges();
+    }
+
+    const found = this.runBrowserFind(query, direction === 'prev');
+    this.lastPageSearchTerms[pageId] = query;
+
+    if (found) {
+      this.scrollCurrentSelectionIntoView();
+    }
+
+    if (!found) {
+      Swal.fire('No match found', `Could not find "${query}" on this page.`, 'info');
+    }
+  }
+
+  private focusEditorWithin(wrapperSelector: string) {
+    const host = this.elementRef?.nativeElement;
+    if (!host) return;
+    const wrapper = host.querySelector(wrapperSelector) as HTMLElement | null;
+    const editable = wrapper?.querySelector('[contenteditable="true"]') as HTMLElement | null;
+    editable?.focus();
+  }
+
+  private runBrowserFind(query: string, backwards = false): boolean {
+    const browserWindow = window as Window & {
+      find?: (
+        text: string,
+        caseSensitive?: boolean,
+        backwards?: boolean,
+        wrapAround?: boolean,
+        wholeWord?: boolean,
+        searchInFrames?: boolean,
+        showDialog?: boolean,
+      ) => boolean;
+    };
+
+    if (typeof browserWindow.find !== 'function') {
+      return false;
+    }
+
+    return browserWindow.find(
+      query,
+      false,
+      backwards,
+      true,
+      false,
+      false,
+      false,
+    );
+  }
+
+  private scrollCurrentSelectionIntoView() {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    const node = range.startContainer?.parentElement;
+    node?.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+  }
+
   speakText(text: string) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
@@ -462,6 +562,10 @@ getRawUrl(filePath: string): string {
     this.summaryExpanded = false;
     this.isSummarizing = false;
     this.isSavingSummary = false;
+    this.summarySearchTerm = '';
+    this.pageSearchTerms = {};
+    this.lastSummarySearchTerm = '';
+    this.lastPageSearchTerms = {};
   }
 
   // ─── LOAD PAGES ─────────────────────────────────────────────────────────────

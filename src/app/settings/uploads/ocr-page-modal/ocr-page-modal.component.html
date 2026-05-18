@@ -58,7 +58,30 @@
         </div>
       </div>
 
-      <div class="ocr-editor-wrap p-2">
+      <div class="ocr-editor-wrap p-2" data-summary-editor-wrap="true">
+        <div class="editor-search-row">
+          <input
+            type="text"
+            class="form-control form-control-sm"
+            [(ngModel)]="summarySearchTerm"
+            placeholder="Search in summary..."
+            (keyup.enter)="findInSummaryEditor('next')"
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="findInSummaryEditor('prev')"
+          >
+            Find Previous
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm"
+            (click)="findInSummaryEditor('next')"
+          >
+            Find Next
+          </button>
+        </div>
         <ngx-editor-menu
           [editor]="summaryEditor"
           [toolbar]="summaryToolbar"
@@ -265,7 +288,33 @@
               </span>
             </div>
 
-            <div class="panel-content editor-wrap">
+            <div
+              class="panel-content editor-wrap"
+              [attr.data-page-editor-wrap]="item.DocumentPageId"
+            >
+              <div class="editor-search-row">
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  [(ngModel)]="pageSearchTerms[item.DocumentPageId]"
+                  placeholder="Search in OCR text..."
+                  (keyup.enter)="findInPageEditor(item.DocumentPageId, 'next')"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="findInPageEditor(item.DocumentPageId, 'prev')"
+                >
+                  Find Previous
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary btn-sm"
+                  (click)="findInPageEditor(item.DocumentPageId, 'next')"
+                >
+                  Find Next
+                </button>
+              </div>
               <ngx-editor-menu
                 [editor]="getOrCreateEditor(item.DocumentPageId)"
                 [toolbar]="pageToolbar"

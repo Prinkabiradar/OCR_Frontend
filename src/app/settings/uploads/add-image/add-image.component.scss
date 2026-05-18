@@ -1341,6 +1341,20 @@
   border-top: 1px solid var(--border);
   background: white;
 
+  .page-search-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid var(--border);
+    background: #fcfcfc;
+
+    .form-control {
+      flex: 1;
+      min-width: 160px;
+    }
+  }
+
   // Toolbar
   .NgxEditor__MenuBar {
     background: #fafafa;

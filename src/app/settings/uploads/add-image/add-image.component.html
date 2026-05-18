@@ -375,7 +375,28 @@
                 </div>
                 <!-- <textarea class="page-textarea" rows="14"
                   formControlName="extractedText"></textarea> -->
-                  <div class="page-editor-wrap">
+                  <div class="page-editor-wrap" #pageEditorContainer>
+                    <div class="page-search-row">
+                      <input
+                        type="text"
+                        class="form-control"
+                        [(ngModel)]="pageSearchTerm"
+                        [ngModelOptions]="{standalone: true}"
+                        placeholder="Search text in this page…"
+                        (keyup.enter)="findInPage('next')">
+                      <button
+                        type="button"
+                        class="btn btn--pag"
+                        (click)="findInPage('prev')">
+                        Find Previous
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn--pag"
+                        (click)="findInPage('next')">
+                        Find Next
+                      </button>
+                    </div>
                     <ngx-editor-menu [editor]="pageEditor" [toolbar]="pageToolbar"> </ngx-editor-menu>
                     <ngx-editor
                       [editor]="pageEditor"
