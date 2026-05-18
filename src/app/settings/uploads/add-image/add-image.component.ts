@@ -69,7 +69,10 @@ export class AddImageComponent implements OnInit, OnDestroy {
     'gemini-1.5-flash',
     'gemini-1.5-pro',
   ];
+  useAutoModelSelection = true;
   selectedGeminiModel = 'gemini-2.5-flash';
+  activeLlmInUse = 'Auto (server-selected)';
+  fallbackModelInUse: string | null = null;
   pageJumpInput = '';
   swapToPageInput = '';
   pageSearchTerm = '';
@@ -169,10 +172,11 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   // ── Check Gemini health and display status ────────────────────────
   private checkGeminiHealthStatus() {
-    this.service.checkGeminiHealth(this.selectedGeminiModel).subscribe({
+    this.service.checkGeminiHealth(this.useAutoModelSelection ? undefined : this.selectedGeminiModel).subscribe({
       next: (response) => {
         this.geminiHealthy = response.canProcess;
         this.geminiStatusMessage = response.message;
+        this.activeLlmInUse = response.selectedModel || (this.useAutoModelSelection ? 'Auto (server-selected)' : this.selectedGeminiModel);
         this.geminiStatusChecked = true;
         this.cd.detectChanges();
       },
@@ -189,6 +193,18 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.cd.detectChanges();
       }
     });
+  }
+
+  setModelSelectionMode(useAuto: boolean) {
+    this.useAutoModelSelection = useAuto;
+    this.checkGeminiHealthStatus();
+  }
+
+  onGeminiModelChanged(model: string) {
+    this.selectedGeminiModel = model;
+    if (!this.useAutoModelSelection) {
+      this.checkGeminiHealthStatus();
+    }
   }
 
   checkForActiveJob() {
@@ -459,7 +475,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       }
     });
 
-    this.service.checkGeminiHealth(this.selectedGeminiModel).subscribe({
+    this.service.checkGeminiHealth(this.useAutoModelSelection ? undefined : this.selectedGeminiModel).subscribe({
       next: (response) => {
         if (!response.canProcess) {
           Swal.fire({
@@ -487,6 +503,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
         // Close health-check loader before starting the upload flow.
         Swal.close();
+        this.activeLlmInUse = response.selectedModel || (this.useAutoModelSelection ? 'Auto (server-selected)' : this.selectedGeminiModel);
         // ← Gemini is healthy — proceed with upload
         this.proceedWithUpload();
       },
@@ -511,6 +528,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   // ── New helper method for actual upload after health check passes ──
   private proceedWithUpload() {
+    this.fallbackModelInUse = null;
     this.uploadOrderIndexByFileName.clear();
     this.selectedFiles.forEach((file, index) => {
       const existing = this.uploadOrderIndexByFileName.get(file.name);
@@ -521,7 +539,9 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
     const formData = new FormData();
     this.selectedFiles.forEach((file) => formData.append('files', file));
-    formData.append('geminiModel', this.selectedGeminiModel);
+    if (!this.useAutoModelSelection) {
+      formData.append('geminiModel', this.selectedGeminiModel);
+    }
 
     this.uploading = true;
     this.currentJobId = null;
@@ -537,6 +557,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.currentJobId = res.jobId;
         this.jobStartedAt = new Date().toISOString();
         this.pollingMessage = 'Files uploaded. OCR processing started…';
+        this.activeLlmInUse = res.selectedModel || this.activeLlmInUse;
+        this.fallbackModelInUse = res.fallbackUsed ? (res.selectedModel || null) : null;
 
         // Persist to localStorage so user can navigate away
         this.service.saveActiveJob(res.jobId, this.selectedFiles.length);
@@ -1637,9 +1659,18 @@ export class AddImageComponent implements OnInit, OnDestroy {
     this.retryingFailedPages.add(item.fileName);
     this.cd.detectChanges();
 
-    this.service.retryOcrResult(this.currentJobId, item.fileName, this.selectedGeminiModel).subscribe({
-      next: (result) => {
-        const parsedPage = this.parseSingleResult(result, item.pageNumber);
+    this.service.retryOcrResult(
+      this.currentJobId,
+      item.fileName,
+      this.useAutoModelSelection ? undefined : this.selectedGeminiModel
+    ).subscribe({
+      next: (result: any) => {
+        if (result?.selectedModel) {
+          this.activeLlmInUse = result.selectedModel;
+        }
+        this.fallbackModelInUse = result?.fallbackUsed ? (result?.selectedModel || null) : null;
+        const actualResult = result?.result ? result.result : result;
+        const parsedPage = this.parseSingleResult(actualResult, item.pageNumber);
         if (!parsedPage) {
           this.retryingFailedPages.delete(item.fileName);
           Swal.fire({

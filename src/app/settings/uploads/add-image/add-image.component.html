@@ -1,4 +1,10 @@
 <div class="seva-content">
+  <div class="llm-active-banner">
+    <div class="llm-active-banner__title">Current LLM</div>
+    <div class="llm-active-banner__value">{{ activeLlmInUse }}</div>
+    <div class="llm-active-banner__meta" *ngIf="fallbackModelInUse">Fallback active</div>
+    <div class="llm-active-banner__meta" *ngIf="!fallbackModelInUse">Primary route</div>
+  </div>
 
   <!-- ══════════════════════════════════════════
        SCREEN 1 — Upload (screenState === 'upload')
@@ -41,6 +47,27 @@
 
         <div class="form-group" style="margin-top:12px;">
           <label class="form-label">Gemini Model</label>
+          <div class="model-mode-switch">
+            <label class="mode-option">
+              <input
+                type="radio"
+                name="modelSelectionMode"
+                [checked]="useAutoModelSelection"
+                [disabled]="uploading"
+                (change)="setModelSelectionMode(true)">
+              <span>Auto Select (Recommended)</span>
+            </label>
+            <label class="mode-option">
+              <input
+                type="radio"
+                name="modelSelectionMode"
+                [checked]="!useAutoModelSelection"
+                [disabled]="uploading"
+                (change)="setModelSelectionMode(false)">
+              <span>Manual Override</span>
+            </label>
+          </div>
+
           <div class="model-picker">
             <label class="model-radio" *ngFor="let model of geminiModels">
               <input
@@ -48,8 +75,8 @@
                 name="geminiModel"
                 [value]="model"
                 [checked]="selectedGeminiModel === model"
-                [disabled]="uploading"
-                (change)="selectedGeminiModel = model">
+                [disabled]="uploading || useAutoModelSelection"
+                (change)="onGeminiModelChanged(model)">
               <span class="model-radio__card">
                 <span class="model-radio__title">{{ model }}</span>
                 <span class="model-radio__meta">

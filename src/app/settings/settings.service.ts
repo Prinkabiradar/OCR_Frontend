@@ -802,7 +802,7 @@ GetFullDashboard(): Observable<any> {
 // ── Upload and get jobId back immediately
 uploadOcrImages(formData: FormData) {
   const headers = this.getAuthHeaders();
-  return this.http.post<{ jobId: string; message: string; statusUrl: string }>(
+  return this.http.post<{ jobId: string; message: string; statusUrl: string; selectedModel?: string; fallbackUsed?: boolean }>(
     environment.BaseUrl + 'api/OcrJob/UploadImages',
     formData,
     { headers }
@@ -895,6 +895,8 @@ checkGeminiHealth(model?: string) {
     status: 'healthy' | 'unavailable' | 'error';
     message: string;
     canProcess: boolean;
+    selectedModel?: string;
+    triedModels?: string[];
   }>(url, { headers });
 }
 

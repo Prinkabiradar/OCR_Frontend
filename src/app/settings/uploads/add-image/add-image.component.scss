@@ -95,6 +95,38 @@
   gap: 24px;
 }
 
+.llm-active-banner {
+  background: linear-gradient(90deg, #fff7ef 0%, #eef7ff 100%);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--saffron);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  &__title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-label);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__value {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--peacock);
+  }
+
+  &__meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: auto;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  SEVA CARD  (matches Metronic .card with header stripe)
 // ─────────────────────────────────────────────────────────────────────────────
@@ -215,6 +247,21 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 10px;
+}
+
+.model-mode-switch {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.mode-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-label);
 }
 
 .model-radio {
