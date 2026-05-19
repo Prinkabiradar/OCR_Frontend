@@ -1674,10 +1674,23 @@ getRawUrl(filePath: string): string {
     if (!activeEditor?.editor) return;
 
     event.preventDefault();
-    const mode: 'first-line' | 'full' = event.shiftKey ? 'full' : 'first-line';
-    this.applyIndentModeToSelection(activeEditor.editor, mode);
     if (isIndentShortcut) {
+      this.applyIndentModeToSelection(
+        activeEditor.editor,
+        event.shiftKey ? 'full' : 'first-line',
+      );
       activeEditor.editor.commands.focus().indent().exec();
+
+      const mode: 'first-line' | 'full' = event.shiftKey ? 'full' : 'first-line';
+      setTimeout(() => {
+        this.applyIndentModeToSelection(activeEditor.editor, mode);
+        if (activeEditor.kind === 'summary') {
+          this.summaryDirty = true;
+          this.summary = this.getSummaryEditorContent();
+        } else {
+          this.editedTexts[activeEditor.pageId] = this.getEditorContent(activeEditor.pageId);
+        }
+      }, 0);
     } else {
       activeEditor.editor.commands.focus().outdent().exec();
     }
@@ -1714,7 +1727,24 @@ getRawUrl(filePath: string): string {
     if (!activeEditor?.editor) return;
 
     const mode: 'first-line' | 'full' = event.shiftKey ? 'full' : 'first-line';
-    this.applyIndentModeToSelection(activeEditor.editor, mode);
+
+    // On toolbar clicks, browser focus may temporarily move to the button,
+    // so selection-based mode tagging can miss the target block. Re-apply
+    // mode right after the editor command executes.
+    setTimeout(() => {
+      try {
+        activeEditor.editor.commands.focus().exec();
+      } catch {}
+
+      this.applyIndentModeToSelection(activeEditor.editor, mode);
+
+      if (activeEditor.kind === 'summary') {
+        this.summaryDirty = true;
+        this.summary = this.getSummaryEditorContent();
+      } else {
+        this.editedTexts[activeEditor.pageId] = this.getEditorContent(activeEditor.pageId);
+      }
+    }, 0);
   }
 
   private getActiveNgxEditor(

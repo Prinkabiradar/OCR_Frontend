@@ -8,6 +8,7 @@ export function normalizeNgxEditorHtml(
 ): string {
   if (!html) return '';
   const forStorage = options.forStorage === true;
+  const preserveFirstLineIndentForStorage = true;
 
   let normalized = html
     .replace(/margin-inline-start\s*:/gi, 'margin-left:')
@@ -46,6 +47,7 @@ export function normalizeNgxEditorHtml(
       const dataIndentMatch = attrText.match(
         /\bdata-indent\s*=\s*(['"]?)(\d+)\1/i,
       );
+      const hasDataIndentAttr = Boolean(dataIndentMatch);
       if (dataIndentMatch) {
         const parsed = Number.parseInt(dataIndentMatch[2], 10);
         if (Number.isFinite(parsed) && parsed > 0) {
@@ -53,10 +55,12 @@ export function normalizeNgxEditorHtml(
         }
       }
 
+      let hasClassIndent = false;
       if (level === null) {
         const classIndentMatch = attrText.match(
           /\b(?:ql-indent|indent|editor-indent|pm-indent|level)-(\d+)\b/i,
         );
+        hasClassIndent = Boolean(classIndentMatch);
         if (classIndentMatch) {
           const parsed = Number.parseInt(classIndentMatch[1], 10);
           if (Number.isFinite(parsed) && parsed > 0) {
@@ -64,9 +68,10 @@ export function normalizeNgxEditorHtml(
           }
         }
       }
+      const hasIndentAttr = /\bindent\s*=\s*(['"]?)\d+\1/i.test(attrText);
 
+      const styleTextIndentMatch = attrText.match(/text-indent\s*:\s*([0-9.]+)\s*em/i);
       if (level === null) {
-        const styleTextIndentMatch = attrText.match(/text-indent\s*:\s*([0-9.]+)\s*em/i);
         if (styleTextIndentMatch) {
           const em = Number.parseFloat(styleTextIndentMatch[1]);
           if (Number.isFinite(em) && em > 0) {
@@ -75,8 +80,8 @@ export function normalizeNgxEditorHtml(
         }
       }
 
+      const stylePxMatch = attrText.match(/margin-left\s*:\s*([0-9.]+)\s*px/i);
       if (level === null) {
-        const stylePxMatch = attrText.match(/margin-left\s*:\s*([0-9.]+)\s*px/i);
         if (stylePxMatch) {
           const px = Number.parseFloat(stylePxMatch[1]);
           if (Number.isFinite(px) && px > 0) {
@@ -85,8 +90,8 @@ export function normalizeNgxEditorHtml(
         }
       }
 
+      const styleEmMatch = attrText.match(/margin-left\s*:\s*([0-9.]+)\s*em/i);
       if (level === null) {
-        const styleEmMatch = attrText.match(/margin-left\s*:\s*([0-9.]+)\s*em/i);
         if (styleEmMatch) {
           const em = Number.parseFloat(styleEmMatch[1]);
           if (Number.isFinite(em) && em > 0) {
@@ -100,13 +105,53 @@ export function normalizeNgxEditorHtml(
       const safeLevel = Math.max(1, Math.min(level, 12));
 
       const modeMatch = attrText.match(/\bdata-indent-mode\s*=\s*(['"]?)(first-line|full)\1/i);
-      // Default to first-line when mode is missing so toolbar indent remains
-      // consistent between editor view and exported PDF/Word.
-      const mode: 'first-line' | 'full' =
-        modeMatch?.[2]?.toLowerCase() === 'full' ? 'full' : 'first-line';
+      const hasPositiveTextIndent = (() => {
+        if (!styleTextIndentMatch) return false;
+        const textIndentEm = Number.parseFloat(styleTextIndentMatch[1]);
+        return Number.isFinite(textIndentEm) && textIndentEm > 0;
+      })();
+      const hasPositiveMarginLeft = (() => {
+        if (stylePxMatch) {
+          const px = Number.parseFloat(stylePxMatch[1]);
+          if (Number.isFinite(px) && px > 0) return true;
+        }
+        if (styleEmMatch) {
+          const em = Number.parseFloat(styleEmMatch[1]);
+          if (Number.isFinite(em) && em > 0) return true;
+        }
+        return false;
+      })();
+      const hasPositivePaddingLeft =
+        /padding-left\s*:\s*(?:[0-9]*\.?[1-9][0-9.]*)\s*(?:px|em|rem|pt)\b/i.test(
+          attrText,
+        );
 
-      const shouldStripIndentAttrs = forStorage && mode === 'first-line';
-      const baseAttrs = shouldStripIndentAttrs ? stripIndentAttrs(attrText) : attrText;
+      // Preserve explicit mode when available. Otherwise infer from styles:
+      // full-paragraph indentation typically uses left offset (margin/padding),
+      // while first-line indentation uses text-indent.
+      const isEditorIndentMarkup =
+        hasDataIndentAttr || hasIndentAttr || hasClassIndent;
+      const mode: 'first-line' | 'full' = modeMatch?.[2]?.toLowerCase() === 'full'
+        ? 'full'
+        : modeMatch?.[2]?.toLowerCase() === 'first-line'
+          ? 'first-line'
+          : isEditorIndentMarkup
+            ? 'first-line'
+            : hasPositiveMarginLeft && !hasPositiveTextIndent
+              ? 'full'
+            : hasPositiveMarginLeft || hasPositivePaddingLeft
+              ? 'full'
+            : hasPositiveTextIndent
+                ? 'first-line'
+              : 'first-line';
+
+      // Keep indent attributes for both modes so downstream exporters
+      // (PDF/Word) can reliably detect indentation intent.
+      const shouldStripIndentAttrs =
+        forStorage &&
+        mode === 'first-line' &&
+        !preserveFirstLineIndentForStorage;
+      const baseAttrs = stripIndentAttrs(attrText);
       const indentAttrs = shouldStripIndentAttrs
         ? ` data-indent-mode="first-line"`
         : ` indent="${safeLevel}" data-indent="${safeLevel}" data-indent-mode="${mode}"`;
