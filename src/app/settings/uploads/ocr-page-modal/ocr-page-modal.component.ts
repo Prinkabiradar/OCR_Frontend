@@ -360,7 +360,7 @@ getRawUrl(filePath: string): string {
   }
 
   saveSummary() {
-    this.summary = this.getSummaryEditorContent();
+    this.summary = this.normalizeIndentMarkupForStorage(this.getSummaryEditorContent());
     if (!this.documentName || !this.summary.trim()) return;
     this.isSavingSummary = true;
     this.cdr.detectChanges();
@@ -555,7 +555,7 @@ getRawUrl(filePath: string): string {
       `[data-page-editor-wrap="${editorId}"] [contenteditable="true"]`,
     ) as HTMLElement | null;
     if (wrapperContentEditable) {
-      return wrapperContentEditable.innerHTML || '';
+      return this.normalizeIndentMarkupForEditor(wrapperContentEditable.innerHTML || '');
     }
 
     const editor = this.pageEditors[editorId];
@@ -572,15 +572,72 @@ getRawUrl(filePath: string): string {
           '[contenteditable="true"]',
         ) as HTMLElement | null;
         if (contentEditable) {
-          return contentEditable.innerHTML || '';
+          return this.normalizeIndentMarkupForEditor(contentEditable.innerHTML || '');
         }
-        return editorElement.innerHTML || '';
+        return this.normalizeIndentMarkupForEditor(editorElement.innerHTML || '');
       }
     } catch (e) {
       console.warn('Failed to get editor HTML, falling back to editedTexts', e);
     }
 
-    return this.editedTexts[editorId] || '';
+    return this.normalizeIndentMarkupForEditor(this.editedTexts[editorId] || '');
+  }
+
+  private applyIndentModeToSelection(
+    editor: Editor | undefined,
+    mode: 'first-line' | 'full',
+  ): void {
+    if (!editor) return;
+    const root = editor.view?.dom as HTMLElement | undefined;
+    if (!root) return;
+
+    const blocks = this.getSelectedBlocks(root);
+    if (blocks.length === 0) return;
+    blocks.forEach((block: HTMLElement) => block.setAttribute('data-indent-mode', mode));
+  }
+
+  private getSelectedBlocks(root: HTMLElement): HTMLElement[] {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return [];
+
+    const range = selection.getRangeAt(0);
+    const selector = 'p, blockquote, h1, h2, h3, h4, h5, h6';
+
+    if (range.collapsed) {
+      const anchorNode = selection.anchorNode;
+      const anchorElement =
+        anchorNode?.nodeType === Node.ELEMENT_NODE
+          ? (anchorNode as HTMLElement)
+          : anchorNode?.parentElement ?? null;
+      const block = anchorElement?.closest(selector) as HTMLElement | null;
+      return block ? [block] : [];
+    }
+
+    const blocks: HTMLElement[] = [];
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: (node: Node) => {
+        const el = node as HTMLElement;
+        if (!el.matches(selector)) return NodeFilter.FILTER_SKIP;
+        return range.intersectsNode(el)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_SKIP;
+      },
+    });
+
+    while (walker.nextNode()) {
+      blocks.push(walker.currentNode as HTMLElement);
+    }
+
+    if (blocks.length) return blocks;
+
+    const anchorNode = selection.anchorNode;
+    const anchorElement =
+      anchorNode?.nodeType === Node.ELEMENT_NODE
+        ? (anchorNode as HTMLElement)
+        : anchorNode?.parentElement ?? null;
+    const block = anchorElement?.closest(selector) as HTMLElement | null;
+    return block ? [block] : [];
   }
 
   /**
@@ -659,6 +716,10 @@ getRawUrl(filePath: string): string {
    */
   private normalizeIndentMarkupForEditor(html: string): string {
     return normalizeNgxEditorHtml(html);
+  }
+
+  private normalizeIndentMarkupForStorage(html: string): string {
+    return normalizeNgxEditorHtml(html, { forStorage: true });
   }
 
   getOrCreateEditor(id: number): Editor {
@@ -1254,7 +1315,7 @@ getRawUrl(filePath: string): string {
       documentPageId: page.DocumentPageId,
       documentId: page.DocumentId,
       pageNumber: targetPageNumber,
-      extractedText,
+      extractedText: this.normalizeIndentMarkupForStorage(extractedText),
       statusId: Number(page.StatusId),
       userId: this.currentUserId,
       roleId: this.roleId,
@@ -1307,8 +1368,9 @@ getRawUrl(filePath: string): string {
         documentPageId: item.DocumentPageId,
         documentId: item.DocumentId,
         pageNumber: item.PageNumber,
-        extractedText:
-          this.editedTexts[item.DocumentPageId] ?? item.ExtractedText,
+        extractedText: this.normalizeIndentMarkupForStorage(
+          this.editedTexts[item.DocumentPageId] ?? item.ExtractedText ?? '',
+        ),
         statusId: 7,
         userId: this.currentUserId,
         rejectionReason: rejectionReason,
@@ -1359,7 +1421,9 @@ getRawUrl(filePath: string): string {
       documentPageId: item.DocumentPageId,
       documentId: item.DocumentId,
       pageNumber: item.PageNumber,
-      extractedText: this.editedTexts[item.DocumentPageId],
+      extractedText: this.normalizeIndentMarkupForStorage(
+        this.editedTexts[item.DocumentPageId] ?? item.ExtractedText ?? '',
+      ),
       statusId: this.getNextStatus(item.StatusId),
       userId: this.currentUserId,
       roleId: this.roleId,
@@ -1368,6 +1432,7 @@ getRawUrl(filePath: string): string {
 
     this.savingRows[item.DocumentPageId] = true;
     item.ExtractedText = payload.extractedText;
+    this.editedTexts[item.DocumentPageId] = payload.extractedText;
     item.StatusId = payload.statusId;
 
     this.service.saveDocumentPage(payload).subscribe({
@@ -1447,7 +1512,9 @@ getRawUrl(filePath: string): string {
               return this.canEdit(item) && nextStatus !== Number(item.StatusId);
             })
             .map((item: any) => {
-              const extractedText = this.editedTexts[item.DocumentPageId] ?? item.ExtractedText;
+              const extractedText = this.normalizeIndentMarkupForStorage(
+                this.editedTexts[item.DocumentPageId] ?? item.ExtractedText ?? '',
+              );
               return {
                 item,
                 extractedText,
@@ -1607,7 +1674,8 @@ getRawUrl(filePath: string): string {
     if (!activeEditor?.editor) return;
 
     event.preventDefault();
-
+    const mode: 'first-line' | 'full' = event.shiftKey ? 'full' : 'first-line';
+    this.applyIndentModeToSelection(activeEditor.editor, mode);
     if (isIndentShortcut) {
       activeEditor.editor.commands.focus().indent().exec();
     } else {
@@ -1621,6 +1689,32 @@ getRawUrl(filePath: string): string {
     }
 
     this.editedTexts[activeEditor.pageId] = this.getEditorContent(activeEditor.pageId);
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  handleIndentToolbarMouseDown(event: MouseEvent) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const button = target.closest('button') as HTMLElement | null;
+    if (!button) return;
+
+    const label = (
+      button.getAttribute('aria-label') ||
+      button.getAttribute('title') ||
+      ''
+    ).toLowerCase();
+
+    const isIncreaseIndent =
+      label.includes('increase indent') ||
+      (label.includes('indent') && !label.includes('decrease'));
+    if (!isIncreaseIndent) return;
+
+    const activeEditor = this.getEditorFromWrapper(target);
+    if (!activeEditor?.editor) return;
+
+    const mode: 'first-line' | 'full' = event.shiftKey ? 'full' : 'first-line';
+    this.applyIndentModeToSelection(activeEditor.editor, mode);
   }
 
   private getActiveNgxEditor(
@@ -1637,6 +1731,26 @@ getRawUrl(filePath: string): string {
     }
 
     const pageWrap = host.closest('[data-page-editor-wrap]') as HTMLElement | null;
+    if (!pageWrap) return null;
+
+    const pageIdValue = pageWrap.getAttribute('data-page-editor-wrap');
+    const pageId = Number(pageIdValue);
+    if (!Number.isFinite(pageId)) return null;
+
+    return { kind: 'page', pageId, editor: this.getOrCreateEditor(pageId) };
+  }
+
+  private getEditorFromWrapper(
+    target: HTMLElement | null,
+  ): { kind: 'summary'; editor: Editor } | { kind: 'page'; pageId: number; editor: Editor } | null {
+    if (!target) return null;
+
+    const summaryWrap = target.closest('[data-summary-editor-wrap="true"]');
+    if (summaryWrap) {
+      return { kind: 'summary', editor: this.summaryEditor };
+    }
+
+    const pageWrap = target.closest('[data-page-editor-wrap]') as HTMLElement | null;
     if (!pageWrap) return null;
 
     const pageIdValue = pageWrap.getAttribute('data-page-editor-wrap');

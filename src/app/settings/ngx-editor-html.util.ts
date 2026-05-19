@@ -1,5 +1,13 @@
-export function normalizeNgxEditorHtml(html: string): string {
+type NormalizeOptions = {
+  forStorage?: boolean;
+};
+
+export function normalizeNgxEditorHtml(
+  html: string,
+  options: NormalizeOptions = {},
+): string {
   if (!html) return '';
+  const forStorage = options.forStorage === true;
 
   let normalized = html
     .replace(/margin-inline-start\s*:/gi, 'margin-left:')
@@ -24,9 +32,16 @@ export function normalizeNgxEditorHtml(html: string): string {
     /<(p|blockquote|h[1-6])([^>]*)>/gi,
     (fullTag, tag, attrs) => {
       const attrText = String(attrs || '');
-      if (/(?:^|\s)indent\s*=/.test(attrText)) return fullTag;
 
       let level: number | null = null;
+
+      const indentAttrMatch = attrText.match(/\bindent\s*=\s*(['"]?)(\d+)\1/i);
+      if (indentAttrMatch) {
+        const parsed = Number.parseInt(indentAttrMatch[2], 10);
+        if (Number.isFinite(parsed) && parsed > 0) {
+          level = parsed;
+        }
+      }
 
       const dataIndentMatch = attrText.match(
         /\bdata-indent\s*=\s*(['"]?)(\d+)\1/i,
@@ -46,6 +61,16 @@ export function normalizeNgxEditorHtml(html: string): string {
           const parsed = Number.parseInt(classIndentMatch[1], 10);
           if (Number.isFinite(parsed) && parsed > 0) {
             level = parsed;
+          }
+        }
+      }
+
+      if (level === null) {
+        const styleTextIndentMatch = attrText.match(/text-indent\s*:\s*([0-9.]+)\s*em/i);
+        if (styleTextIndentMatch) {
+          const em = Number.parseFloat(styleTextIndentMatch[1]);
+          if (Number.isFinite(em) && em > 0) {
+            level = Math.round(em / 2);
           }
         }
       }
@@ -73,24 +98,42 @@ export function normalizeNgxEditorHtml(html: string): string {
       if (level === null || !Number.isFinite(level) || level <= 0) return fullTag;
 
       const safeLevel = Math.max(1, Math.min(level, 12));
-      const hasIndentStyle =
-        /(margin-left\s*:|padding-left\s*:|text-indent\s*:)/i.test(attrText);
 
-      let rebuilt = `<${tag}${attrText} indent="${safeLevel}">`;
-      if (!hasIndentStyle) {
-        const marginValue = `${safeLevel * 40}px`;
-        if (/\sstyle\s*=\s*(['"])(.*?)\1/i.test(rebuilt)) {
-          rebuilt = rebuilt.replace(
-            /\sstyle\s*=\s*(['"])(.*?)\1/i,
-            (_styleFull, q, styleValue) =>
-              ` style=${q}${String(styleValue).trim().replace(/;?\s*$/, '; ')}margin-left: ${marginValue}${q}`,
-          );
-        } else {
-          rebuilt = rebuilt.replace(
-            /^<([a-z][\w:-]*)([^>]*)>$/i,
-            `<$1$2 style="margin-left: ${marginValue}">`,
-          );
-        }
+      const modeMatch = attrText.match(/\bdata-indent-mode\s*=\s*(['"]?)(first-line|full)\1/i);
+      // Default to first-line when mode is missing so toolbar indent remains
+      // consistent between editor view and exported PDF/Word.
+      const mode: 'first-line' | 'full' =
+        modeMatch?.[2]?.toLowerCase() === 'full' ? 'full' : 'first-line';
+
+      const shouldStripIndentAttrs = forStorage && mode === 'first-line';
+      const baseAttrs = shouldStripIndentAttrs ? stripIndentAttrs(attrText) : attrText;
+      const indentAttrs = shouldStripIndentAttrs
+        ? ` data-indent-mode="first-line"`
+        : ` indent="${safeLevel}" data-indent="${safeLevel}" data-indent-mode="${mode}"`;
+
+      let rebuilt = `<${tag}${baseAttrs}${indentAttrs}>`;
+      const styleValue = mode === 'full'
+        ? `margin-left: ${safeLevel * 40}px; text-indent: 0;`
+        : `margin-left: 0; text-indent: ${safeLevel * 2}em;`;
+
+      if (/\sstyle\s*=\s*(['"])(.*?)\1/i.test(rebuilt)) {
+        rebuilt = rebuilt.replace(
+          /\sstyle\s*=\s*(['"])(.*?)\1/i,
+          (_styleFull, q, rawStyle) => {
+            const cleaned = removeStyleProps(String(rawStyle || ''), [
+              'margin-left',
+              'padding-left',
+              'text-indent',
+            ]);
+            const merged = `${cleaned}${cleaned ? '; ' : ''}${styleValue}`.trim();
+            return ` style=${q}${merged}${q}`;
+          },
+        );
+      } else {
+        rebuilt = rebuilt.replace(
+          /^<([a-z][\w:-]*)([^>]*)>$/i,
+          `<$1$2 style="${styleValue}">`,
+        );
       }
 
       return rebuilt;
@@ -100,3 +143,27 @@ export function normalizeNgxEditorHtml(html: string): string {
   return normalized;
 }
 
+function removeStyleProps(styleText: string, props: string[]): string {
+  const style = styleText.trim();
+  if (!style) return '';
+
+  const propSet = new Set(props.map((p) => p.toLowerCase()));
+  return style
+    .split(';')
+    .map((chunk) => chunk.trim())
+    .filter(Boolean)
+    .filter((chunk) => {
+      const colonIndex = chunk.indexOf(':');
+      if (colonIndex <= 0) return true;
+      const propName = chunk.slice(0, colonIndex).trim().toLowerCase();
+      return !propSet.has(propName);
+    })
+    .join('; ');
+}
+
+function stripIndentAttrs(attrText: string): string {
+  return attrText
+    .replace(/\s+indent\s*=\s*(['"]).*?\1/gi, '')
+    .replace(/\s+data-indent\s*=\s*(['"]).*?\1/gi, '')
+    .replace(/\s+data-indent-mode\s*=\s*(['"]).*?\1/gi, '');
+}

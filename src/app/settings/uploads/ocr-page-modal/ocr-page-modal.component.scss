@@ -477,6 +477,18 @@ $radius:   10px;
 ::ng-deep .NgxEditor__Content .pm-indent-8,
 ::ng-deep .NgxEditor__Content [data-indent="8"] { margin-left: 0 !important; text-indent: calc(var(--ocr-indent-step) * 8) !important; }
 
+::ng-deep .NgxEditor__Content [data-indent][data-indent-mode="full"] {
+  text-indent: 0 !important;
+}
+::ng-deep .NgxEditor__Content [data-indent="1"][data-indent-mode="full"] { margin-left: 40px !important; }
+::ng-deep .NgxEditor__Content [data-indent="2"][data-indent-mode="full"] { margin-left: 80px !important; }
+::ng-deep .NgxEditor__Content [data-indent="3"][data-indent-mode="full"] { margin-left: 120px !important; }
+::ng-deep .NgxEditor__Content [data-indent="4"][data-indent-mode="full"] { margin-left: 160px !important; }
+::ng-deep .NgxEditor__Content [data-indent="5"][data-indent-mode="full"] { margin-left: 200px !important; }
+::ng-deep .NgxEditor__Content [data-indent="6"][data-indent-mode="full"] { margin-left: 240px !important; }
+::ng-deep .NgxEditor__Content [data-indent="7"][data-indent-mode="full"] { margin-left: 280px !important; }
+::ng-deep .NgxEditor__Content [data-indent="8"][data-indent-mode="full"] { margin-left: 320px !important; }
+
 // Keep ngx color popups inside modal viewport and hide unused "Remove" action.
 ::ng-deep ngx-color-picker .NgxEditor__Popup {
   left: auto;

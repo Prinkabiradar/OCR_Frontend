@@ -1498,7 +1498,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
     const control = this.pages.at(this.currentPageIndex)?.get('extractedText');
     if (!control) return;
 
-    control.setValue(html, { emitEvent: false });
+    control.setValue(normalizeNgxEditorHtml(html), { emitEvent: false });
   }
 
   private runBrowserFind(query: string, backwards = false): boolean {
@@ -1888,12 +1888,13 @@ export class AddImageComponent implements OnInit, OnDestroy {
     }
     this.syncCurrentPageEditorContent();
     const page = this.pages.at(index).value;
+    const normalizedExtractedText = normalizeNgxEditorHtml(page.extractedText || '');
     this.service
       .saveDocumentPage({
         DocumentPageId: 0,
         DocumentId: this.documentId,
         PageNumber: page.pageNumber,
-        ExtractedText: page.extractedText,
+        ExtractedText: normalizedExtractedText,
         StatusId: 0,
         CreatedBy: 1,
         job_id: this.currentJobId,
@@ -1986,12 +1987,13 @@ export class AddImageComponent implements OnInit, OnDestroy {
         this.syncCurrentPageEditorContent();
       }
       const page = this.pages.at(index).value;
+      const normalizedExtractedText = normalizeNgxEditorHtml(page.extractedText || '');
       this.service
         .saveDocumentPage({
           DocumentPageId: 0,
           DocumentId: this.documentId,
           PageNumber: page.pageNumber,
-          ExtractedText: page.extractedText,
+          ExtractedText: normalizedExtractedText,
           StatusId: 0,
           CreatedBy: 1,
           RejectionReason: page.rejectionreason,

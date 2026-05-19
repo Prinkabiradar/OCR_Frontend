@@ -376,7 +376,8 @@ export class OcrDataComponent implements OnInit {
       this.service.getPdf(id, this.roleId).subscribe({
         next: (res: Blob) => {
           const fileURL = URL.createObjectURL(res);
-          window.open(fileURL, '_blank');
+          window.open(fileURL, '_blank', 'noopener');
+          setTimeout(() => URL.revokeObjectURL(fileURL), 60_000);
           this.loadingPdfIds.delete(id);
           this.cdr.detectChanges();
         },

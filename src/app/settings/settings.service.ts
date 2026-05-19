@@ -773,11 +773,15 @@ getDocuments(
 getPdf(documentId: number, roleId: number): Observable<Blob> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
   const headers = new HttpHeaders({
-    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
   });
 
+  const cacheBust = Date.now();
   return this.http.get(
-    `${environment.BaseUrl}api/DocumentPdf/GeneratePdf?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}`,
+    `${environment.BaseUrl}api/DocumentPdf/GeneratePdf?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}&_=${cacheBust}`,
     { headers, responseType: 'blob' }
   );
 }
@@ -1135,11 +1139,15 @@ UsersGET(
 getWord(documentId: number, roleId: number): Observable<HttpResponse<Blob>> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
   const headers = new HttpHeaders({
-    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken,
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    Pragma: 'no-cache',
+    Expires: '0',
   });
 
+  const cacheBust = Date.now();
   return this.http.get(
-    `${environment.BaseUrl}api/DocumentPdf/GenerateWord?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}`,
+    `${environment.BaseUrl}api/DocumentPdf/GenerateWord?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}&_=${cacheBust}`,
     { headers, responseType: 'blob', observe: 'response' }  // ← add observe: 'response'
   );
 }
