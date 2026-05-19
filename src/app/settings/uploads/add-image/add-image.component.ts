@@ -10,6 +10,7 @@ import { Options } from 'select2';
 import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
 import { Router } from '@angular/router';
+import { normalizeNgxEditorHtml } from '../../ngx-editor-html.util';
 
 interface ParsedOcrPage {
   fileName: string;
@@ -92,7 +93,8 @@ export class AddImageComponent implements OnInit, OnDestroy {
     ['ordered_list', 'bullet_list'],
     [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
     ['blockquote'],
-    ['align_left', 'align_center', 'align_right'],
+    ['align_left', 'align_center', 'align_right', 'align_justify'],
+    ['indent', 'outdent'],
     ['link', 'image'],
     ['text_color', 'background_color'],
     ['format_clear'],
@@ -760,7 +762,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   private preserveLines(text: string): string {
     // If already HTML, return as-is
-    if (text.trim().startsWith('<')) return text;
+    if (text.trim().startsWith('<')) return normalizeNgxEditorHtml(text);
 
     return text
       .split('\n')
@@ -1483,6 +1485,22 @@ export class AddImageComponent implements OnInit, OnDestroy {
     contentEditable?.focus();
   }
 
+  /**
+   * ngx-editor toolbar actions (indent/outdent/alignment) may not emit immediate
+   * form value changes. Capture live editor HTML before save or page switch.
+   */
+  private syncCurrentPageEditorContent(): void {
+    const host = this.pageEditorContainer?.nativeElement;
+    const contentEditable = host?.querySelector('[contenteditable="true"]') as HTMLElement | null;
+    if (!contentEditable) return;
+
+    const html = contentEditable.innerHTML ?? '';
+    const control = this.pages.at(this.currentPageIndex)?.get('extractedText');
+    if (!control) return;
+
+    control.setValue(html, { emitEvent: false });
+  }
+
   private runBrowserFind(query: string, backwards = false): boolean {
     const browserWindow = window as Window & {
       find?: (
@@ -1521,6 +1539,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   goToPage(index: number) {
     if (index < 0 || index >= this.pages.controls.length) return;
+    this.syncCurrentPageEditorContent();
     this.pageEditor.destroy();
     this.pageEditor = new Editor();
     this.currentPageIndex = index;
@@ -1867,6 +1886,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       });
       return;
     }
+    this.syncCurrentPageEditorContent();
     const page = this.pages.at(index).value;
     this.service
       .saveDocumentPage({
@@ -1924,6 +1944,7 @@ export class AddImageComponent implements OnInit, OnDestroy {
       });
       return;
     }
+    this.syncCurrentPageEditorContent();
     const unsaved = this.pages.controls
       .map((_, i) => i)
       .filter((i) => !this.savedPages.has(i));
@@ -1961,6 +1982,9 @@ export class AddImageComponent implements OnInit, OnDestroy {
 
   private savePageAsync(index: number): Promise<void> {
     return new Promise((resolve, reject) => {
+      if (index === this.currentPageIndex) {
+        this.syncCurrentPageEditorContent();
+      }
       const page = this.pages.at(index).value;
       this.service
         .saveDocumentPage({

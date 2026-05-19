@@ -435,6 +435,47 @@ $radius:   10px;
   padding: 12px;
 }
 
+/* Ensure persisted indent classes/attributes render after reopen */
+::ng-deep .NgxEditor__Content [class*="ql-indent-"],
+::ng-deep .NgxEditor__Content [class*="indent-"],
+::ng-deep .NgxEditor__Content [class*="pm-indent-"],
+::ng-deep .NgxEditor__Content [data-indent] {
+  --ocr-indent-step: 2em;
+}
+
+::ng-deep .NgxEditor__Content .ql-indent-1,
+::ng-deep .NgxEditor__Content .indent-1,
+::ng-deep .NgxEditor__Content .pm-indent-1,
+::ng-deep .NgxEditor__Content [data-indent="1"] { margin-left: calc(var(--ocr-indent-step) * 1) !important; }
+::ng-deep .NgxEditor__Content .ql-indent-2,
+::ng-deep .NgxEditor__Content .indent-2,
+::ng-deep .NgxEditor__Content .pm-indent-2,
+::ng-deep .NgxEditor__Content [data-indent="2"] { margin-left: calc(var(--ocr-indent-step) * 2) !important; }
+::ng-deep .NgxEditor__Content .ql-indent-3,
+::ng-deep .NgxEditor__Content .indent-3,
+::ng-deep .NgxEditor__Content .pm-indent-3,
+::ng-deep .NgxEditor__Content [data-indent="3"] { margin-left: calc(var(--ocr-indent-step) * 3) !important; }
+::ng-deep .NgxEditor__Content .ql-indent-4,
+::ng-deep .NgxEditor__Content .indent-4,
+::ng-deep .NgxEditor__Content .pm-indent-4,
+::ng-deep .NgxEditor__Content [data-indent="4"] { margin-left: calc(var(--ocr-indent-step) * 4) !important; }
+::ng-deep .NgxEditor__Content .ql-indent-5,
+::ng-deep .NgxEditor__Content .indent-5,
+::ng-deep .NgxEditor__Content .pm-indent-5,
+::ng-deep .NgxEditor__Content [data-indent="5"] { margin-left: calc(var(--ocr-indent-step) * 5) !important; }
+::ng-deep .NgxEditor__Content .ql-indent-6,
+::ng-deep .NgxEditor__Content .indent-6,
+::ng-deep .NgxEditor__Content .pm-indent-6,
+::ng-deep .NgxEditor__Content [data-indent="6"] { margin-left: calc(var(--ocr-indent-step) * 6) !important; }
+::ng-deep .NgxEditor__Content .ql-indent-7,
+::ng-deep .NgxEditor__Content .indent-7,
+::ng-deep .NgxEditor__Content .pm-indent-7,
+::ng-deep .NgxEditor__Content [data-indent="7"] { margin-left: calc(var(--ocr-indent-step) * 7) !important; }
+::ng-deep .NgxEditor__Content .ql-indent-8,
+::ng-deep .NgxEditor__Content .indent-8,
+::ng-deep .NgxEditor__Content .pm-indent-8,
+::ng-deep .NgxEditor__Content [data-indent="8"] { margin-left: calc(var(--ocr-indent-step) * 8) !important; }
+
 // Keep ngx color popups inside modal viewport and hide unused "Remove" action.
 ::ng-deep ngx-color-picker .NgxEditor__Popup {
   left: auto;

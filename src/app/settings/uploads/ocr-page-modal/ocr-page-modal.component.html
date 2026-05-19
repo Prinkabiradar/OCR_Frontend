@@ -399,15 +399,15 @@
         <div class="page-local-nav">
           <button
             class="btn btn--footer btn--footer-ghost btn--sm"
-            [disabled]="absolutePageNumber === 1"
+            [disabled]="currentPageNumber === 1"
             (click)="goToPrevious()"
           >
             ← Prev Page
           </button>
-          <span class="page-info">Page {{ absolutePageNumber }} of {{ totalRecords }}</span>
+          <span class="page-info">Page {{ currentPageNumber }} of {{ totalRecords }}</span>
           <button
             class="btn btn--footer btn--footer-ghost btn--sm"
-            [disabled]="absolutePageNumber === totalRecords"
+            [disabled]="currentPageNumber === totalRecords"
             (click)="goToNext()"
           >
             Next Page →
@@ -444,14 +444,14 @@
         </div>
 
         <div class="page-jump page-jump--swap">
-          <span class="page-jump__label">Current: {{ absolutePageNumber }}</span>
+          <span class="page-jump__label">Current: {{ currentPageNumber }}</span>
           <span class="page-jump__label">|</span>
           
         
         <button
           type="button"
           class="btn btn--footer btn--footer-ghost btn--sm"
-          [disabled]="absolutePageNumber === 1 || swappingPages"
+          [disabled]="currentPageNumber === 1 || swappingPages"
           (click)="swapCurrentPageWithPrevious()"
         >
           ⇄ Prev
@@ -478,7 +478,7 @@
         <button
           type="button"
           class="btn btn--footer btn--footer-ghost btn--sm"
-          [disabled]="absolutePageNumber === totalRecords || swappingPages"
+          [disabled]="currentPageNumber === totalRecords || swappingPages"
           (click)="swapCurrentPageWithNext()"
         >
           Next ⇄

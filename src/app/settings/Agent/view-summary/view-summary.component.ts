@@ -4,6 +4,7 @@ import { ServiceService } from '../../settings.service';
 import { environment } from 'src/environments/environment';
 import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
+import { normalizeNgxEditorHtml } from '../../ngx-editor-html.util';
 
 @Component({
   selector: 'app-view-summary',
@@ -76,6 +77,8 @@ export class ViewSummaryComponent implements OnInit, OnDestroy {
 
   // Simple markdown → HTML converter (no extra library needed)
   private markdownToHtml(text: string): string {
+    if (text.trim().startsWith('<')) return normalizeNgxEditorHtml(text);
+
     return text
       // Headers
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')

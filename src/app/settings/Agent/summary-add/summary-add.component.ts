@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
 import { Options } from 'select2';
 import { Router } from '@angular/router';
+import { normalizeNgxEditorHtml } from '../../ngx-editor-html.util';
 
 @Component({
   selector: 'app-summary-add',
@@ -236,7 +237,7 @@ export class SummaryAddComponent implements OnInit ,OnDestroy {
   }
   private markdownToHtml(text: string): string {
     // If it already looks like HTML, return as-is
-    if (text.trim().startsWith('<')) return text;
+    if (text.trim().startsWith('<')) return normalizeNgxEditorHtml(text);
   
     return text
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')

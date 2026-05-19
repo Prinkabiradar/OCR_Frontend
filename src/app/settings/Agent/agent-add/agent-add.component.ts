@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import Swal from 'sweetalert2';
 import { Editor, Toolbar } from 'ngx-editor';
+import { normalizeNgxEditorHtml } from '../../ngx-editor-html.util';
 
 @Component({
   selector: 'app-agent-add',
@@ -524,7 +525,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
 
   private preserveLines(text: string): string {
     if (!text) return '';
-    if (text.trim().startsWith('<')) return text;
+    if (text.trim().startsWith('<')) return normalizeNgxEditorHtml(text);
     return text
       .split('\n')
       .map(line => {

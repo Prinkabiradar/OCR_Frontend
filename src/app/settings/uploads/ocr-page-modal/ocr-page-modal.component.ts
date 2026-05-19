@@ -18,6 +18,7 @@ import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { removeMark } from 'ngx-editor/commands';
+import { normalizeNgxEditorHtml } from '../../ngx-editor-html.util';
 
 @Component({
   selector: 'app-ocr-page-modal',
@@ -322,7 +323,7 @@ getRawUrl(filePath: string): string {
   }
 
   private markdownToHtml(text: string): string {
-    if (text.trim().startsWith('<')) return text;
+    if (text.trim().startsWith('<')) return this.normalizeIndentMarkupForEditor(text);
     return text
       .replace(/^### (.+)$/gm, '<h3>$1</h3>')
       .replace(/^## (.+)$/gm, '<h2>$1</h2>')
@@ -359,6 +360,7 @@ getRawUrl(filePath: string): string {
   }
 
   saveSummary() {
+    this.summary = this.getSummaryEditorContent();
     if (!this.documentName || !this.summary.trim()) return;
     this.isSavingSummary = true;
     this.cdr.detectChanges();
@@ -408,6 +410,25 @@ getRawUrl(filePath: string): string {
 
   onSummaryEdit() {
     this.summaryDirty = true;
+  }
+
+  private getSummaryEditorContent(): string {
+    const editor = this.summaryEditor;
+    if (!editor?.view?.dom) return this.summary || '';
+
+    try {
+      const editorElement = editor.view.dom as HTMLElement;
+      const contentEditable = editorElement.querySelector(
+        '[contenteditable="true"]',
+      ) as HTMLElement | null;
+      if (contentEditable) {
+        return contentEditable.innerHTML || '';
+      }
+      return editorElement.innerHTML || this.summary || '';
+    } catch (error) {
+      console.warn('Failed to read summary editor content, using ngModel value', error);
+      return this.summary || '';
+    }
   }
 
   findInSummaryEditor(direction: 'next' | 'prev' = 'next') {
@@ -525,6 +546,57 @@ getRawUrl(filePath: string): string {
 
   // ─── EDITOR HELPERS ─────────────────────────────────────────────────────────
 
+  /**
+   * Get the current HTML content from the ngx-editor instance.
+   * This is crucial because toolbar button clicks (indent, bold, etc.) don't trigger ngModelChange.
+   */
+  private getEditorContent(editorId: number): string {
+    const wrapperContentEditable = this.elementRef.nativeElement.querySelector(
+      `[data-page-editor-wrap="${editorId}"] [contenteditable="true"]`,
+    ) as HTMLElement | null;
+    if (wrapperContentEditable) {
+      return wrapperContentEditable.innerHTML || '';
+    }
+
+    const editor = this.pageEditors[editorId];
+    if (!editor || !editor.view) {
+      return this.editedTexts[editorId] || '';
+    }
+
+    try {
+      // Prefer live contenteditable HTML because toolbar-only actions
+      // (indent/outdent/alignment) may not update ngModel immediately.
+      if (editor.view.dom) {
+        const editorElement = editor.view.dom as HTMLElement;
+        const contentEditable = editorElement.querySelector(
+          '[contenteditable="true"]',
+        ) as HTMLElement | null;
+        if (contentEditable) {
+          return contentEditable.innerHTML || '';
+        }
+        return editorElement.innerHTML || '';
+      }
+    } catch (e) {
+      console.warn('Failed to get editor HTML, falling back to editedTexts', e);
+    }
+
+    return this.editedTexts[editorId] || '';
+  }
+
+  /**
+   * Sync all editor content with editedTexts before saving.
+   * This ensures toolbar formatting changes are captured.
+   */
+  private syncAllEditorContent(): void {
+    Object.keys(this.pageEditors).forEach((editorId) => {
+      const id = Number(editorId);
+      const freshContent = this.getEditorContent(id);
+      if (freshContent && freshContent.trim()) {
+        this.editedTexts[id] = freshContent;
+      }
+    });
+  }
+
   private preserveLines(text: string): string {
     if (!text) return '';
     const normalized = this.normalizeForEditor(text);
@@ -558,6 +630,18 @@ getRawUrl(filePath: string): string {
   private normalizeForEditor(value: string): string {
     if (!value) return '';
 
+    // If value contains HTML markup, preserve it (don't decode it to plain text)
+    if (value.trim().startsWith('<')) {
+      // Just handle escape sequences, keep HTML intact
+      const cleaned = value
+        .replace(/\\r/g, '\r')
+        .replace(/\\n/g, '\n')
+        .replace(/\r\n/g, '\n')
+        .trim();
+      return this.normalizeIndentMarkupForEditor(cleaned);
+    }
+
+    // For plain text values, decode HTML entities but preserve newlines
     const textarea = document.createElement('textarea');
     textarea.innerHTML = value;
     const decoded = textarea.value;
@@ -567,6 +651,14 @@ getRawUrl(filePath: string): string {
       .replace(/\\n/g, '\n')
       .replace(/\r\n/g, '\n')
       .trim();
+  }
+
+  /**
+   * Converts persisted class/data-indent based indentation into inline styles
+   * so ngx-editor reliably renders indentation after reopening from DB.
+   */
+  private normalizeIndentMarkupForEditor(html: string): string {
+    return normalizeNgxEditorHtml(html);
   }
 
   getOrCreateEditor(id: number): Editor {
@@ -675,9 +767,16 @@ getRawUrl(filePath: string): string {
 
           this.pageList.forEach((item) => {
             if (!this.editedTexts[item.DocumentPageId]) {
-              this.editedTexts[item.DocumentPageId] = this.preserveLines(
-                item.ExtractedText,
-              );
+              // If the extracted text contains HTML (from database), use it directly
+              // to preserve indentation markup and other formatting
+              const extractedText = item.ExtractedText;
+              if (extractedText && extractedText.trim().startsWith('<')) {
+                const normalizedHtml = this.normalizeIndentMarkupForEditor(extractedText);
+                this.editedTexts[item.DocumentPageId] = normalizedHtml;
+              } else {
+                // For plain text, process with preserveLines
+                this.editedTexts[item.DocumentPageId] = this.preserveLines(extractedText);
+              }
             }
             this.getOrCreateEditor(item.DocumentPageId);
           });
@@ -833,6 +932,14 @@ getRawUrl(filePath: string): string {
     return Math.round((this.absolutePageNumber / this.totalRecords) * 100);
   }
 
+  get currentPageNumber(): number {
+    const selectedNumber = Number(this.selectedItem?.PageNumber);
+    if (Number.isFinite(selectedNumber) && selectedNumber > 0) {
+      return selectedNumber;
+    }
+    return this.absolutePageNumber;
+  }
+
   get editorGuidanceText(): string {
     if (this.roleId === 1) return 'Check OCR text against the original page.';
     if (this.roleId === 2) return 'Verify corrections and confirm page quality.';
@@ -984,18 +1091,18 @@ getRawUrl(filePath: string): string {
     if (!this.statusTargetPageNumbers.length) return;
 
     const nextPage =
-      this.statusTargetPageNumbers.find((pageNumber) => pageNumber >= this.absolutePageNumber) ??
+      this.statusTargetPageNumbers.find((pageNumber) => pageNumber >= this.currentPageNumber) ??
       this.statusTargetPageNumbers[0];
 
     this.jumpToPage(nextPage);
   }
 
   swapCurrentPageWithPrevious(): void {
-    this.swapPagesByNumber(this.absolutePageNumber, this.absolutePageNumber - 1);
+    this.swapPagesByNumber(this.currentPageNumber, this.currentPageNumber - 1);
   }
 
   swapCurrentPageWithNext(): void {
-    this.swapPagesByNumber(this.absolutePageNumber, this.absolutePageNumber + 1);
+    this.swapPagesByNumber(this.currentPageNumber, this.currentPageNumber + 1);
   }
 
   swapCurrentPageToTarget(rawValue: string | number): void {
@@ -1006,12 +1113,12 @@ getRawUrl(filePath: string): string {
     if (Number.isNaN(parsed)) return;
 
     const targetPage = Math.max(1, Math.min(total, parsed));
-    if (targetPage === this.absolutePageNumber) {
+    if (targetPage === this.currentPageNumber) {
       this.swapToPageInput = '';
       return;
     }
 
-    this.swapPagesByNumber(this.absolutePageNumber, targetPage);
+    this.swapPagesByNumber(this.currentPageNumber, targetPage);
     this.swapToPageInput = '';
   }
 
@@ -1045,56 +1152,72 @@ getRawUrl(filePath: string): string {
         const firstText = this.editedTexts[firstPage.DocumentPageId] ?? firstPage.ExtractedText ?? '';
         const secondText = this.editedTexts[secondPage.DocumentPageId] ?? secondPage.ExtractedText ?? '';
 
-        const firstPayload = {
-          documentPageId: firstPage.DocumentPageId,
-          documentId: firstPage.DocumentId,
-          pageNumber: pageB,
-          extractedText: firstText,
-          statusId: Number(firstPage.StatusId),
-          userId: this.currentUserId,
-          roleId: this.roleId,
-          rejectionReason: firstPage.RejectionReason ?? '',
-        };
+        if (!this.canEdit(firstPage) || !this.canEdit(secondPage)) {
+          this.swappingPages = false;
+          this.cdr.detectChanges();
+          Swal.fire(
+            'Not Allowed',
+            'One of the selected pages is locked for your role/status, so swap cannot be performed.',
+            'warning',
+          );
+          return;
+        }
 
-        const secondPayload = {
-          documentPageId: secondPage.DocumentPageId,
-          documentId: secondPage.DocumentId,
-          pageNumber: pageA,
-          extractedText: secondText,
-          statusId: Number(secondPage.StatusId),
-          userId: this.currentUserId,
-          roleId: this.roleId,
-          rejectionReason: secondPage.RejectionReason ?? '',
-        };
+        const firstPayload = this.buildSwapSavePayload(firstPage, pageB, firstText);
+        const secondPayload = this.buildSwapSavePayload(secondPage, pageA, secondText);
 
-        // Use a temporary page number to avoid duplicate key/conflict while swapping.
-        const tempPageNumber = Math.max(this.totalRecords + 1000, 9999);
-        const firstToTempPayload = { ...firstPayload, pageNumber: tempPageNumber };
+        const tempCandidates = Array.from(
+          new Set([
+            this.totalRecords + 1,
+            Math.max(pageA, pageB) + 1,
+            9999,
+            1000000,
+          ]),
+        ).filter((n) => Number.isFinite(n) && n > 0 && n !== pageA && n !== pageB);
 
-        this.service.saveDocumentPage(firstToTempPayload).subscribe({
-          next: () => {
-            this.service.saveDocumentPage(secondPayload).subscribe({
-              next: () => {
-                this.service.saveDocumentPage(firstPayload).subscribe({
-                  next: () => {
-                    this.swappingPages = false;
-                    this.loadStatusTargetPages();
-                    this.jumpToPage(pageB);
-                    this.cdr.detectChanges();
-                    Swal.fire('Swapped', `Page ${pageA} and Page ${pageB} swapped successfully.`, 'success');
-                  },
-                  error: (err) => {
-                    this.swappingPages = false;
-                    this.cdr.detectChanges();
-                    Swal.fire(
-                      'Error',
-                      err?.error?.message || 'Failed to finalize page swap.',
-                      'error',
-                    );
-                  },
-                });
-              },
-              error: (err) => {
+        const tryPrepareSwap = (candidateIndex: number) => {
+          if (candidateIndex >= tempCandidates.length) {
+            this.swappingPages = false;
+            this.cdr.detectChanges();
+            Swal.fire(
+              'Error',
+              'Unable to prepare page swap with valid temporary page number.',
+              'error',
+            );
+            return;
+          }
+
+          const tempPageNumber = tempCandidates[candidateIndex];
+          const firstToTempPayload = this.buildSwapSavePayload(
+            firstPage,
+            tempPageNumber,
+            firstText,
+          );
+
+          this.service.saveDocumentPage(firstToTempPayload).subscribe({
+            next: () => {
+              this.service.saveDocumentPage(secondPayload).subscribe({
+                next: () => {
+                  this.service.saveDocumentPage(firstPayload).subscribe({
+                    next: () => {
+                      this.swappingPages = false;
+                      this.loadStatusTargetPages();
+                      this.jumpToPage(pageB);
+                      this.cdr.detectChanges();
+                      Swal.fire('Swapped', `Page ${pageA} and Page ${pageB} swapped successfully.`, 'success');
+                    },
+                    error: (err) => {
+                      this.swappingPages = false;
+                      this.cdr.detectChanges();
+                      Swal.fire(
+                        'Error',
+                        err?.error?.message || 'Failed to finalize page swap.',
+                        'error',
+                      );
+                    },
+                  });
+                },
+                error: (err) => {
                 this.swappingPages = false;
                 this.cdr.detectChanges();
                 Swal.fire(
@@ -1102,19 +1225,18 @@ getRawUrl(filePath: string): string {
                   err?.error?.message || 'Failed to move target page during swap.',
                   'error',
                 );
-              },
-            });
-          },
-          error: (err) => {
-            this.swappingPages = false;
-            this.cdr.detectChanges();
-            Swal.fire(
-              'Error',
-              err?.error?.message || 'Failed to prepare page swap.',
-              'error',
-            );
-          },
-        });
+                },
+              });
+            },
+            error: () => {
+              // Retry with a different temporary page number for backends
+              // that enforce strict page-number bounds/uniqueness rules.
+              tryPrepareSwap(candidateIndex + 1);
+            },
+          });
+        };
+
+        tryPrepareSwap(0);
       }, () => {
         this.swappingPages = false;
         this.cdr.detectChanges();
@@ -1125,6 +1247,19 @@ getRawUrl(filePath: string): string {
       this.cdr.detectChanges();
       Swal.fire('Error', 'Unable to load source page for swapping.', 'error');
     });
+  }
+
+  private buildSwapSavePayload(page: any, targetPageNumber: number, extractedText: string): any {
+    return {
+      documentPageId: page.DocumentPageId,
+      documentId: page.DocumentId,
+      pageNumber: targetPageNumber,
+      extractedText,
+      statusId: Number(page.StatusId),
+      userId: this.currentUserId,
+      roleId: this.roleId,
+      rejectionReason: page.RejectionReason ?? '',
+    };
   }
 
   get canReject(): boolean {
@@ -1212,7 +1347,12 @@ getRawUrl(filePath: string): string {
 
     if (this.savingRows[item.DocumentPageId]) return;
 
+    // CRITICAL: Sync editor content before saving
+    // This captures toolbar button changes (indent, bold, etc.) that don't trigger ngModelChange
+    this.syncAllEditorContent();
+
     const oldText = item.ExtractedText;
+    const oldEditedText = this.editedTexts[item.DocumentPageId];
     const oldStatus = item.StatusId;
 
     const payload = {
@@ -1235,6 +1375,7 @@ getRawUrl(filePath: string): string {
         this.savedRows[item.DocumentPageId] = true;
         this.savingRows[item.DocumentPageId] = false;
         this.loadStatusTargetPages();
+        this.cdr.detectChanges();
 
         Swal.fire({
           icon: 'success',
@@ -1256,8 +1397,10 @@ getRawUrl(filePath: string): string {
       },
       error: () => {
         item.ExtractedText = oldText;
+        this.editedTexts[item.DocumentPageId] = oldEditedText;
         item.StatusId = oldStatus;
         this.savingRows[item.DocumentPageId] = false;
+        this.cdr.detectChanges();
         Swal.fire({ icon: 'error', title: 'Error', text: 'This Document is already saved.' });
       },
     });
@@ -1277,6 +1420,10 @@ getRawUrl(filePath: string): string {
       confirmButtonColor: '#16a34a',
     }).then((result) => {
       if (!result.isConfirmed) return;
+
+      // CRITICAL: Sync all editor content before saving
+      // This captures toolbar button changes that don't trigger ngModelChange
+      this.syncAllEditorContent();
 
       this.savingAll = true;
       this.cdr.detectChanges();
@@ -1299,19 +1446,23 @@ getRawUrl(filePath: string): string {
               const nextStatus = this.getNextStatus(Number(item.StatusId));
               return this.canEdit(item) && nextStatus !== Number(item.StatusId);
             })
-            .map((item: any) =>
-              this.service.saveDocumentPage({
-                documentPageId: item.DocumentPageId,
-                documentId: item.DocumentId,
-                pageNumber: item.PageNumber,
-                extractedText:
-                  this.editedTexts[item.DocumentPageId] ?? item.ExtractedText,
-                statusId: this.getNextStatus(Number(item.StatusId)),
-                userId: this.currentUserId,
-                roleId: this.roleId,
-                rejectionReason: '',
-              }),
-            );
+            .map((item: any) => {
+              const extractedText = this.editedTexts[item.DocumentPageId] ?? item.ExtractedText;
+              return {
+                item,
+                extractedText,
+                request: this.service.saveDocumentPage({
+                  documentPageId: item.DocumentPageId,
+                  documentId: item.DocumentId,
+                  pageNumber: item.PageNumber,
+                  extractedText: extractedText,
+                  statusId: this.getNextStatus(Number(item.StatusId)),
+                  userId: this.currentUserId,
+                  roleId: this.roleId,
+                  rejectionReason: '',
+                }),
+              };
+            });
 
           if (!requests.length) {
             this.savingAll = false;
@@ -1320,9 +1471,20 @@ getRawUrl(filePath: string): string {
             return;
           }
 
-          forkJoin(requests).subscribe({
+          const requestsOnly = requests.map((r) => r.request);
+
+          forkJoin(requestsOnly).subscribe({
             next: () => {
+              // Update editedTexts with saved content
+              requests.forEach((r) => {
+                if (r.item && r.extractedText) {
+                  this.editedTexts[r.item.DocumentPageId] = r.extractedText;
+                  r.item.ExtractedText = r.extractedText;
+                }
+              });
+              
               this.savingAll = false;
+              this.cdr.detectChanges();
               Swal.fire('Success', 'All pages verified successfully.', 'success').then(() => {
                 this.modalRef.close(true);
                 this.router.navigate(['/settings/ocr-data']);
