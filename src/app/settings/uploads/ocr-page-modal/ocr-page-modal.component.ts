@@ -1586,11 +1586,63 @@ getRawUrl(filePath: string): string {
     }
   }
 
-  // ─── CTRL + S ───────────────────────────────────────────────────────────────
+  @HostListener('document:keydown', ['$event'])
+  handleGlobalEditorShortcuts(event: KeyboardEvent) {
+    const hasModKey = event.ctrlKey || event.metaKey;
+    if (!hasModKey || event.altKey) return;
 
-  @HostListener('document:keydown.control.s', ['$event'])
-  handleSave(event: KeyboardEvent) {
+    const key = event.key.toLowerCase();
+    if (key === 's') {
+      event.preventDefault();
+      this.saveAll();
+      return;
+    }
+
+    const isIndentShortcut = event.code === 'BracketRight' || event.key === ']';
+    const isOutdentShortcut = event.code === 'BracketLeft' || event.key === '[';
+    if (!isIndentShortcut && !isOutdentShortcut) return;
+
+    const target = event.target as HTMLElement | null;
+    const activeEditor = this.getActiveNgxEditor(target);
+    if (!activeEditor?.editor) return;
+
     event.preventDefault();
-    this.saveAll();
+
+    if (isIndentShortcut) {
+      activeEditor.editor.commands.focus().indent().exec();
+    } else {
+      activeEditor.editor.commands.focus().outdent().exec();
+    }
+
+    if (activeEditor.kind === 'summary') {
+      this.summaryDirty = true;
+      this.summary = this.getSummaryEditorContent();
+      return;
+    }
+
+    this.editedTexts[activeEditor.pageId] = this.getEditorContent(activeEditor.pageId);
+  }
+
+  private getActiveNgxEditor(
+    target: HTMLElement | null,
+  ): { kind: 'summary'; editor: Editor } | { kind: 'page'; pageId: number; editor: Editor } | null {
+    if (!target) return null;
+
+    const host = target.closest('.NgxEditor, .NgxEditor__Content, [contenteditable="true"]');
+    if (!host) return null;
+
+    const summaryWrap = host.closest('[data-summary-editor-wrap="true"]');
+    if (summaryWrap) {
+      return { kind: 'summary', editor: this.summaryEditor };
+    }
+
+    const pageWrap = host.closest('[data-page-editor-wrap]') as HTMLElement | null;
+    if (!pageWrap) return null;
+
+    const pageIdValue = pageWrap.getAttribute('data-page-editor-wrap');
+    const pageId = Number(pageIdValue);
+    if (!Number.isFinite(pageId)) return null;
+
+    return { kind: 'page', pageId, editor: this.getOrCreateEditor(pageId) };
   }
 }

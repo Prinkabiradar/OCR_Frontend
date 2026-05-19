@@ -5,7 +5,7 @@
   >
     <div>
       <h4 class="ocr-title mb-0">{{ documentName }}</h4>
-      <small class="text-muted">Proofreading workspace: compare original and OCR text st</small>
+      <small class="text-muted">Proofreading workspace: compare original and OCR text</small>
     </div>
     <div class="d-flex align-items-center gap-2">
       <button
@@ -59,49 +59,51 @@
       </div>
 
       <div class="ocr-editor-wrap p-2" data-summary-editor-wrap="true">
-        <div class="editor-search-row">
-          <input
-            type="text"
-            class="form-control form-control-sm"
-            [(ngModel)]="summarySearchTerm"
-            placeholder="Search in summary..."
-            (keyup.enter)="findInSummaryEditor('next')"
-          />
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            (click)="findInSummaryEditor('prev')"
-          >
-            Find Previous
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            (click)="findInSummaryEditor('next')"
-          >
-            Find Next
-          </button>
-        </div>
-        <ngx-editor-menu
-          [editor]="summaryEditor"
-          [toolbar]="summaryToolbar"
-          [colorPresets]="colorPresets"
-        ></ngx-editor-menu>
-        <div class="d-flex gap-2 py-1">
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            (click)="clearTextColor(summaryEditor)"
-          >
-            Clear Text Color
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline-secondary btn-sm"
-            (click)="clearBackgroundColor(summaryEditor)"
-          >
-            Clear Highlight
-          </button>
+        <div class="editor-toolbar-sticky">
+          <div class="editor-search-row">
+            <input
+              type="text"
+              class="form-control form-control-sm"
+              [(ngModel)]="summarySearchTerm"
+              placeholder="Search in summary..."
+              (keyup.enter)="findInSummaryEditor('next')"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="findInSummaryEditor('prev')"
+            >
+              Find Previous
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="findInSummaryEditor('next')"
+            >
+              Find Next
+            </button>
+          </div>
+          <ngx-editor-menu
+            [editor]="summaryEditor"
+            [toolbar]="summaryToolbar"
+            [colorPresets]="colorPresets"
+          ></ngx-editor-menu>
+          <div class="d-flex gap-2 py-1">
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="clearTextColor(summaryEditor)"
+            >
+              Clear Text Color
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              (click)="clearBackgroundColor(summaryEditor)"
+            >
+              Clear Highlight
+            </button>
+          </div>
         </div>
         <ngx-editor
           class="summary-editor"
@@ -309,52 +311,54 @@
               class="panel-content editor-wrap"
               [attr.data-page-editor-wrap]="item.DocumentPageId"
             >
-              <div class="editor-search-row">
-                <input
-                  type="text"
-                  class="form-control form-control-sm"
-                  [(ngModel)]="pageSearchTerms[item.DocumentPageId]"
-                  placeholder="Search in OCR text..."
-                  (keyup.enter)="findInPageEditor(item.DocumentPageId, 'next')"
-                />
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  (click)="findInPageEditor(item.DocumentPageId, 'prev')"
+              <div class="editor-toolbar-sticky">
+                <div class="editor-search-row">
+                  <input
+                    type="text"
+                    class="form-control form-control-sm"
+                    [(ngModel)]="pageSearchTerms[item.DocumentPageId]"
+                    placeholder="Search in OCR text..."
+                    (keyup.enter)="findInPageEditor(item.DocumentPageId, 'next')"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="findInPageEditor(item.DocumentPageId, 'prev')"
+                  >
+                    Find Previous
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="findInPageEditor(item.DocumentPageId, 'next')"
+                  >
+                    Find Next
+                  </button>
+                </div>
+                <ngx-editor-menu
+                  [editor]="getOrCreateEditor(item.DocumentPageId)"
+                  [toolbar]="pageToolbar"
+                  [colorPresets]="colorPresets"
                 >
-                  Find Previous
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  (click)="findInPageEditor(item.DocumentPageId, 'next')"
-                >
-                  Find Next
-                </button>
-              </div>
-              <ngx-editor-menu
-                [editor]="getOrCreateEditor(item.DocumentPageId)"
-                [toolbar]="pageToolbar"
-                [colorPresets]="colorPresets"
-              >
-              </ngx-editor-menu>
-              <div class="d-flex gap-2 py-1">
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  (click)="clearTextColor(getOrCreateEditor(item.DocumentPageId))"
-                >
-                  Clear Text Color
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-secondary btn-sm"
-                  (click)="
-                    clearBackgroundColor(getOrCreateEditor(item.DocumentPageId))
-                  "
-                >
-                  Clear Highlight
-                </button>
+                </ngx-editor-menu>
+                <div class="d-flex gap-2 py-1">
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="clearTextColor(getOrCreateEditor(item.DocumentPageId))"
+                  >
+                    Clear Text Color
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    (click)="
+                      clearBackgroundColor(getOrCreateEditor(item.DocumentPageId))
+                    "
+                  >
+                    Clear Highlight
+                  </button>
+                </div>
               </div>
               <ngx-editor
                 [editor]="getOrCreateEditor(item.DocumentPageId)"
