@@ -9,12 +9,12 @@
       <div class="col-md-3">
         <div class="search-box">
           <input
-            type="text"
-            class="form-control uniform-control"
-            placeholder="Search Document..."
-            [(ngModel)]="searchQuery"
-            (ngModelChange)="onSearchChange($event)"
-          />
+          type="text"
+          class="form-control uniform-control"
+          placeholder="Search Document..."
+          [(ngModel)]="searchCriteria"
+          (ngModelChange)="onSearchChange($event)"
+        />
         </div>
       </div>
     </div>
@@ -82,14 +82,14 @@
     <div class="pagination-wrapper">
       <div class="pagination-left">
         <app-pagination-data
-          [currentPage]="docCurrentPage"
-          [totalPages]="docTotalPages"
-          [totalRecords]="docTotalRecords"
-          [pageSize]="docPageSize"
-          (pageChange)="onDocPageChange($event)"
-          (pageSizeChange)="onDocPageSizeChange($event)"
-        >
-        </app-pagination-data>
+        [currentPage]="docCurrentPage"
+        [totalPages]="docTotalPages"
+        [totalRecords]="docTotalRecords"
+        [pageSize]="docPageSize"
+        (pageChange)="onDocPageChange($event)"
+        (pageSizeChange)="onDocPageSizeChange($event)"
+      >
+      </app-pagination-data>
       </div>
     </div>
 

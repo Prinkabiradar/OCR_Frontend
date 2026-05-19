@@ -21,10 +21,14 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   selectedPageIndex     : number = 0;
 
   // ── Document table pagination ────────────────────────────────
-  docCurrentPage  : number = 1;
-  docPageSize     : number = 10;
-  docTotalPages   : number = 0;
-  docTotalRecords : number = 0;
+ 
+    docCurrentPage  : number = 1;
+    docPageSize     : number = 10;
+    docTotalPages   : number = 0;
+    docTotalRecords : number = 0;
+    searchBy        : string = '';
+    searchCriteria  : string = '';
+    private searchTimeout: any;
 
   // ── Document table data ──────────────────────────────────────
   pages               : any[]    = [];
@@ -127,7 +131,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     this.summaryEditor    = new Editor();
     this.suggestionEditor = new Editor();
     this.loadVoices();
-    this.loadDocumentsDropdown();
+    this.GetApproveDocuments();
 
     const lsValue  = localStorage.getItem(this.authLocalStorageToken);
     const userData = lsValue ? JSON.parse(lsValue) : null;
@@ -153,63 +157,76 @@ export class AgentAddComponent implements OnInit, OnDestroy {
 
   // ── Document table + pagination ──────────────────────────────
 
-  loadDocumentsDropdown(search: string = '') {
+  GetApproveDocuments(): void {
     this.loadingDropdown = true;
     this.cd.detectChanges();
-
-    this.service.dropdownAll(search, this.docCurrentPage.toString(), '6', this.docPageSize.toString()).subscribe({
-      next: (res: any[]) => {
-        this.documentDropdown = res.map(x => ({
-          id  : x.id.toString(),
-          text: x.text,
-          totalRecords: x.totalRecords ?? x.totalrecords ?? 0
+  
+    const startIndex = (this.docCurrentPage - 1) * this.docPageSize + 1;
+  
+    this.service.GetApproveDocuments(
+      startIndex,
+      this.docPageSize,
+      this.searchBy,
+      this.searchCriteria
+    ).subscribe({
+      next: (response: any) => {
+        const items: any[] = Array.isArray(response) ? response : (response?.items ?? []);
+  
+        this.documentDropdown = items.map((x: any) => ({
+          id  : (x.DocumentId ?? x.documentId ?? x.id).toString(),
+          text: x.DocumentName ?? x.documentName ?? x.text ?? '',
         }));
-
-        const total = this.documentDropdown[0]?.totalRecords ?? 0;
+  
+        const total =
+          items[0]?.TotalCount ??      
+          items[0]?.totalCount ??
+          items[0]?.totalRecords ??
+          response?.totalCount ?? 0;
+  
         this.docTotalRecords = total;
-        this.docTotalPages   = Math.ceil(total / this.docPageSize) || 1;
-
+        this.docTotalPages   = total > 0 ? Math.ceil(total / this.docPageSize) : 1;
+  
         this.loadingDropdown = false;
         this.cd.detectChanges();
       },
       error: (err) => {
-        console.error('Dropdown API Error:', err);
+        console.error('fetchDocuments error:', err);
         this.loadingDropdown = false;
         this.cd.detectChanges();
       }
     });
   }
-
-  onSearchChange(value: string) {
-    this.searchQuery = value;
-    if (this.searchDebounce) clearTimeout(this.searchDebounce);
-    this.searchDebounce = setTimeout(() => {
+  onSearchChange(value: string): void {
+    this.searchCriteria = value;
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
       this.docCurrentPage = 1;
-      this.loadDocumentsDropdown(value);
+      this.GetApproveDocuments();
     }, 400);
   }
-
-  onDocPageChange(page: number) {
+  
+  onDocPageChange(page: number): void {
     this.docCurrentPage = page;
-    this.loadDocumentsDropdown(this.searchQuery);
+    this.GetApproveDocuments();
   }
-
-  onDocPageSizeChange(size: number) {
+  
+  onDocPageSizeChange(size: number): void {
     this.docPageSize    = size;
     this.docCurrentPage = 1;
-    this.loadDocumentsDropdown(this.searchQuery);
+    this.GetApproveDocuments();
   }
 
   selectDocument(doc: any) {
     this.selectedDocumentId   = Number(doc.id);
     this.selectedDocumentName = doc.text;
     this.userQuestion         = doc.text;
-    this.currentPage          = 1;
+    this.currentPage          = 1;           
+    this.selectedPageIndex    = 0;            
     this.pages                = [];
     this.notFound             = false;
     this.showSummary          = false;
     this.pageJumpInput        = '';
-    this.AgentGET();
+    this.AgentGET(0);                         
   }
 
   backToTable() {
@@ -223,6 +240,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     this.summary              = '';
     this.currentPage          = 1;
     this.pageJumpInput        = '';
+    this.GetApproveDocuments();      
     this.cd.detectChanges();
   }
 
@@ -232,10 +250,13 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.notFound  = false;
     this.cd.detectChanges();
-
+  
+    // ✅ Fix 1: correct startIndex calculation
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
+  
     this.service.askAgent(
       this.userQuestion,
-      this.currentPage,
+      startIndex,           // ✅ was: this.currentPage
       this.itemsPerPage,
       this.searchQuery ? '1' : '0',
       this.userQuestion
@@ -244,8 +265,12 @@ export class AgentAddComponent implements OnInit, OnDestroy {
         this.isLoading         = false;
         this.documentName      = response.documentName;
         this.fullText          = response.fullText;
-        this.totalPages        = response.totalPages;
         this.totalRecords      = response.totalCount;
+  
+        // ✅ Fix 2: calculate totalPages from totalCount if API doesn't return it
+        this.totalPages        = response.totalPages
+          ?? Math.ceil(response.totalCount / this.itemsPerPage);
+  
         this.notFound          = response.pages.length === 0;
         this.pages             = response.pages;
         this.selectedPageIndex = this.pages.length
@@ -253,7 +278,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
           : 0;
         this.pageListSubject.next(response.pages);
         this.updatePageContent();
-
+  
         if (!this.notFound) {
           this.autoSelectVoice(response.fullText);
         }
@@ -269,14 +294,16 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   // ── Result card pagination ────────────────────────────────────
 
   onPageChange(page: number) {
-    this.currentPage = page;
+    this.currentPage       = page;
+    this.selectedPageIndex = 0;    // ✅ add this
     this.AgentGET(0);
     this.cd.detectChanges();
   }
-
+  
   onPageSizeChange(newSize: number) {
-    this.itemsPerPage = newSize;
-    this.currentPage = 1;
+    this.itemsPerPage      = newSize;
+    this.currentPage       = 1;
+    this.selectedPageIndex = 0;    // ✅ add this
     this.AgentGET(0);
     this.cd.detectChanges();
   }
@@ -288,7 +315,8 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   }
 
   get absolutePageNumber(): number {
-    return ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1;
+    // ✅ was: ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1
+    return (this.currentPage - 1) * this.itemsPerPage + this.selectedPageIndex + 1;
   }
 
   private updatePageContent() {
@@ -324,15 +352,15 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   jumpToPage(rawValue: string | number) {
     const total = this.totalRecords;
     if (total === 0) return;
-
+  
     const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
     if (Number.isNaN(parsed)) return;
-
-    const clampedPage = Math.max(1, Math.min(total, parsed));
-    const pageSize    = Math.max(1, this.itemsPerPage || 1);
-
-    this.selectedPageIndex = (clampedPage - 1) % pageSize;
-    this.currentPage       = Math.ceil(clampedPage / pageSize);
+  
+    const clamped  = Math.max(1, Math.min(total, parsed));
+    const pageSize = Math.max(1, this.itemsPerPage);
+  
+    this.currentPage       = Math.ceil(clamped / pageSize);   // ✅
+    this.selectedPageIndex = (clamped - 1) % pageSize;        // ✅
     this.pageJumpInput     = '';
     this.AgentGET(this.selectedPageIndex);
   }
