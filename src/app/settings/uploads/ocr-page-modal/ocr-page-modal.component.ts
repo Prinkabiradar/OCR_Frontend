@@ -32,6 +32,7 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
 
   documentName: string = '';
   documentId: number | null = null;
+  documentStatusId: number | null = null;
   suggestedPages: any[] = [];
   suggestions: any[] = [];
 
@@ -48,6 +49,7 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
   statusTargetPageNumbers: number[] = [];
   loadingStatusTarget: boolean = false;
   swappingPages: boolean = false;
+  private hasAutoNavigatedToStatusTarget: boolean = false;
 
   editedTexts: any = {};
   savingRows: any = {};
@@ -874,6 +876,7 @@ getRawUrl(item: any): string {
     this.loadingStatusTarget = false;
     this.previewZoomByPage = {};
     this.swappingPages = false;
+    this.hasAutoNavigatedToStatusTarget = false;
 
     this.summary = '';
     this.summaryId = 0;
@@ -924,26 +927,9 @@ getRawUrl(item: any): string {
             ? this.pageList[this.selectedPageIndex]
             : null;
 
-          const allSuggestionsRaw =
-            safeRes.length > 0 ? safeRes[0]?.allsuggestions : null;
-
-          if (
-            typeof allSuggestionsRaw === 'string' &&
-            allSuggestionsRaw.trim() !== ''
-          ) {
-            this.suggestedPages = allSuggestionsRaw
-              .split('|')
-              .map((entry: string) => {
-                const parts = entry.split(':');
-                return {
-                  PageNumber: parseInt(parts[0]),
-                  SuggestionId: parseInt(parts[2]),
-                };
-              })
-              .filter((s) => !isNaN(s.PageNumber) && !isNaN(s.SuggestionId));
-          } else {
-            this.suggestedPages = [];
-          }
+          this.suggestedPages = this.parseSuggestedPages(
+            safeRes.length > 0 ? safeRes[0]?.allsuggestions : null,
+          );
 
           this.pageList.forEach((item) => {
             if (!this.editedTexts[item.DocumentPageId]) {
@@ -1017,6 +1003,15 @@ getRawUrl(item: any): string {
       RejectionReason: x.rejectionreason ?? x.RejectionReason,
       totalRecords: x.totalrecords ?? x.totalRecords,
       FilePath: x.filepath ?? x.FilePath ?? null,
+      OriginalFileName:
+        x.originalfilename ??
+        x.originalFileName ??
+        x.OriginalFileName ??
+        x.filename ??
+        x.fileName ??
+        x.FileName ??
+        x.file_name ??
+        null,
       JobId: x.job_id ?? x.JobId ?? null,
       ResultId: x.resultid ?? x.ResultId ?? null,
       Suggestion:
@@ -1033,6 +1028,43 @@ getRawUrl(item: any): string {
           ? x.suggestionid ?? x.SuggestionId
           : null,
     };
+  }
+
+  getOriginalFileName(item: any): string {
+    const fileName =
+      item?.OriginalFileName ??
+      item?.originalFileName ??
+      item?.FileName ??
+      item?.fileName ??
+      item?.file_name;
+
+    if (fileName) return String(fileName);
+
+    const filePath = item?.FilePath ?? item?.filepath;
+    if (!filePath) return '';
+
+    const normalized = String(filePath).replace(/\\/g, '/');
+    return decodeURIComponent(normalized.split('/').pop() || '');
+  }
+
+  private parseSuggestedPages(allSuggestionsRaw: any): any[] {
+    if (
+      typeof allSuggestionsRaw !== 'string' ||
+      allSuggestionsRaw.trim() === ''
+    ) {
+      return [];
+    }
+
+    return allSuggestionsRaw
+      .split('|')
+      .map((entry: string) => {
+        const parts = entry.split(':');
+        return {
+          PageNumber: parseInt(parts[0], 10),
+          SuggestionId: parseInt(parts[2], 10),
+        };
+      })
+      .filter((s) => !isNaN(s.PageNumber) && !isNaN(s.SuggestionId));
   }
 
   private loadSinglePageByNumber(pageNumber: number, onSuccess: (page: any | null) => void, onError?: () => void): void {
@@ -1248,6 +1280,14 @@ getRawUrl(item: any): string {
   }
 
   get statusNavigationTarget(): { statusId: number; label: string } | null {
+    if (this.documentStatusId === 8) {
+      return { statusId: 8, label: 'Suggestion' };
+    }
+
+    if (this.documentStatusId === 7) {
+      return { statusId: 7, label: 'Rejected' };
+    }
+
     switch (this.roleId) {
       case 1:
         return { statusId: 0, label: 'Pending' };
@@ -1282,14 +1322,35 @@ getRawUrl(item: any): string {
     this.service.getDocumentByDocumentName(this.documentId, 1, pageSize).subscribe({
       next: (res: any) => {
         const pages = Array.isArray(res) ? res : [];
-        this.statusTargetPageNumbers = pages
+        const statusPageNumbers = pages
           .filter((x: any) => Number(x.statusid ?? x.StatusId) === target.statusId)
           .map((x: any) => Number(x.pagenumber ?? x.PageNumber))
+          .filter((pageNumber: number) => Number.isFinite(pageNumber));
+
+        const suggestionPageNumbers =
+          target.statusId === 8
+            ? this.parseSuggestedPages(pages[0]?.allsuggestions).map((s) =>
+                Number(s.PageNumber),
+              )
+            : [];
+
+        this.statusTargetPageNumbers = Array.from(
+          new Set([...statusPageNumbers, ...suggestionPageNumbers]),
+        )
           .filter((pageNumber: number) => Number.isFinite(pageNumber))
           .sort((a: number, b: number) => a - b);
 
         this.loadingStatusTarget = false;
         this.cdr.detectChanges();
+
+        if (
+          !this.hasAutoNavigatedToStatusTarget &&
+          (target.statusId === 7 || target.statusId === 8) &&
+          this.statusTargetPageNumbers.length > 0
+        ) {
+          this.hasAutoNavigatedToStatusTarget = true;
+          this.jumpToPage(this.statusTargetPageNumbers[0]);
+        }
       },
       error: () => {
         this.statusTargetPageNumbers = [];
@@ -1338,45 +1399,44 @@ getRawUrl(item: any): string {
     if (!this.documentId || this.swappingPages) return;
     if (pageA < 1 || pageB < 1 || pageA > this.totalRecords || pageB > this.totalRecords || pageA === pageB) return;
     if (!this.selectedItem || !this.canEdit(this.selectedItem)) {
-      Swal.fire('Not Allowed', 'You cannot swap pages at this stage.', 'warning');
+      Swal.fire('Not Allowed', 'You cannot move pages at this stage.', 'warning');
       return;
     }
 
     this.swappingPages = true;
     this.cdr.detectChanges();
 
-    this.loadSinglePageByNumber(pageA, (firstPage) => {
-      if (!firstPage) {
-        this.swappingPages = false;
-        this.cdr.detectChanges();
-        Swal.fire('Error', 'Unable to load source page for swapping.', 'error');
-        return;
-      }
+    this.service.getDocumentByDocumentName(this.documentId, 1, Math.max(this.totalRecords, 1)).subscribe({
+      next: (res: any) => {
+        const pages = (Array.isArray(res) ? res : [])
+          .map((x: any) => this.mapDocumentPage(x))
+          .sort((a: any, b: any) => Number(a.PageNumber) - Number(b.PageNumber));
 
-      this.loadSinglePageByNumber(pageB, (secondPage) => {
-        if (!secondPage) {
+        const sourcePage = pages.find((page: any) => Number(page.PageNumber) === pageA);
+        if (!sourcePage) {
           this.swappingPages = false;
           this.cdr.detectChanges();
-          Swal.fire('Error', 'Unable to load target page for swapping.', 'error');
+          Swal.fire('Error', 'Unable to load source page for moving.', 'error');
           return;
         }
 
-        const firstText = this.editedTexts[firstPage.DocumentPageId] ?? firstPage.ExtractedText ?? '';
-        const secondText = this.editedTexts[secondPage.DocumentPageId] ?? secondPage.ExtractedText ?? '';
+        const affectedPages = pages.filter((page: any) => {
+          const pageNumber = Number(page.PageNumber);
+          return pageA < pageB
+            ? pageNumber >= pageA && pageNumber <= pageB
+            : pageNumber >= pageB && pageNumber <= pageA;
+        });
 
-        if (!this.canEdit(firstPage) || !this.canEdit(secondPage)) {
+        if (affectedPages.some((page: any) => !this.canEdit(page))) {
           this.swappingPages = false;
           this.cdr.detectChanges();
           Swal.fire(
             'Not Allowed',
-            'One of the selected pages is locked for your role/status, so swap cannot be performed.',
+            'One of the affected pages is locked for your role/status, so move cannot be performed.',
             'warning',
           );
           return;
         }
-
-        const firstPayload = this.buildSwapSavePayload(firstPage, pageB, firstText);
-        const secondPayload = this.buildSwapSavePayload(secondPage, pageA, secondText);
 
         const tempCandidates = Array.from(
           new Set([
@@ -1387,81 +1447,104 @@ getRawUrl(item: any): string {
           ]),
         ).filter((n) => Number.isFinite(n) && n > 0 && n !== pageA && n !== pageB);
 
-        const tryPrepareSwap = (candidateIndex: number) => {
+        const getPageText = (page: any): string =>
+          this.editedTexts[page.DocumentPageId] ?? page.ExtractedText ?? '';
+
+        const buildMovePayload = (page: any, targetPageNumber: number): any =>
+          this.buildPageMovePayload(page, targetPageNumber, getPageText(page));
+
+        const runRequests = (
+          payloads: any[],
+          index: number,
+          onSuccess: () => void,
+          onError: (err: any, failedIndex: number) => void,
+        ): void => {
+          if (index >= payloads.length) {
+            onSuccess();
+            return;
+          }
+
+          this.service.saveDocumentPage(payloads[index]).subscribe({
+            next: () => runRequests(payloads, index + 1, onSuccess, onError),
+            error: (err) => onError(err, index),
+          });
+        };
+
+        const tryMoveWithTemp = (candidateIndex: number): void => {
           if (candidateIndex >= tempCandidates.length) {
             this.swappingPages = false;
             this.cdr.detectChanges();
             Swal.fire(
               'Error',
-              'Unable to prepare page swap with valid temporary page number.',
+              'Unable to prepare page move with valid temporary page number.',
               'error',
             );
             return;
           }
 
           const tempPageNumber = tempCandidates[candidateIndex];
-          const firstToTempPayload = this.buildSwapSavePayload(
-            firstPage,
-            tempPageNumber,
-            firstText,
-          );
+          const shiftPayloads =
+            pageA < pageB
+              ? pages
+                  .filter((page: any) => {
+                    const pageNumber = Number(page.PageNumber);
+                    return pageNumber > pageA && pageNumber <= pageB;
+                  })
+                  .sort((a: any, b: any) => Number(a.PageNumber) - Number(b.PageNumber))
+                  .map((page: any) => buildMovePayload(page, Number(page.PageNumber) - 1))
+              : pages
+                  .filter((page: any) => {
+                    const pageNumber = Number(page.PageNumber);
+                    return pageNumber >= pageB && pageNumber < pageA;
+                  })
+                  .sort((a: any, b: any) => Number(b.PageNumber) - Number(a.PageNumber))
+                  .map((page: any) => buildMovePayload(page, Number(page.PageNumber) + 1));
 
-          this.service.saveDocumentPage(firstToTempPayload).subscribe({
-            next: () => {
-              this.service.saveDocumentPage(secondPayload).subscribe({
-                next: () => {
-                  this.service.saveDocumentPage(firstPayload).subscribe({
-                    next: () => {
-                      this.swappingPages = false;
-                      this.loadStatusTargetPages();
-                      this.jumpToPage(pageB);
-                      this.cdr.detectChanges();
-                      Swal.fire('Swapped', `Page ${pageA} and Page ${pageB} swapped successfully.`, 'success');
-                    },
-                    error: (err) => {
-                      this.swappingPages = false;
-                      this.cdr.detectChanges();
-                      Swal.fire(
-                        'Error',
-                        err?.error?.message || 'Failed to finalize page swap.',
-                        'error',
-                      );
-                    },
-                  });
-                },
-                error: (err) => {
-                this.swappingPages = false;
-                this.cdr.detectChanges();
-                Swal.fire(
-                  'Error',
-                  err?.error?.message || 'Failed to move target page during swap.',
-                  'error',
-                );
-                },
-              });
+          const payloads = [
+            buildMovePayload(sourcePage, tempPageNumber),
+            ...shiftPayloads,
+            buildMovePayload(sourcePage, pageB),
+          ];
+
+          runRequests(
+            payloads,
+            0,
+            () => {
+              this.swappingPages = false;
+              this.loadStatusTargetPages();
+              this.jumpToPage(pageB);
+              this.cdr.detectChanges();
+              Swal.fire('Moved', `Page ${pageA} moved to Page ${pageB} successfully.`, 'success');
             },
-            error: () => {
-              // Retry with a different temporary page number for backends
-              // that enforce strict page-number bounds/uniqueness rules.
-              tryPrepareSwap(candidateIndex + 1);
+            (err, failedIndex) => {
+              if (failedIndex === 0) {
+                tryMoveWithTemp(candidateIndex + 1);
+                return;
+              }
+
+              this.swappingPages = false;
+              this.cdr.detectChanges();
+              Swal.fire(
+                'Error',
+                err?.error?.message || 'Failed to move page.',
+                'error',
+              );
             },
-          });
+          );
         };
 
-        tryPrepareSwap(0);
-      }, () => {
+        tryMoveWithTemp(0);
+      },
+      error: () => {
         this.swappingPages = false;
         this.cdr.detectChanges();
-        Swal.fire('Error', 'Unable to load target page for swapping.', 'error');
-      });
-    }, () => {
-      this.swappingPages = false;
-      this.cdr.detectChanges();
-      Swal.fire('Error', 'Unable to load source page for swapping.', 'error');
+        Swal.fire('Error', 'Unable to load pages for moving.', 'error');
+        return;
+      },
     });
   }
 
-  private buildSwapSavePayload(page: any, targetPageNumber: number, extractedText: string): any {
+  private buildPageMovePayload(page: any, targetPageNumber: number, extractedText: string): any {
     return {
       documentPageId: page.DocumentPageId,
       documentId: page.DocumentId,
@@ -1469,7 +1552,9 @@ getRawUrl(item: any): string {
       extractedText: this.normalizeIndentMarkupForStorage(extractedText),
       statusId: Number(page.StatusId),
       userId: this.currentUserId,
-      roleId: this.roleId,
+      roleId: 0,
+      preserveStatus: true,
+      isPageMove: true,
       rejectionReason: page.RejectionReason ?? '',
     };
   }

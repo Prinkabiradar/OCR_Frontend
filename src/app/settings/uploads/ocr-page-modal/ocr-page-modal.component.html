@@ -175,7 +175,7 @@
               <span class="panel-icon">📄</span>
               <span>Original Page</span>
               <span class="panel-sub">{{
-                getFileType(item.FilePath) | uppercase
+                getOriginalFileName(item) || (getFileType(item.FilePath) | uppercase)
               }}</span>
               <div class="ms-auto d-flex align-items-center gap-1">
                 <button
@@ -253,7 +253,7 @@
                     rel="noopener"
                     class="btn btn-sm btn-outline-secondary"
                   >
-                    Open PDF in new tab ↗
+                    Open {{ getOriginalFileName(item) || "document" }} in new tab ↗
                   </a>
                 </div>
               </ng-container>
@@ -447,7 +447,7 @@
         >
           ⇄ Prev
         </button>
-        <label class="page-jump__label">Swap to</label>
+        <label class="page-jump__label">Move to</label>
         <input
           class="page-jump__input"
           type="number"
@@ -464,7 +464,7 @@
           [disabled]="swappingPages"
           (click)="swapCurrentPageToTarget(swapToPageInput)"
         >
-          {{ swappingPages ? "Swapping..." : "Swap" }}
+          {{ swappingPages ? "Moving..." : "Move" }}
         </button>
         <button
           type="button"

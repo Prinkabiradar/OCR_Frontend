@@ -329,6 +329,7 @@ export class OcrDataComponent implements OnInit {
 
         this.modalComponent.documentId = doc.documentId;
         this.modalComponent.documentName = doc.documentName;
+        this.modalComponent.documentStatusId = doc.statusId;
 
         await this.modalComponent.open();
 
