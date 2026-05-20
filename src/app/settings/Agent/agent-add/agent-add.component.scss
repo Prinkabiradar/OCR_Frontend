@@ -766,10 +766,14 @@
 
 ngx-editor {
   .NgxEditor {
-    min-height: 80px !important;
+    min-height: unset !important;   // ← change 80px to unset
+    height: 400px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
   .NgxEditor__MenuBar {
-    display: none !important; // hide toolbar to save space
+    display: none !important;
   }
 }
 
@@ -783,5 +787,21 @@ table.ocr-table {
     padding: 4px 8px !important;
     margin-left: 8px;
     margin-right: 8px;
+  }
+}
+// Fixed-height scrollable content editor
+.ocr-table td {
+  .NgxEditor__Wrapper {
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .NgxEditor__Content {
+    flex: 1;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    min-height: unset !important;
+    max-height: 100%;
   }
 }

@@ -175,12 +175,14 @@
         <tbody>
           <tr>
             <td>
+              <div style="height: 400px; overflow-y: auto; overflow-x: hidden;">
               <ngx-editor
                 [editor]="pageTextEditor"
                 [ngModel]="pageTextContent"
                 placeholder="Page text will appear here…"
               >
               </ngx-editor>
+              </div>
             </td>
             <!-- <td *ngIf="roleId === 5 || roleId === 4" style="width: 120px; vertical-align: top;">
               <button
