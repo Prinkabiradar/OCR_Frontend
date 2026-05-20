@@ -26,9 +26,7 @@ export class MenuService {
         observer.next([]);
         observer.complete();
       });
-    }
-    console.log(JSON.parse(lsValue).authToken);
-    const headers = new HttpHeaders({
+    }    const headers = new HttpHeaders({
       Authorization: 'Bearer ' + JSON.parse(lsValue).authToken,
     });
 

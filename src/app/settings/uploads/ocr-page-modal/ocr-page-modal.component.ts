@@ -14,8 +14,9 @@ import { ServiceService } from '../../settings.service';
 import Swal from 'sweetalert2';
 import { forkJoin } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import DecoupledEditor from '@ckeditor/ckeditor5-build-decoupled-document';
 
@@ -91,17 +92,11 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
         'italic',
         'underline',
         'strikethrough',
-        'code',
-        'subscript',
-        'superscript',
         '|',
         'bulletedList',
         'numberedList',
         '|',
-        'link',
         'blockQuote',
-        'insertTable',
-        'mediaEmbed',
         '|',
         'alignment',
         '|',
@@ -173,6 +168,9 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
     startScrollLeft: 0,
     startScrollTop: 0,
   };
+  private previewBlobUrls: { [documentPageId: number]: string } = {};
+  private previewLoadAttempted: { [documentPageId: number]: boolean } = {};
+  private previewLoadingByPage: { [documentPageId: number]: boolean } = {};
 
   ngAfterViewChecked(): void {
     this.logCk('ngAfterViewChecked', {
@@ -236,30 +234,105 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
 
   //   const fullUrl = `${baseUrl}uploads/${normalized}`;
 
-  //   console.log('PDF/Image URL:', fullUrl); // ✅ DEBUG
 
   //   return this.sanitizer.bypassSecurityTrustResourceUrl(fullUrl);
   // }
 
 
-  getSafeUrl(filePath: string): SafeResourceUrl {
-  const raw = this.getRawUrl(filePath);
-  const ext = filePath?.split('.').pop()?.toLowerCase();
-  // Append PDF viewer params inside the sanitized URL
-  const url = ext === 'pdf' ? `${raw}#toolbar=0&navpanes=0` : raw;
-  return this.sanitizer.bypassSecurityTrustResourceUrl(url);
-}
-
-getRawUrl(filePath: string): string {
-  if (!filePath) return '';
-  let normalized = filePath.replace(/\\/g, '/');
-  let baseUrl = environment.BaseUrl;
-  if (!baseUrl.endsWith('/')) baseUrl += '/';
-  if (normalized.startsWith('uploads/')) {
-    normalized = normalized.substring('uploads/'.length);
+  getSafeUrl(item: any): SafeResourceUrl {
+    const raw = this.getRawUrl(item);
+    const filePath = item?.FilePath ?? '';
+    const ext = filePath?.split('.').pop()?.toLowerCase();
+    const url = ext === 'pdf' && raw ? `${raw}#toolbar=0&navpanes=0` : raw;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(url);
   }
-  return `${baseUrl}uploads/${normalized}`;
-}
+
+  getImageSafeUrl(item: any): SafeUrl {
+    const raw = this.getRawUrl(item);
+    return this.sanitizer.bypassSecurityTrustUrl(raw);
+  }
+
+  isPreviewLoading(item: any): boolean {
+    const pageId = Number(item?.DocumentPageId);
+    if (!Number.isFinite(pageId)) return false;
+    return !!this.previewLoadingByPage[pageId];
+  }
+
+getRawUrl(item: any): string {
+  const pageId = Number(item?.DocumentPageId);
+  if (Number.isFinite(pageId) && this.previewBlobUrls[pageId]) {
+    return this.previewBlobUrls[pageId];
+  }
+    return '';
+  }
+
+  private ensurePreviewLoaded(item: any): void {
+    if (!item || !this.documentId) return;
+    const pageId = Number(item?.DocumentPageId);
+    const pageNumber = Number(item?.PageNumber ?? 1);
+    if (!Number.isFinite(pageId) || !Number.isFinite(pageNumber)) return;
+    if (this.previewBlobUrls[pageId]) return;
+    if (this.previewLoadAttempted[pageId]) return;
+    this.previewLoadAttempted[pageId] = true;
+    this.previewLoadingByPage[pageId] = true;
+
+    let baseUrl = environment.BaseUrl;
+    if (!baseUrl.endsWith('/')) baseUrl += '/';
+    const qp = new URLSearchParams({
+      documentId: String(this.documentId),
+      pageNumber: String(pageNumber),
+    });
+    if (item?.FilePath) qp.set('filePath', String(item.FilePath));
+    if (item?.JobId) qp.set('requestJobId', String(item.JobId));
+    const apiUrl = `${baseUrl}api/DocumentPage/GetDocumentFile?${qp.toString()}`;
+
+    this.fetchPreviewBlobWithFallback(pageId, pageNumber, apiUrl);
+  }
+
+  private fetchPreviewBlobWithFallback(pageId: number, pageNumber: number, apiUrl: string): void {
+    this.http.get(apiUrl, { responseType: 'blob' }).subscribe({
+      next: (blob: Blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        this.previewBlobUrls[pageId] = objectUrl;
+        this.previewLoadingByPage[pageId] = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.previewLoadingByPage[pageId] = false;
+        const pageProtocol = (typeof window !== 'undefined' && window.location?.protocol) || '';
+        const canHttpFallback =
+          err?.status === 0 &&
+          apiUrl.startsWith('https://localhost:7045/') &&
+          pageProtocol !== 'https:';
+
+        if (canHttpFallback) {
+          const fallbackUrl = apiUrl.replace(
+            'https://localhost:7045/',
+            'http://localhost:5247/'
+          );
+          this.previewLoadingByPage[pageId] = true;
+          this.http.get(fallbackUrl, { responseType: 'blob' }).subscribe({
+            next: (blob: Blob) => {
+              const objectUrl = URL.createObjectURL(blob);
+              this.previewBlobUrls[pageId] = objectUrl;
+              this.previewLoadingByPage[pageId] = false;
+              this.cdr.detectChanges();
+            },
+            error: (fallbackErr: HttpErrorResponse) => {
+              this.previewLoadingByPage[pageId] = false;
+              delete this.previewLoadAttempted[pageId];
+              this.cdr.detectChanges();
+            },
+          });
+          return;
+        }
+
+        // Allow retry if this page failed once (network/auth/transient timing).
+        delete this.previewLoadAttempted[pageId];
+        this.cdr.detectChanges();
+      },
+    });
+  }
 
   getPreviewZoom(item: any): number {
     const key = Number(item?.DocumentPageId);
@@ -477,9 +550,7 @@ getRawUrl(filePath: string): string {
         });
         this.onSummaryEdit();
       });
-    }).catch((error: any) => {
-      console.error('[OCR CKEditor] summaryEditor:create-failed', error);
-    });
+    }).catch(() => {});
   }
 
   private syncSummaryEditorData(): void {
@@ -538,9 +609,7 @@ getRawUrl(filePath: string): string {
             dataLength: value?.length ?? 0,
           });
         });
-      }).catch((error: any) => {
-        console.error('[OCR CKEditor] pageEditor:create-failed', { pageId, error });
-      });
+      }).catch(() => {});
     });
   }
 
@@ -799,6 +868,15 @@ getRawUrl(filePath: string): string {
   }
 
   resetState() {
+    Object.values(this.previewBlobUrls).forEach((u) => {
+      try {
+        URL.revokeObjectURL(u);
+      } catch {}
+    });
+    this.previewBlobUrls = {};
+    this.previewLoadAttempted = {};
+    this.previewLoadingByPage = {};
+
     if (this.summaryCkEditor) {
       this.summaryCkEditor.destroy();
       this.summaryCkEditor = null;
@@ -858,6 +936,7 @@ getRawUrl(filePath: string): string {
           const safeRes = Array.isArray(res) ? res : [];
 
           this.pageList = safeRes.map((x: any) => this.mapDocumentPage(x));
+          this.pageList.forEach((item) => this.ensurePreviewLoaded(item));
 
           if (safeRes.length > 0) {
             this.totalRecords = safeRes[0].totalrecords;
@@ -929,13 +1008,8 @@ getRawUrl(filePath: string): string {
       });
   }
 
-  private logCk(label: string, data?: any): void {
-    if (!this.ckDebug) return;
-    if (data === undefined) {
-      console.log(`[OCR CKEditor] ${label}`);
-      return;
-    }
-    console.log(`[OCR CKEditor] ${label}`, data);
+  private logCk(_label: string, _data?: any): void {
+    return;
   }
 
   private queryEditorElement(selector: string): HTMLElement | null {
@@ -968,6 +1042,7 @@ getRawUrl(filePath: string): string {
       RejectionReason: x.rejectionreason ?? x.RejectionReason,
       totalRecords: x.totalrecords ?? x.totalRecords,
       FilePath: x.filepath ?? x.FilePath ?? null,
+      JobId: x.job_id ?? x.JobId ?? null,
       ResultId: x.resultid ?? x.ResultId ?? null,
       Suggestion:
         typeof (x.suggestiontext ?? x.Suggestion) === 'string' &&
@@ -1745,6 +1820,15 @@ getRawUrl(filePath: string): string {
   // ─── DESTROY ────────────────────────────────────────────────────────────────
 
   ngOnDestroy() {
+    Object.values(this.previewBlobUrls).forEach((u) => {
+      try {
+        URL.revokeObjectURL(u);
+      } catch {}
+    });
+    this.previewBlobUrls = {};
+    this.previewLoadAttempted = {};
+    this.previewLoadingByPage = {};
+
     if (this.summaryCkEditor) {
       this.summaryCkEditor.destroy();
       this.summaryCkEditor = null;

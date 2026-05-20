@@ -50,22 +50,18 @@ export class SidebarLogoComponent implements OnInit, OnDestroy {
         const userData = JSON.parse(lsValue);
 
         const logoPath = userData?.companyLogoURL?.trim() || '';
-        console.log('Extracted Logo Path:', logoPath);
 
         if (logoPath) {
           this.companyLogoURL = logoPath.startsWith('http')
             ? logoPath
             : `${this.baseUrl}${logoPath}`;
         } else {
-          console.warn('companyLogoURL is empty in localStorage.');
           this.companyLogoURL = './assets/media/logos/default.svg';
         }
       } catch (error) {
-        console.error('Error parsing localStorage data:', error);
         this.companyLogoURL = './assets/media/logos/default.svg';
       }
     } else {
-      console.warn('No localStorage data found.');
       this.companyLogoURL = './assets/media/logos/default.svg';
     }
   }

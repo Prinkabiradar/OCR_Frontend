@@ -219,11 +219,20 @@
               "
               [class.image-panning]="isImagePanning(item)"
             >
+              <div
+                *ngIf="isPreviewLoading(item)"
+                class="d-flex flex-column align-items-center justify-content-center py-5 text-muted"
+                style="min-height: 260px"
+              >
+                <div class="spinner-border text-primary mb-2" role="status"></div>
+                <span>Loading page preview...</span>
+              </div>
+
               <!-- PDF -->
-              <ng-container *ngIf="getFileType(item.FilePath) === 'pdf'">
+              <ng-container *ngIf="getFileType(item.FilePath) === 'pdf' && !isPreviewLoading(item)">
                 <div style="overflow: auto; min-height: 500px">
                   <iframe
-                    [src]="getSafeUrl(item.FilePath)"
+                    [src]="getSafeUrl(item)"
                     [style.width.%]="100 * getPreviewZoom(item)"
                     [style.height.px]="500 * getPreviewZoom(item)"
                     style="
@@ -237,7 +246,7 @@
                 </div>
                 <div class="mt-2 text-center">
                   <a
-                    [href]="getRawUrl(item.FilePath)"
+                    [href]="getRawUrl(item)"
                     target="_blank"
                     rel="noopener"
                     class="btn btn-sm btn-outline-secondary"
@@ -249,8 +258,8 @@
 
               <!-- IMAGE -->
               <img
-                *ngIf="getFileType(item.FilePath) === 'image'"
-                [src]="getSafeUrl(item.FilePath)"
+                *ngIf="getFileType(item.FilePath) === 'image' && !isPreviewLoading(item)"
+                [src]="getImageSafeUrl(item)"
                 class="d-block"
                 [style.width.%]="100 * getPreviewZoom(item)"
                 (dragstart)="$event.preventDefault()"
