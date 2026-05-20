@@ -285,53 +285,28 @@ getRawUrl(item: any): string {
     if (item?.FilePath) qp.set('filePath', String(item.FilePath));
     if (item?.JobId) qp.set('requestJobId', String(item.JobId));
     const apiUrl = `${baseUrl}api/DocumentPage/GetDocumentFile?${qp.toString()}`;
-
-    this.fetchPreviewBlobWithFallback(pageId, pageNumber, apiUrl);
+    this.previewBlobUrls[pageId] = apiUrl;
+    this.cdr.detectChanges();
   }
 
   private fetchPreviewBlobWithFallback(pageId: number, pageNumber: number, apiUrl: string): void {
-    this.http.get(apiUrl, { responseType: 'blob' }).subscribe({
-      next: (blob: Blob) => {
-        const objectUrl = URL.createObjectURL(blob);
-        this.previewBlobUrls[pageId] = objectUrl;
-        this.previewLoadingByPage[pageId] = false;
-        this.cdr.detectChanges();
-      },
-      error: (err: HttpErrorResponse) => {
-        this.previewLoadingByPage[pageId] = false;
-        const pageProtocol = (typeof window !== 'undefined' && window.location?.protocol) || '';
-        const canHttpFallback =
-          err?.status === 0 &&
-          apiUrl.startsWith('https://localhost:7045/') &&
-          pageProtocol !== 'https:';
+    // Preview now uses direct URL in <img>/<iframe> instead of XHR blob fetching.
+    // Kept method stub to avoid touching broader call sites.
+  }
 
-        if (canHttpFallback) {
-          const fallbackUrl = apiUrl.replace(
-            'https://localhost:7045/',
-            'http://localhost:5247/'
-          );
-          this.previewLoadingByPage[pageId] = true;
-          this.http.get(fallbackUrl, { responseType: 'blob' }).subscribe({
-            next: (blob: Blob) => {
-              const objectUrl = URL.createObjectURL(blob);
-              this.previewBlobUrls[pageId] = objectUrl;
-              this.previewLoadingByPage[pageId] = false;
-              this.cdr.detectChanges();
-            },
-            error: (fallbackErr: HttpErrorResponse) => {
-              this.previewLoadingByPage[pageId] = false;
-              delete this.previewLoadAttempted[pageId];
-              this.cdr.detectChanges();
-            },
-          });
-          return;
-        }
+  onPreviewMediaLoaded(item: any): void {
+    const pageId = Number(item?.DocumentPageId);
+    if (!Number.isFinite(pageId)) return;
+    this.previewLoadingByPage[pageId] = false;
+    this.cdr.detectChanges();
+  }
 
-        // Allow retry if this page failed once (network/auth/transient timing).
-        delete this.previewLoadAttempted[pageId];
-        this.cdr.detectChanges();
-      },
-    });
+  onPreviewMediaError(item: any): void {
+    const pageId = Number(item?.DocumentPageId);
+    if (!Number.isFinite(pageId)) return;
+    this.previewLoadingByPage[pageId] = false;
+    delete this.previewLoadAttempted[pageId];
+    this.cdr.detectChanges();
   }
 
   getPreviewZoom(item: any): number {

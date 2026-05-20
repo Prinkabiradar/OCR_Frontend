@@ -229,12 +229,14 @@
               </div>
 
               <!-- PDF -->
-              <ng-container *ngIf="getFileType(item.FilePath) === 'pdf' && !isPreviewLoading(item)">
+              <ng-container *ngIf="getFileType(item.FilePath) === 'pdf'">
                 <div style="overflow: auto; min-height: 500px">
                   <iframe
                     [src]="getSafeUrl(item)"
                     [style.width.%]="100 * getPreviewZoom(item)"
                     [style.height.px]="500 * getPreviewZoom(item)"
+                    (load)="onPreviewMediaLoaded(item)"
+                    (error)="onPreviewMediaError(item)"
                     style="
                       border: none;
                       display: block;
@@ -258,10 +260,12 @@
 
               <!-- IMAGE -->
               <img
-                *ngIf="getFileType(item.FilePath) === 'image' && !isPreviewLoading(item)"
+                *ngIf="getFileType(item.FilePath) === 'image'"
                 [src]="getImageSafeUrl(item)"
                 class="d-block"
                 [style.width.%]="100 * getPreviewZoom(item)"
+                (load)="onPreviewMediaLoaded(item)"
+                (error)="onPreviewMediaError(item)"
                 (dragstart)="$event.preventDefault()"
                 alt="Original page {{ item.PageNumber }}"
               />
