@@ -23,6 +23,7 @@
     "@angular/platform-browser": "^18.1.4",
     "@angular/platform-browser-dynamic": "^18.1.4",
     "@angular/router": "^18.1.4",
+    "@ckeditor/ckeditor5-build-decoupled-document": "^41.4.2",
     "@fortawesome/fontawesome-free": "^6.3.0",
     "@material/dialog": "^14.0.0",
     "@ng-bootstrap/ng-bootstrap": "^17.0.0",

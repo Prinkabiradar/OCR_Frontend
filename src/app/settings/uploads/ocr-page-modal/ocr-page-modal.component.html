@@ -82,37 +82,27 @@
             >
               Find Next
             </button>
-          </div>
-          <ngx-editor-menu
-            [editor]="summaryEditor"
-            [toolbar]="summaryToolbar"
-            [colorPresets]="colorPresets"
-          ></ngx-editor-menu>
-          <div class="d-flex gap-2 py-1">
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"
-              (click)="clearTextColor(summaryEditor)"
+              (mousedown)="$event.preventDefault(); indentFirstLineInCurrentEditor()"
             >
-              Clear Text Color
+              First Line +
             </button>
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"
-              (click)="clearBackgroundColor(summaryEditor)"
+              (mousedown)="$event.preventDefault(); outdentFirstLineInCurrentEditor()"
             >
-              Clear Highlight
+              First Line -
             </button>
           </div>
+          <div data-summary-ckeditor-toolbar="true"></div>
         </div>
-        <ngx-editor
+        <div
           class="summary-editor"
-          [editor]="summaryEditor"
-          [(ngModel)]="summary"
-          (ngModelChange)="onSummaryEdit()"
-          placeholder="Summary will appear here…"
-        >
-        </ngx-editor>
+          data-summary-ckeditor="true"
+        ></div>
       </div>
     </div>
 
@@ -334,40 +324,24 @@
                   >
                     Find Next
                   </button>
-                </div>
-                <ngx-editor-menu
-                  [editor]="getOrCreateEditor(item.DocumentPageId)"
-                  [toolbar]="pageToolbar"
-                  [colorPresets]="colorPresets"
-                >
-                </ngx-editor-menu>
-                <div class="d-flex gap-2 py-1">
                   <button
                     type="button"
                     class="btn btn-outline-secondary btn-sm"
-                    (click)="clearTextColor(getOrCreateEditor(item.DocumentPageId))"
+                    (mousedown)="$event.preventDefault(); indentFirstLineInCurrentEditor()"
                   >
-                    Clear Text Color
+                    First Line +
                   </button>
                   <button
                     type="button"
                     class="btn btn-outline-secondary btn-sm"
-                    (click)="
-                      clearBackgroundColor(getOrCreateEditor(item.DocumentPageId))
-                    "
+                    (mousedown)="$event.preventDefault(); outdentFirstLineInCurrentEditor()"
                   >
-                    Clear Highlight
+                    First Line -
                   </button>
                 </div>
+                <div [attr.data-page-ckeditor-toolbar]="item.DocumentPageId"></div>
               </div>
-              <ngx-editor
-                [editor]="getOrCreateEditor(item.DocumentPageId)"
-                [(ngModel)]="editedTexts[item.DocumentPageId]"
-                (ngModelChange)="onEditorChange(item, $event)"
-                [disabled]="!canEdit(item)"
-                placeholder="Review and correct OCR text here…"
-              >
-              </ngx-editor>
+              <div [attr.data-page-ckeditor]="item.DocumentPageId"></div>
             </div>
 
             <!-- Rejection reason (visible when rejected) -->

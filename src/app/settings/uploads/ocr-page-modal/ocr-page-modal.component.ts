@@ -7,25 +7,24 @@ import {
   ViewChild,
   OnDestroy,
   HostListener,
+  AfterViewChecked,
 } from '@angular/core';
 import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 import { ServiceService } from '../../settings.service';
 import Swal from 'sweetalert2';
 import { forkJoin } from 'rxjs';
 import { environment } from 'src/environments/environment';
-import { Editor, Toolbar } from 'ngx-editor';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { removeMark } from 'ngx-editor/commands';
-import { normalizeNgxEditorHtml } from '../../ngx-editor-html.util';
+import DecoupledEditor from '@ckeditor/ckeditor5-build-decoupled-document';
 
 @Component({
   selector: 'app-ocr-page-modal',
   templateUrl: './ocr-page-modal.component.html',
   styleUrls: ['./ocr-page-modal.component.scss'],
 })
-export class OcrPageModalComponent implements OnDestroy {
+export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
   @Input() modalConfig: any;
   @Input() roleId: number = 0;
   @Input() currentUserId: number = 0;
@@ -73,46 +72,72 @@ export class OcrPageModalComponent implements OnDestroy {
     private router: Router,
   ) {}
 
-  pageEditors: { [id: number]: Editor } = {};
-  colorPresets: string[] = [
-    '#000000',
-    '#111827',
-    '#374151',
-    '#6B7280',
-    '#EF4444',
-    '#F59E0B',
-    '#10B981',
-    '#3B82F6',
-    '#8B5CF6',
-    '#EC4899',
-  ];
-
-  pageToolbar: Toolbar = [
-    ['undo', 'redo'],
-    ['bold', 'italic', 'underline', 'strike'],
-    ['ordered_list', 'bullet_list'],
-    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
-    ['blockquote'],
-    ['align_left', 'align_center', 'align_right', 'align_justify'],
-    ['indent', 'outdent'],
-    ['link', 'image'],
-    ['text_color', 'background_color'],
-    ['format_clear'],
-  ];
-
-  summaryEditor: Editor = new Editor();
-  summaryToolbar: Toolbar = [
-    ['undo', 'redo'],
-    ['bold', 'italic', 'underline', 'strike'],
-    ['ordered_list', 'bullet_list'],
-    [{ heading: ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] }],
-    ['blockquote'],
-    ['align_left', 'align_center', 'align_right', 'align_justify'],
-    ['indent', 'outdent'],
-    ['link', 'image'],
-    ['text_color', 'background_color'],
-    ['format_clear'],
-  ];
+  public CkEditor: any = (DecoupledEditor as any)?.default ?? DecoupledEditor;
+  public ckEditorConfig = {
+    toolbar: {
+      shouldNotGroupWhenFull: true,
+      items: [
+        'undo',
+        'redo',
+        '|',
+        'heading',
+        '|',
+        'fontFamily',
+        'fontSize',
+        'fontColor',
+        'fontBackgroundColor',
+        '|',
+        'bold',
+        'italic',
+        'underline',
+        'strikethrough',
+        'code',
+        'subscript',
+        'superscript',
+        '|',
+        'bulletedList',
+        'numberedList',
+        '|',
+        'link',
+        'blockQuote',
+        'insertTable',
+        'mediaEmbed',
+        '|',
+        'alignment',
+        '|',
+        'outdent',
+        'indent',
+      ],
+    },
+    fontFamily: {
+      supportAllValues: true,
+    },
+    fontSize: {
+      options: [9, 11, 13, 'default', 17, 19, 21, 27, 35],
+      supportAllValues: true,
+    },
+    alignment: {
+      options: ['left', 'center', 'right', 'justify'],
+    },
+    htmlSupport: {
+      allow: [
+        {
+          name: /.*/,
+          styles: true,
+          classes: true,
+          attributes: true,
+        },
+      ],
+    },
+    table: {
+      contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'],
+    },
+    removePlugins: ['ImageUpload', 'EasyImage', 'CKFinder', 'CKFinderUploadAdapter'],
+  };
+  private summaryCkEditor: any = null;
+  private pageCkEditors: { [id: number]: any } = {};
+  private lastActiveCkEditable: HTMLElement | null = null;
+  private readonly ckDebug = true;
 
   summary: string = '';
   summaryId: number = 0;
@@ -148,6 +173,19 @@ export class OcrPageModalComponent implements OnDestroy {
     startScrollLeft: 0,
     startScrollTop: 0,
   };
+
+  ngAfterViewChecked(): void {
+    this.logCk('ngAfterViewChecked', {
+      loading: this.loading,
+      pageListCount: this.pageList.length,
+      hasSummaryEditor: !!this.summaryCkEditor,
+      pageEditorCount: Object.keys(this.pageCkEditors).length,
+    });
+    this.initializeSummaryEditor();
+    this.initializePageEditors();
+    this.syncSummaryEditorData();
+    this.syncPageEditorsData();
+  }
 
   // ─── FILE PREVIEW HELPERS ───────────────────────────────────────────────────
 
@@ -293,6 +331,7 @@ getRawUrl(filePath: string): string {
 
   summarizeDocument() {
     if (!this.documentName) return;
+    this.logCk('summarizeDocument:start', { documentName: this.documentName });
     this.isSummarizing = true;
     this.summary = '';
     this.showSummary = false;
@@ -304,6 +343,11 @@ getRawUrl(filePath: string): string {
     this.service.summarizeDocument(this.documentName).subscribe({
       next: (res: any) => {
         const raw: string = res.summary.summary || '';
+        this.logCk('summarizeDocument:api-success', {
+          rawLength: raw?.length ?? 0,
+          summaryId: res.summary.summaryId ?? 0,
+          rawPreview: (raw || '').slice(0, 200),
+        });
         this.summary = this.markdownToHtml(raw);
         this.summaryId = res.summary.summaryId ?? 0;
         this.summaryFromCache = res.summary.fromCache;
@@ -313,6 +357,7 @@ getRawUrl(filePath: string): string {
         this.isSummarizing = false;
         this.showSummary = true;
         this.summaryDirty = false;
+        this.syncSummaryEditorData();
         this.cdr.detectChanges();
       },
       error: () => {
@@ -335,28 +380,6 @@ getRawUrl(filePath: string): string {
       .replace(/\n{2,}/g, '</p><p>')
       .replace(/^(?!<[hul\/])(.+)$/gm, '<p>$1</p>')
       .replace(/<p><\/p>/g, '');
-  }
-
-  clearTextColor(editor: Editor): void {
-    this.removeEditorMark(editor, 'text_color');
-  }
-
-  clearBackgroundColor(editor: Editor): void {
-    this.removeEditorMark(editor, 'text_background_color');
-  }
-
-  private removeEditorMark(
-    editor: Editor | undefined,
-    markName: 'text_color' | 'text_background_color',
-  ): void {
-    if (!editor?.view) return;
-
-    const { state, dispatch } = editor.view;
-    const markType = state.schema.marks[markName];
-    if (!markType) return;
-
-    removeMark(markType)(state, dispatch);
-    editor.view.focus();
   }
 
   saveSummary() {
@@ -413,22 +436,131 @@ getRawUrl(filePath: string): string {
   }
 
   private getSummaryEditorContent(): string {
-    const editor = this.summaryEditor;
-    if (!editor?.view?.dom) return this.summary || '';
-
-    try {
-      const editorElement = editor.view.dom as HTMLElement;
-      const contentEditable = editorElement.querySelector(
-        '[contenteditable="true"]',
-      ) as HTMLElement | null;
-      if (contentEditable) {
-        return contentEditable.innerHTML || '';
-      }
-      return editorElement.innerHTML || this.summary || '';
-    } catch (error) {
-      console.warn('Failed to read summary editor content, using ngModel value', error);
-      return this.summary || '';
+    const wrapperContentEditable = this.queryEditorElement(
+      `[data-summary-editor-wrap="true"] [contenteditable="true"]`,
+    );
+    if (wrapperContentEditable) {
+      return wrapperContentEditable.innerHTML || '';
     }
+    return this.summary || '';
+  }
+
+  private initializeSummaryEditor(): void {
+    if (this.summaryCkEditor) return;
+    const host = this.queryEditorElement(
+      '[data-summary-ckeditor="true"]',
+    );
+    this.logCk('summaryEditor:host-check', { hasHost: !!host, showSummary: this.showSummary });
+    if (!host) return;
+    this.logCk('summaryEditor:create-attempt', {
+      hasHost: !!host,
+      currentSummaryLength: this.summary?.length ?? 0,
+      editorFactoryType: typeof this.CkEditor?.create,
+    });
+
+    this.CkEditor.create(host, this.ckEditorConfig).then((editor: any) => {
+      this.summaryCkEditor = editor;
+      const toolbarHost = this.queryEditorElement('[data-summary-ckeditor-toolbar="true"]');
+      if (toolbarHost && editor?.ui?.view?.toolbar?.element) {
+        toolbarHost.innerHTML = '';
+        toolbarHost.appendChild(editor.ui.view.toolbar.element);
+      }
+      editor.setData(this.summary || '');
+      this.restoreFirstLineIndentVisuals(editor, this.summary || '');
+      this.logCk('summaryEditor:create-success', {
+        initialDataLength: (this.summary || '').length,
+      });
+      editor.model.document.on('change:data', () => {
+        this.summary = editor.getData();
+        this.logCk('summaryEditor:change', {
+          dataLength: this.summary?.length ?? 0,
+        });
+        this.onSummaryEdit();
+      });
+    }).catch((error: any) => {
+      console.error('[OCR CKEditor] summaryEditor:create-failed', error);
+    });
+  }
+
+  private syncSummaryEditorData(): void {
+    if (!this.summaryCkEditor) return;
+    const current = this.summaryCkEditor.getData() || '';
+    const next = this.summary || '';
+    if (current !== next) {
+      this.logCk('summaryEditor:sync-setData', {
+        currentLength: current.length,
+        nextLength: next.length,
+      });
+      this.summaryCkEditor.setData(next);
+      this.restoreFirstLineIndentVisuals(this.summaryCkEditor, next);
+    }
+  }
+
+  private initializePageEditors(): void {
+    const hosts = this.queryEditorElements(
+      '[data-page-ckeditor]',
+    );
+    this.logCk('pageEditor:host-scan', {
+      hostCount: hosts.length,
+      pageListCount: this.pageList.length,
+      loading: this.loading,
+    });
+    hosts.forEach((host) => {
+      const pageId = Number(host.getAttribute('data-page-ckeditor'));
+      if (!Number.isFinite(pageId) || this.pageCkEditors[pageId]) return;
+      this.logCk('pageEditor:create-attempt', {
+        pageId,
+        hasHost: !!host,
+        seedDataLength: (this.editedTexts[pageId] || '').length,
+      });
+
+      this.CkEditor.create(host, this.ckEditorConfig).then((editor: any) => {
+        this.pageCkEditors[pageId] = editor;
+        const toolbarHost = this.queryEditorElement(
+          `[data-page-ckeditor-toolbar="${pageId}"]`,
+        );
+        if (toolbarHost && editor?.ui?.view?.toolbar?.element) {
+          toolbarHost.innerHTML = '';
+          toolbarHost.appendChild(editor.ui.view.toolbar.element);
+        }
+        editor.setData(this.editedTexts[pageId] || '');
+        this.restoreFirstLineIndentVisuals(editor, this.editedTexts[pageId] || '');
+        this.logCk('pageEditor:create-success', { pageId });
+        const pageItem = this.pageList.find((x) => Number(x?.DocumentPageId) === pageId);
+        if (pageItem && !this.canEdit(pageItem)) {
+          editor.enableReadOnlyMode(`page-${pageId}`);
+        }
+        editor.model.document.on('change:data', () => {
+          const value = editor.getData();
+          this.editedTexts[pageId] = value;
+          this.logCk('pageEditor:change', {
+            pageId,
+            dataLength: value?.length ?? 0,
+          });
+        });
+      }).catch((error: any) => {
+        console.error('[OCR CKEditor] pageEditor:create-failed', { pageId, error });
+      });
+    });
+  }
+
+  private syncPageEditorsData(): void {
+    Object.keys(this.pageCkEditors).forEach((key) => {
+      const pageId = Number(key);
+      const editor = this.pageCkEditors[pageId];
+      if (!editor) return;
+      const next = this.editedTexts[pageId] || '';
+      const current = editor.getData() || '';
+      if (current !== next) {
+        this.logCk('pageEditor:sync-setData', {
+          pageId,
+          currentLength: current.length,
+          nextLength: next.length,
+        });
+        editor.setData(next);
+        this.restoreFirstLineIndentVisuals(editor, next);
+      }
+    });
   }
 
   findInSummaryEditor(direction: 'next' | 'prev' = 'next') {
@@ -482,9 +614,7 @@ getRawUrl(filePath: string): string {
   }
 
   private focusEditorWithin(wrapperSelector: string) {
-    const host = this.elementRef?.nativeElement;
-    if (!host) return;
-    const wrapper = host.querySelector(wrapperSelector) as HTMLElement | null;
+    const wrapper = this.queryEditorElement(wrapperSelector);
     const editable = wrapper?.querySelector('[contenteditable="true"]') as HTMLElement | null;
     editable?.focus();
   }
@@ -551,93 +681,14 @@ getRawUrl(filePath: string): string {
    * This is crucial because toolbar button clicks (indent, bold, etc.) don't trigger ngModelChange.
    */
   private getEditorContent(editorId: number): string {
-    const wrapperContentEditable = this.elementRef.nativeElement.querySelector(
+    const wrapperContentEditable = this.queryEditorElement(
       `[data-page-editor-wrap="${editorId}"] [contenteditable="true"]`,
-    ) as HTMLElement | null;
+    );
     if (wrapperContentEditable) {
       return this.normalizeIndentMarkupForEditor(wrapperContentEditable.innerHTML || '');
     }
 
-    const editor = this.pageEditors[editorId];
-    if (!editor || !editor.view) {
-      return this.editedTexts[editorId] || '';
-    }
-
-    try {
-      // Prefer live contenteditable HTML because toolbar-only actions
-      // (indent/outdent/alignment) may not update ngModel immediately.
-      if (editor.view.dom) {
-        const editorElement = editor.view.dom as HTMLElement;
-        const contentEditable = editorElement.querySelector(
-          '[contenteditable="true"]',
-        ) as HTMLElement | null;
-        if (contentEditable) {
-          return this.normalizeIndentMarkupForEditor(contentEditable.innerHTML || '');
-        }
-        return this.normalizeIndentMarkupForEditor(editorElement.innerHTML || '');
-      }
-    } catch (e) {
-      console.warn('Failed to get editor HTML, falling back to editedTexts', e);
-    }
-
     return this.normalizeIndentMarkupForEditor(this.editedTexts[editorId] || '');
-  }
-
-  private applyIndentModeToSelection(
-    editor: Editor | undefined,
-    mode: 'first-line' | 'full',
-  ): void {
-    if (!editor) return;
-    const root = editor.view?.dom as HTMLElement | undefined;
-    if (!root) return;
-
-    const blocks = this.getSelectedBlocks(root);
-    if (blocks.length === 0) return;
-    blocks.forEach((block: HTMLElement) => block.setAttribute('data-indent-mode', mode));
-  }
-
-  private getSelectedBlocks(root: HTMLElement): HTMLElement[] {
-    const selection = window.getSelection();
-    if (!selection?.rangeCount) return [];
-
-    const range = selection.getRangeAt(0);
-    const selector = 'p, blockquote, h1, h2, h3, h4, h5, h6';
-
-    if (range.collapsed) {
-      const anchorNode = selection.anchorNode;
-      const anchorElement =
-        anchorNode?.nodeType === Node.ELEMENT_NODE
-          ? (anchorNode as HTMLElement)
-          : anchorNode?.parentElement ?? null;
-      const block = anchorElement?.closest(selector) as HTMLElement | null;
-      return block ? [block] : [];
-    }
-
-    const blocks: HTMLElement[] = [];
-
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
-      acceptNode: (node: Node) => {
-        const el = node as HTMLElement;
-        if (!el.matches(selector)) return NodeFilter.FILTER_SKIP;
-        return range.intersectsNode(el)
-          ? NodeFilter.FILTER_ACCEPT
-          : NodeFilter.FILTER_SKIP;
-      },
-    });
-
-    while (walker.nextNode()) {
-      blocks.push(walker.currentNode as HTMLElement);
-    }
-
-    if (blocks.length) return blocks;
-
-    const anchorNode = selection.anchorNode;
-    const anchorElement =
-      anchorNode?.nodeType === Node.ELEMENT_NODE
-        ? (anchorNode as HTMLElement)
-        : anchorNode?.parentElement ?? null;
-    const block = anchorElement?.closest(selector) as HTMLElement | null;
-    return block ? [block] : [];
   }
 
   /**
@@ -645,7 +696,7 @@ getRawUrl(filePath: string): string {
    * This ensures toolbar formatting changes are captured.
    */
   private syncAllEditorContent(): void {
-    Object.keys(this.pageEditors).forEach((editorId) => {
+    Object.keys(this.editedTexts).forEach((editorId) => {
       const id = Number(editorId);
       const freshContent = this.getEditorContent(id);
       if (freshContent && freshContent.trim()) {
@@ -710,23 +761,23 @@ getRawUrl(filePath: string): string {
       .trim();
   }
 
-  /**
-   * Converts persisted class/data-indent based indentation into inline styles
-   * so ngx-editor reliably renders indentation after reopening from DB.
-   */
   private normalizeIndentMarkupForEditor(html: string): string {
-    return normalizeNgxEditorHtml(html);
+    return this.normalizeCkEditorHtml(html);
   }
 
   private normalizeIndentMarkupForStorage(html: string): string {
-    return normalizeNgxEditorHtml(html, { forStorage: true });
+    return this.normalizeCkEditorHtml(html);
   }
 
-  getOrCreateEditor(id: number): Editor {
-    if (!this.pageEditors[id]) {
-      this.pageEditors[id] = new Editor();
-    }
-    return this.pageEditors[id];
+  /**
+   * Keep CKEditor-generated styles/classes intact so font family/size/color
+   * persist after saving and reopening.
+   */
+  private normalizeCkEditorHtml(html: string): string {
+    if (!html) return '';
+    return html
+      .replace(/margin-inline-start\s*:/gi, 'margin-left:')
+      .replace(/padding-inline-start\s*:/gi, 'padding-left:');
   }
 
   // ─── MODAL OPEN ─────────────────────────────────────────────────────────────
@@ -748,6 +799,13 @@ getRawUrl(filePath: string): string {
   }
 
   resetState() {
+    if (this.summaryCkEditor) {
+      this.summaryCkEditor.destroy();
+      this.summaryCkEditor = null;
+    }
+    Object.values(this.pageCkEditors).forEach((editor: any) => editor?.destroy?.());
+    this.pageCkEditors = {};
+
     this.currentPage = 1;
     this.pageList = [];
     this.editedTexts = {};
@@ -790,6 +848,13 @@ getRawUrl(filePath: string): string {
       .getDocumentByDocumentName(this.documentId, startIndex, this.pageSize)
       .subscribe({
         next: (res: any) => {
+          this.logCk('loadPages:api-success', {
+            currentPage: this.currentPage,
+            resultCount: Array.isArray(res) ? res.length : 0,
+          });
+          Object.values(this.pageCkEditors).forEach((editor: any) => editor?.destroy?.());
+          this.pageCkEditors = {};
+
           const safeRes = Array.isArray(res) ? res : [];
 
           this.pageList = safeRes.map((x: any) => this.mapDocumentPage(x));
@@ -838,19 +903,55 @@ getRawUrl(filePath: string): string {
                 // For plain text, process with preserveLines
                 this.editedTexts[item.DocumentPageId] = this.preserveLines(extractedText);
               }
+              this.logCk('loadPages:seed-page-data', {
+                pageId: item.DocumentPageId,
+                pageNumber: item.PageNumber,
+                length: (this.editedTexts[item.DocumentPageId] || '').length,
+                preview: (this.editedTexts[item.DocumentPageId] || '').slice(0, 200),
+              });
             }
-            this.getOrCreateEditor(item.DocumentPageId);
           });
 
           this.loading = false;
           this.loadStatusTargetPages();
+          this.syncPageEditorsData();
           this.cdr.detectChanges();
+          setTimeout(() => {
+            this.logCk('loadPages:post-render-init');
+            this.initializePageEditors();
+            this.syncPageEditorsData();
+          }, 0);
         },
         error: () => {
           this.loading = false;
           this.cdr.detectChanges();
         },
       });
+  }
+
+  private logCk(label: string, data?: any): void {
+    if (!this.ckDebug) return;
+    if (data === undefined) {
+      console.log(`[OCR CKEditor] ${label}`);
+      return;
+    }
+    console.log(`[OCR CKEditor] ${label}`, data);
+  }
+
+  private queryEditorElement(selector: string): HTMLElement | null {
+    return (
+      (document.querySelector(selector) as HTMLElement | null) ??
+      (this.elementRef?.nativeElement?.querySelector(selector) as HTMLElement | null) ??
+      null
+    );
+  }
+
+  private queryEditorElements(selector: string): HTMLElement[] {
+    const fromDocument = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+    if (fromDocument.length > 0) return fromDocument;
+    return Array.from(
+      this.elementRef?.nativeElement?.querySelectorAll(selector) ?? [],
+    ) as HTMLElement[];
   }
 
   private mapDocumentPage(x: any): any {
@@ -1644,8 +1745,13 @@ getRawUrl(filePath: string): string {
   // ─── DESTROY ────────────────────────────────────────────────────────────────
 
   ngOnDestroy() {
-    Object.values(this.pageEditors).forEach((editor) => editor.destroy());
-    this.summaryEditor.destroy();
+    if (this.summaryCkEditor) {
+      this.summaryCkEditor.destroy();
+      this.summaryCkEditor = null;
+    }
+    Object.values(this.pageCkEditors).forEach((editor: any) => editor?.destroy?.());
+    this.pageCkEditors = {};
+
     if (this.documentId) {
       this.service
         .manageLock(this.documentId, this.currentUserId, 'UNLOCK')
@@ -1658,50 +1764,49 @@ getRawUrl(filePath: string): string {
     const hasModKey = event.ctrlKey || event.metaKey;
     if (!hasModKey || event.altKey) return;
 
-    const key = event.key.toLowerCase();
-    if (key === 's') {
+    const keyLower = (event.key || '').toLowerCase();
+    if (keyLower === 's') {
       event.preventDefault();
       this.saveAll();
       return;
     }
 
-    const isIndentShortcut = event.code === 'BracketRight' || event.key === ']';
-    const isOutdentShortcut = event.code === 'BracketLeft' || event.key === '[';
+    const key = event.key || '';
+    const code = event.code || '';
+    const keyCode = (event as any).keyCode as number | undefined;
+
+    const isIndentShortcut =
+      code === 'BracketRight' ||
+      key === ']' ||
+      key === '}' ||
+      keyCode === 221;
+    const isOutdentShortcut =
+      code === 'BracketLeft' ||
+      key === '[' ||
+      key === '{' ||
+      keyCode === 219;
     if (!isIndentShortcut && !isOutdentShortcut) return;
 
-    const target = event.target as HTMLElement | null;
-    const activeEditor = this.getActiveNgxEditor(target);
-    if (!activeEditor?.editor) return;
-
-    event.preventDefault();
-    if (isIndentShortcut) {
-      this.applyIndentModeToSelection(
-        activeEditor.editor,
-        event.shiftKey ? 'full' : 'first-line',
-      );
-      activeEditor.editor.commands.focus().indent().exec();
-
-      const mode: 'first-line' | 'full' = event.shiftKey ? 'full' : 'first-line';
-      setTimeout(() => {
-        this.applyIndentModeToSelection(activeEditor.editor, mode);
-        if (activeEditor.kind === 'summary') {
-          this.summaryDirty = true;
-          this.summary = this.getSummaryEditorContent();
-        } else {
-          this.editedTexts[activeEditor.pageId] = this.getEditorContent(activeEditor.pageId);
-        }
-      }, 0);
-    } else {
-      activeEditor.editor.commands.focus().outdent().exec();
+    const delta = isIndentShortcut ? 40 : -40;
+    const mode: 'paragraph' | 'first-line' = event.shiftKey ? 'first-line' : 'paragraph';
+    const applied = this.applyManualIndentFromTarget(
+      event.target as HTMLElement | null,
+      delta,
+      mode,
+    );
+    this.logCk('shortcut:indent-detected', {
+      key,
+      code,
+      keyCode,
+      shift: event.shiftKey,
+      meta: event.metaKey,
+      ctrl: event.ctrlKey,
+      mode,
+      applied,
+    });
+    if (applied) {
+      event.preventDefault();
     }
-
-    if (activeEditor.kind === 'summary') {
-      this.summaryDirty = true;
-      this.summary = this.getSummaryEditorContent();
-      return;
-    }
-
-    this.editedTexts[activeEditor.pageId] = this.getEditorContent(activeEditor.pageId);
   }
 
   @HostListener('document:mousedown', ['$event'])
@@ -1715,78 +1820,160 @@ getRawUrl(filePath: string): string {
     const label = (
       button.getAttribute('aria-label') ||
       button.getAttribute('title') ||
+      button.textContent ||
       ''
     ).toLowerCase();
 
-    const isIncreaseIndent =
-      label.includes('increase indent') ||
-      (label.includes('indent') && !label.includes('decrease'));
-    if (!isIncreaseIndent) return;
+    const isIncreaseIndent = label.includes('increase indent');
+    const isDecreaseIndent = label.includes('decrease indent');
+    if (!isIncreaseIndent && !isDecreaseIndent) return;
 
-    const activeEditor = this.getEditorFromWrapper(target);
-    if (!activeEditor?.editor) return;
-
-    const mode: 'first-line' | 'full' = event.shiftKey ? 'full' : 'first-line';
-
-    // On toolbar clicks, browser focus may temporarily move to the button,
-    // so selection-based mode tagging can miss the target block. Re-apply
-    // mode right after the editor command executes.
+    const delta = isIncreaseIndent ? 40 : -40;
     setTimeout(() => {
-      try {
-        activeEditor.editor.commands.focus().exec();
-      } catch {}
-
-      this.applyIndentModeToSelection(activeEditor.editor, mode);
-
-      if (activeEditor.kind === 'summary') {
-        this.summaryDirty = true;
-        this.summary = this.getSummaryEditorContent();
-      } else {
-        this.editedTexts[activeEditor.pageId] = this.getEditorContent(activeEditor.pageId);
-      }
+      this.applyManualIndentFromTarget(target, delta, 'paragraph');
     }, 0);
   }
 
-  private getActiveNgxEditor(
-    target: HTMLElement | null,
-  ): { kind: 'summary'; editor: Editor } | { kind: 'page'; pageId: number; editor: Editor } | null {
-    if (!target) return null;
-
-    const host = target.closest('.NgxEditor, .NgxEditor__Content, [contenteditable="true"]');
-    if (!host) return null;
-
-    const summaryWrap = host.closest('[data-summary-editor-wrap="true"]');
-    if (summaryWrap) {
-      return { kind: 'summary', editor: this.summaryEditor };
-    }
-
-    const pageWrap = host.closest('[data-page-editor-wrap]') as HTMLElement | null;
-    if (!pageWrap) return null;
-
-    const pageIdValue = pageWrap.getAttribute('data-page-editor-wrap');
-    const pageId = Number(pageIdValue);
-    if (!Number.isFinite(pageId)) return null;
-
-    return { kind: 'page', pageId, editor: this.getOrCreateEditor(pageId) };
+  indentFirstLineInCurrentEditor(): void {
+    const target = this.lastActiveCkEditable ?? (document.activeElement as HTMLElement | null);
+    this.applyManualIndentFromTarget(target, 40, 'first-line');
   }
 
-  private getEditorFromWrapper(
-    target: HTMLElement | null,
-  ): { kind: 'summary'; editor: Editor } | { kind: 'page'; pageId: number; editor: Editor } | null {
-    if (!target) return null;
+  outdentFirstLineInCurrentEditor(): void {
+    const target = this.lastActiveCkEditable ?? (document.activeElement as HTMLElement | null);
+    this.applyManualIndentFromTarget(target, -40, 'first-line');
+  }
 
-    const summaryWrap = target.closest('[data-summary-editor-wrap="true"]');
-    if (summaryWrap) {
-      return { kind: 'summary', editor: this.summaryEditor };
+  private applyManualIndentFromTarget(
+    target: HTMLElement | null,
+    delta: number,
+    mode: 'paragraph' | 'first-line',
+  ): boolean {
+    const root = this.getActiveCkEditorRoot(target);
+    if (!root) return false;
+
+    const blocks = this.getSelectedBlocksInRoot(root);
+    if (!blocks.length) return false;
+
+    // Let native list indentation handle list items.
+    if (blocks.some((block) => block.tagName.toLowerCase() === 'li')) return false;
+
+    blocks.forEach((block) => {
+      if (mode === 'first-line') {
+        const current = this.readTextIndentPx(block);
+        const next = Math.max(0, current + delta);
+        block.style.textIndent = `${next}px`;
+        block.setAttribute('data-first-line-indent', `${next}`);
+        return;
+      }
+
+      const current = this.readLeftIndentPx(block);
+      const next = Math.max(0, current + delta);
+      block.style.marginLeft = `${next}px`;
+    });
+
+    return true;
+  }
+
+  private getActiveCkEditorRoot(target: HTMLElement | null): HTMLElement | null {
+    const directEditable = target?.closest(
+      '.ck-editor__editable[contenteditable="true"]',
+    ) as HTMLElement | null;
+    if (directEditable) return directEditable;
+
+    const origin =
+      this.lastActiveCkEditable ??
+      target ??
+      (document.activeElement as HTMLElement | null);
+    const editor = origin?.closest('.ck-editor') as HTMLElement | null;
+    if (!editor) return null;
+    return editor.querySelector(
+      '.ck-editor__editable[contenteditable="true"]',
+    ) as HTMLElement | null;
+  }
+
+  @HostListener('document:focusin', ['$event'])
+  trackLastActiveCkEditable(event: FocusEvent) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+    const editable = target.closest(
+      '.ck-editor__editable[contenteditable="true"]',
+    ) as HTMLElement | null;
+    if (editable) {
+      this.lastActiveCkEditable = editable;
+    }
+  }
+
+  private getSelectedBlocksInRoot(root: HTMLElement): HTMLElement[] {
+    const selection = window.getSelection();
+    if (!selection?.rangeCount) return [];
+
+    const range = selection.getRangeAt(0);
+    const selector = 'p, blockquote, h1, h2, h3, h4, h5, h6, li';
+    const blocks: HTMLElement[] = [];
+
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, {
+      acceptNode: (node: Node) => {
+        const el = node as HTMLElement;
+        if (!el.matches(selector)) return NodeFilter.FILTER_SKIP;
+        return range.intersectsNode(el) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      },
+    });
+
+    while (walker.nextNode()) {
+      blocks.push(walker.currentNode as HTMLElement);
     }
 
-    const pageWrap = target.closest('[data-page-editor-wrap]') as HTMLElement | null;
-    if (!pageWrap) return null;
+    if (blocks.length > 0) return blocks;
 
-    const pageIdValue = pageWrap.getAttribute('data-page-editor-wrap');
-    const pageId = Number(pageIdValue);
-    if (!Number.isFinite(pageId)) return null;
+    const anchor = selection.anchorNode?.nodeType === Node.ELEMENT_NODE
+      ? (selection.anchorNode as HTMLElement)
+      : selection.anchorNode?.parentElement ?? null;
+    const single = anchor?.closest(selector) as HTMLElement | null;
+    return single ? [single] : [];
+  }
 
-    return { kind: 'page', pageId, editor: this.getOrCreateEditor(pageId) };
+  private readLeftIndentPx(element: HTMLElement): number {
+    const inline = element.style.marginLeft || '';
+    const parsedInline = Number.parseInt(inline.replace('px', ''), 10);
+    if (Number.isFinite(parsedInline)) return parsedInline;
+    const computed = window.getComputedStyle(element).marginLeft;
+    const parsedComputed = Number.parseInt(computed.replace('px', ''), 10);
+    return Number.isFinite(parsedComputed) ? parsedComputed : 0;
+  }
+
+  private readTextIndentPx(element: HTMLElement): number {
+    const inline = element.style.textIndent || '';
+    const parsedInline = Number.parseInt(inline.replace('px', ''), 10);
+    if (Number.isFinite(parsedInline)) return parsedInline;
+    const computed = window.getComputedStyle(element).textIndent;
+    const parsedComputed = Number.parseInt(computed.replace('px', ''), 10);
+    return Number.isFinite(parsedComputed) ? parsedComputed : 0;
+  }
+
+  private restoreFirstLineIndentVisuals(editor: any, sourceHtml: string): void {
+    if (!editor || !sourceHtml) return;
+    const editable = editor.ui?.getEditableElement?.() as HTMLElement | null;
+    if (!editable) return;
+
+    const parser = new DOMParser();
+    const parsed = parser.parseFromString(sourceHtml, 'text/html');
+    const sourceBlocks = Array.from(
+      parsed.body.querySelectorAll('p, blockquote, h1, h2, h3, h4, h5, h6'),
+    ) as HTMLElement[];
+    const liveBlocks = Array.from(
+      editable.querySelectorAll('p, blockquote, h1, h2, h3, h4, h5, h6'),
+    ) as HTMLElement[];
+
+    const count = Math.min(sourceBlocks.length, liveBlocks.length);
+    for (let i = 0; i < count; i++) {
+      const source = sourceBlocks[i];
+      const live = liveBlocks[i];
+      const sourceIndent = this.readTextIndentPx(source);
+      if (sourceIndent > 0) {
+        live.style.textIndent = `${sourceIndent}px`;
+        live.setAttribute('data-first-line-indent', `${sourceIndent}`);
+      }
+    }
   }
 }

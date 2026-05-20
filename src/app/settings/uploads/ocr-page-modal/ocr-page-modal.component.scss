@@ -307,6 +307,28 @@ $radius:   10px;
       flex-direction: column;
       overflow: hidden;
 
+      [data-page-ckeditor] {
+        min-height: 240px;
+      }
+
+      ::ng-deep .ck.ck-editor {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      ::ng-deep .ck.ck-editor__main {
+        flex: 1;
+        min-height: 0;
+      }
+
+      ::ng-deep .ck.ck-editor__editable_inline {
+        min-height: 240px;
+        max-height: none;
+        overflow-y: auto;
+      }
+
       .editor-search-row {
         display: flex;
         gap: 8px;
@@ -420,6 +442,21 @@ $radius:   10px;
   flex: 1;
   min-height: 0;
   overflow: hidden;
+}
+
+.ocr-editor-wrap [data-summary-ckeditor="true"],
+.ocr-editor-wrap [data-page-ckeditor] {
+  min-height: 220px;
+}
+
+.ocr-editor-wrap ::ng-deep .ck.ck-editor {
+  width: 100%;
+}
+
+.ocr-editor-wrap ::ng-deep .ck.ck-editor__editable_inline {
+  min-height: 220px;
+  max-height: calc(min(38vh, calc(100vh - 440px)) - 110px);
+  overflow-y: auto;
 }
 
 .ocr-editor-wrap ::ng-deep .summary-editor .NgxEditor {

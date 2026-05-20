@@ -8,6 +8,7 @@
     "strict": true,
     "strictPropertyInitialization": false,
     "noImplicitReturns": false,
+    "skipLibCheck": true,
     "noFallthroughCasesInSwitch": true,
     "sourceMap": true,
     "declaration": false,
