@@ -19,6 +19,7 @@ export class DataDocumentComponent implements OnInit {
   currentPage: number = 1;        // used in HTML for row numbering {{ (currentPage - 1) * pageSize + i + 1 }}
   docCurrentPage: number = 1;     // used in HTML for pagination component [currentPage]="docCurrentPage"
   pageSize: number = 10;
+  totalRecords: number = 0;
   totalPages: number = 1;         // used in HTML [totalPages]="totalPages"
 
   searchBy: string = '';
@@ -50,6 +51,13 @@ export class DataDocumentComponent implements OnInit {
     this.fetchDocuments();
   }
 
+  onDocPageSizeChange(size: number): void {
+    this.pageSize = Number(size) || 10;
+    this.docCurrentPage = 1;
+    this.currentPage = 1;
+    this.fetchDocuments();
+  }
+
   // ── Fetch ──────────────────────────────────────────────────
   fetchDocuments(): void {
     this.isLoading = true;
@@ -62,17 +70,17 @@ export class DataDocumentComponent implements OnInit {
       this.searchCriteria
     ).subscribe({
       next: (response: any) => {
-        const items: any[] = response?.items ?? response ?? [];
-        const totalRecords: number = response?.totalCount ?? response?.total ?? response?.totalRecords ?? 0;
+  const items: any[] = response?.items ?? [];
 
-        this.documentsSubject.next(items);
-        this.totalPages = totalRecords > 0
-          ? Math.ceil(totalRecords / this.pageSize)
-          : 1;
+  this.documentsSubject.next(items);
+  this.totalRecords = response?.totalCount ?? 0;
+  this.totalPages = this.totalRecords > 0
+    ? Math.ceil(this.totalRecords / this.pageSize)
+    : 1;
 
-        this.isLoading = false;
-        this.cdRef.detectChanges();
-      },
+  this.isLoading = false;
+  this.cdRef.detectChanges();
+},
       error: (err) => {
         this.isLoading = false;
         console.error('Error:', err);

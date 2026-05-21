@@ -1403,6 +1403,7 @@ getRawUrl(item: any): string {
       return;
     }
 
+    this.syncAllEditorContent();
     this.swappingPages = true;
     this.cdr.detectChanges();
 
@@ -1440,12 +1441,14 @@ getRawUrl(item: any): string {
 
         const tempCandidates = Array.from(
           new Set([
+            0,
+            -1,
             this.totalRecords + 1,
             Math.max(pageA, pageB) + 1,
             9999,
             1000000,
           ]),
-        ).filter((n) => Number.isFinite(n) && n > 0 && n !== pageA && n !== pageB);
+        ).filter((n) => Number.isFinite(n) && n !== pageA && n !== pageB);
 
         const getPageText = (page: any): string =>
           this.editedTexts[page.DocumentPageId] ?? page.ExtractedText ?? '';
@@ -1470,13 +1473,17 @@ getRawUrl(item: any): string {
           });
         };
 
+        let lastTempMoveError: any = null;
+
         const tryMoveWithTemp = (candidateIndex: number): void => {
           if (candidateIndex >= tempCandidates.length) {
             this.swappingPages = false;
             this.cdr.detectChanges();
             Swal.fire(
               'Error',
-              'Unable to prepare page move with valid temporary page number.',
+              lastTempMoveError?.error?.message ||
+                lastTempMoveError?.message ||
+                'Unable to prepare page move with valid temporary page number.',
               'error',
             );
             return;
@@ -1518,6 +1525,7 @@ getRawUrl(item: any): string {
             },
             (err, failedIndex) => {
               if (failedIndex === 0) {
+                lastTempMoveError = err;
                 tryMoveWithTemp(candidateIndex + 1);
                 return;
               }
@@ -1546,16 +1554,19 @@ getRawUrl(item: any): string {
 
   private buildPageMovePayload(page: any, targetPageNumber: number, extractedText: string): any {
     return {
-      documentPageId: page.DocumentPageId,
-      documentId: page.DocumentId,
-      pageNumber: targetPageNumber,
-      extractedText: this.normalizeIndentMarkupForStorage(extractedText),
+      documentPageId: Number(page.DocumentPageId),
+      documentId: Number(page.DocumentId),
+      pageNumber: Number(targetPageNumber),
+      extractedText: extractedText || '',
       statusId: Number(page.StatusId),
-      userId: this.currentUserId,
-      roleId: 0,
+      userId: Number(this.currentUserId),
+      roleId: Number(this.roleId),
       preserveStatus: true,
       isPageMove: true,
-      rejectionReason: page.RejectionReason ?? '',
+      rejectionReason:
+        typeof page.RejectionReason === 'string'
+          ? page.RejectionReason
+          : '',
     };
   }
 

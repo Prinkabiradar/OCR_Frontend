@@ -77,7 +77,10 @@
         <app-pagination-data
           [currentPage]="docCurrentPage"
           [totalPages]="totalPages"
+          [totalRecords]="totalRecords"
+          [pageSize]="pageSize"
           (pageChange)="onDocPageChange($event)"
+          (pageSizeChange)="onDocPageSizeChange($event)"
         >
         </app-pagination-data>
       </div>
