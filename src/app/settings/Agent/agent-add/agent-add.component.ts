@@ -21,23 +21,30 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   selectedPageIndex     : number = 0;
 
   // ── Document table pagination ────────────────────────────────
- 
-    docCurrentPage  : number = 1;
-    docPageSize     : number = 10;
-    docTotalPages   : number = 0;
-    docTotalRecords : number = 0;
-    searchBy        : string = '';
-    searchCriteria  : string = '';
-    private searchTimeout: any;
+  docCurrentPage  : number = 1;
+  docPageSize     : number = 10;
+  docTotalPages   : number = 0;
+  docTotalRecords : number = 0;
+  searchBy        : string = '';
+  searchCriteria  : string = '';
+  private searchTimeout: any;
+  private approveDocumentsRequestId = 0;
+  private ignoreNextDropdownChange = false;
+  private isAdvancedFilterApplied = false;
 
   // ── Document table data ──────────────────────────────────────
   pages               : any[]    = [];
+  allDocumentDropdown : any[]    = [];
   documentDropdown    : any[]    = [];
   selectedDocumentId  : number   = 0;
   selectedDocumentName: string   = '';
+  selectedDocForSearch: string   = '';
   loadingDropdown     : boolean  = false;
+  documentTableSearch : string   = '';
   searchQuery         : string   = '';
   private searchDebounce: any;
+  private serverDocTotalRecords = 0;
+  private serverDocTotalPages = 1;
 
   // ── Per-document loading sets ────────────────────────────────
   loadingPdfIds : Set<number> = new Set();
@@ -57,6 +64,15 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   showSuggestionModal = false;
   suggestionText      = '';
   isSavingSuggestion  = false;
+
+  // ── Advanced Search Modal ────────────────────────────────────
+  showAdvancedSearchModal = false;
+  advancedDocumentTypes: any[] = [];
+  advancedDocumentNames: any[] = [];
+  selectedAdvDocType: string = '';
+  selectedAdvDocName: string = '';
+  advDocTypeLoading = false;
+  advDocNameLoading = false;
 
   // ── Page jump ────────────────────────────────────────────────
   pageJumpInput: string = '';
@@ -160,9 +176,10 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   GetApproveDocuments(): void {
     this.loadingDropdown = true;
     this.cd.detectChanges();
-  
+
+    const requestId = ++this.approveDocumentsRequestId;
     const startIndex = (this.docCurrentPage - 1) * this.docPageSize + 1;
-  
+
     this.service.GetApproveDocuments(
       startIndex,
       this.docPageSize,
@@ -170,32 +187,38 @@ export class AgentAddComponent implements OnInit, OnDestroy {
       this.searchCriteria
     ).subscribe({
       next: (response: any) => {
+        if (requestId !== this.approveDocumentsRequestId) return;
+
         const items: any[] = Array.isArray(response) ? response : (response?.items ?? []);
-  
-        this.documentDropdown = items.map((x: any) => ({
+
+        this.allDocumentDropdown = items.map((x: any) => ({
           id  : (x.DocumentId ?? x.documentId ?? x.id).toString(),
           text: x.DocumentName ?? x.documentName ?? x.text ?? '',
         }));
-  
+
         const total =
-          items[0]?.TotalCount ??      
+          items[0]?.TotalCount ??
           items[0]?.totalCount ??
           items[0]?.totalRecords ??
           response?.totalCount ?? 0;
-  
-        this.docTotalRecords = total;
-        this.docTotalPages   = total > 0 ? Math.ceil(total / this.docPageSize) : 1;
-  
+
+        this.serverDocTotalRecords = total;
+        this.serverDocTotalPages   = total > 0 ? Math.ceil(total / this.docPageSize) : 1;
+        this.applyDocumentTableSearch();
+
         this.loadingDropdown = false;
         this.cd.detectChanges();
       },
       error: (err) => {
+        if (requestId !== this.approveDocumentsRequestId) return;
+
         console.error('fetchDocuments error:', err);
         this.loadingDropdown = false;
         this.cd.detectChanges();
       }
     });
   }
+
   onSearchChange(value: string): void {
     this.searchCriteria = value;
     if (this.searchTimeout) clearTimeout(this.searchTimeout);
@@ -204,34 +227,230 @@ export class AgentAddComponent implements OnInit, OnDestroy {
       this.GetApproveDocuments();
     }, 400);
   }
-  
+
   onDocPageChange(page: number): void {
     this.docCurrentPage = page;
+    this.documentTableSearch = '';
     this.GetApproveDocuments();
   }
-  
+
   onDocPageSizeChange(size: number): void {
     this.docPageSize    = size;
     this.docCurrentPage = 1;
+    this.documentTableSearch = '';
     this.GetApproveDocuments();
   }
+
+  onDocumentTableSearchChange(value: string): void {
+    this.documentTableSearch = value;
+    this.applyDocumentTableSearch();
+    this.cd.detectChanges();
+  }
+
+  clearDocumentTableSearch(): void {
+    this.documentTableSearch = '';
+    this.applyDocumentTableSearch();
+    this.cd.detectChanges();
+  }
+
+  private applyDocumentTableSearch(): void {
+    const term = this.documentTableSearch.trim().toLowerCase();
+
+    if (!term) {
+      this.documentDropdown = [...this.allDocumentDropdown];
+      this.docTotalRecords = this.serverDocTotalRecords;
+      this.docTotalPages = this.serverDocTotalPages;
+      return;
+    }
+
+    this.documentDropdown = this.allDocumentDropdown.filter(doc =>
+      (doc.text ?? '').toLowerCase().includes(term)
+    );
+    this.docTotalRecords = this.documentDropdown.length;
+    this.docTotalPages = 1;
+  }
+
+  // ── Dropdown select ──────────────────────────────────────────
+
+  onDropdownSelect(docId: string | number): void {
+    if (this.ignoreNextDropdownChange && !docId) {
+      this.ignoreNextDropdownChange = false;
+      return;
+    }
+    this.ignoreNextDropdownChange = false;
+
+    if (!docId) {
+      if (this.isAdvancedFilterApplied) return;
+
+      this.selectedDocForSearch = '';
+      this.selectedDocumentId   = 0;
+      this.searchCriteria       = '';
+      this.searchBy             = '';
+      this.docCurrentPage       = 1;
+      this.GetApproveDocuments();
+      return;
+    }
+    const found = this.documentDropdown.find(d => d.id == docId);
+    if (found) {
+      this.isAdvancedFilterApplied = false;
+      this.selectedAdvDocType      = '';
+      this.selectedAdvDocName      = '';
+      this.advancedDocumentNames   = [];
+      this.selectedDocForSearch = found.text;
+      this.searchCriteria       = found.text;
+      this.searchBy             = 'DocumentName';
+      this.docCurrentPage       = 1;
+      this.GetApproveDocuments();
+    }
+  }
+
+  private setSelectedDocumentIdSilently(docId: number): void {
+    if (this.selectedDocumentId == docId) return;
+
+    this.ignoreNextDropdownChange = true;
+    this.selectedDocumentId = docId;
+  }
+
+  // ── Advanced Search Modal Methods ────────────────────────────
+
+  openAdvancedSearchModal(): void {
+    this.showAdvancedSearchModal = true;
+   // this.selectedAdvDocType = '';
+    //this.selectedAdvDocName = '';
+    this.loadAdvancedDocumentTypes();
+    this.cd.detectChanges();
+  }
+
+  closeAdvancedSearchModal(): void {
+    this.showAdvancedSearchModal = false;
+    //this.selectedAdvDocType = '';
+    //this.selectedAdvDocName = '';
+    this.cd.detectChanges();
+  }
+
+  loadAdvancedDocumentTypes(): void {
+    this.advDocTypeLoading = true;
+    this.cd.detectChanges();
+
+    this.service.dropdownAll('', '1', '3', '0').subscribe({
+      next: (response: any) => {
+        this.advancedDocumentTypes = response || [];
+        this.advDocTypeLoading = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading document types:', err);
+        this.advDocTypeLoading = false;
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  loadAdvancedDocumentNames(docTypeId: string = ''): void {
+    this.advDocNameLoading = true;
+    this.cd.detectChanges();
+
+    this.service.dropdownAll('', '1', '7', docTypeId || '0').subscribe({
+      next: (response: any) => {
+        this.advancedDocumentNames = response || [];
+        this.advDocNameLoading = false;
+        this.cd.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading document names:', err);
+        this.advDocNameLoading = false;
+        this.cd.detectChanges();
+      }
+    });
+  }
+
+  onAdvancedDocTypeChange(docTypeId: string): void {
+    this.selectedAdvDocType = docTypeId;
+    this.selectedAdvDocName = '';
+
+    if (docTypeId) {
+      this.loadAdvancedDocumentNames(docTypeId);
+    } else {
+      this.advancedDocumentNames = [];
+    }
+    this.cd.detectChanges();
+  }
+
+applyAdvancedSearch(): void {
+  if (!this.selectedAdvDocType && !this.selectedAdvDocName) {
+    Swal.fire({
+      icon: 'warning',
+      title: 'Filter Required',
+      text: 'Please select at least Document Type or Document Name to filter.',
+      confirmButtonText: 'OK',
+    });
+    return;
+  }
+
+  if (this.selectedAdvDocName) {
+    const foundName = this.advancedDocumentNames.find(
+      d => d.id == this.selectedAdvDocName
+    );
+    this.searchBy       = 'DocumentName';
+    this.searchCriteria = foundName ? foundName.text : this.selectedAdvDocName;
+  } else if (this.selectedAdvDocType) {
+    this.searchBy       = 'DocumentType';
+    this.searchCriteria = this.selectedAdvDocType;
+  }
+
+  this.isAdvancedFilterApplied = true;
+  this.setSelectedDocumentIdSilently(0);
+  this.selectedDocForSearch = '';
+  this.documentTableSearch = '';
+  this.docCurrentPage       = 1;
+
+  // ✅ close modal FIRST before any async call
+  this.showAdvancedSearchModal = false;
+  this.cd.detectChanges();
+
+  // ✅ then fetch — searchBy and searchCriteria are safely set
+  this.GetApproveDocuments();
+}
+
+clearAdvancedSearch(): void {
+  this.searchBy              = '';
+  this.searchCriteria        = '';
+  this.isAdvancedFilterApplied = false;
+  this.selectedAdvDocType    = '';
+  this.selectedAdvDocName    = '';
+  this.advancedDocumentNames = [];
+  this.setSelectedDocumentIdSilently(0);
+  this.selectedDocForSearch  = '';
+  this.documentTableSearch   = '';
+  this.docCurrentPage        = 1;
+
+  // ✅ close modal first
+ // this.showAdvancedSearchModal = false;
+  this.cd.detectChanges();
+
+  this.GetApproveDocuments();
+}
+
+  // ── Select / Back ────────────────────────────────────────────
 
   selectDocument(doc: any) {
     this.selectedDocumentId   = Number(doc.id);
     this.selectedDocumentName = doc.text;
-    this.userQuestion         = doc.text;
-    this.currentPage          = 1;           
-    this.selectedPageIndex    = 0;            
+    this.selectedDocForSearch = doc.text;
+    this.userQuestion         = '';
+    this.currentPage          = 1;
+    this.selectedPageIndex    = 0;
     this.pages                = [];
     this.notFound             = false;
     this.showSummary          = false;
     this.pageJumpInput        = '';
-    this.AgentGET(0);                         
+    this.AgentGET(0);
   }
 
   backToTable() {
     this.selectedDocumentName = '';
     this.selectedDocumentId   = 0;
+    this.selectedDocForSearch = '';
     this.userQuestion         = '';
     this.pages                = [];
     this.documentName         = '';
@@ -240,7 +459,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     this.summary              = '';
     this.currentPage          = 1;
     this.pageJumpInput        = '';
-    this.GetApproveDocuments();      
+    this.GetApproveDocuments();
     this.cd.detectChanges();
   }
 
@@ -250,27 +469,26 @@ export class AgentAddComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.notFound  = false;
     this.cd.detectChanges();
-  
-    // ✅ Fix 1: correct startIndex calculation
+
     const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
-  
+    const queryTerm  = this.selectedDocForSearch || this.userQuestion;
+
     this.service.askAgent(
-      this.userQuestion,
-      startIndex,           // ✅ was: this.currentPage
+      queryTerm,
+      startIndex,
       this.itemsPerPage,
       this.searchQuery ? '1' : '0',
-      this.userQuestion
+      queryTerm
     ).subscribe({
       next: (response: any) => {
         this.isLoading         = false;
         this.documentName      = response.documentName;
         this.fullText          = response.fullText;
         this.totalRecords      = response.totalCount;
-  
-        // ✅ Fix 2: calculate totalPages from totalCount if API doesn't return it
+
         this.totalPages        = response.totalPages
           ?? Math.ceil(response.totalCount / this.itemsPerPage);
-  
+
         this.notFound          = response.pages.length === 0;
         this.pages             = response.pages;
         this.selectedPageIndex = this.pages.length
@@ -278,7 +496,7 @@ export class AgentAddComponent implements OnInit, OnDestroy {
           : 0;
         this.pageListSubject.next(response.pages);
         this.updatePageContent();
-  
+
         if (!this.notFound) {
           this.autoSelectVoice(response.fullText);
         }
@@ -295,15 +513,15 @@ export class AgentAddComponent implements OnInit, OnDestroy {
 
   onPageChange(page: number) {
     this.currentPage       = page;
-    this.selectedPageIndex = 0;    // ✅ add this
+    this.selectedPageIndex = 0;
     this.AgentGET(0);
     this.cd.detectChanges();
   }
-  
+
   onPageSizeChange(newSize: number) {
     this.itemsPerPage      = newSize;
     this.currentPage       = 1;
-    this.selectedPageIndex = 0;    // ✅ add this
+    this.selectedPageIndex = 0;
     this.AgentGET(0);
     this.cd.detectChanges();
   }
@@ -315,7 +533,6 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   }
 
   get absolutePageNumber(): number {
-    // ✅ was: ((this.currentPage - 1) * this.itemsPerPage) + this.selectedPageIndex + 1
     return (this.currentPage - 1) * this.itemsPerPage + this.selectedPageIndex + 1;
   }
 
@@ -352,15 +569,15 @@ export class AgentAddComponent implements OnInit, OnDestroy {
   jumpToPage(rawValue: string | number) {
     const total = this.totalRecords;
     if (total === 0) return;
-  
+
     const parsed = Number.parseInt(String(rawValue ?? '').trim(), 10);
     if (Number.isNaN(parsed)) return;
-  
+
     const clamped  = Math.max(1, Math.min(total, parsed));
     const pageSize = Math.max(1, this.itemsPerPage);
-  
-    this.currentPage       = Math.ceil(clamped / pageSize);   // ✅
-    this.selectedPageIndex = (clamped - 1) % pageSize;        // ✅
+
+    this.currentPage       = Math.ceil(clamped / pageSize);
+    this.selectedPageIndex = (clamped - 1) % pageSize;
     this.pageJumpInput     = '';
     this.AgentGET(this.selectedPageIndex);
   }

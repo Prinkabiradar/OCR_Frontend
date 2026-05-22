@@ -6,20 +6,43 @@
 
     <!-- 🔍 Filter Row -->
     <div class="row top-bar align-items-center pb-5">
-      <div class="col-md-3">
-        <div class="search-box">
-          <input
-          type="text"
-          class="form-control uniform-control"
-          placeholder="Search Document..."
-          [(ngModel)]="searchCriteria"
-          (ngModelChange)="onSearchChange($event)"
-        />
+      <div class="col-md-4">
+        <div class="form-group mb-0">
+          <div class="input-group input-group-sm">
+            <input
+              type="text"
+              class="form-control"
+              placeholder="Search visible documents..."
+              [(ngModel)]="documentTableSearch"
+              (ngModelChange)="onDocumentTableSearchChange($event)"
+            />
+            <button
+              type="button"
+              class="btn btn-outline-secondary"
+              *ngIf="documentTableSearch"
+              (click)="clearDocumentTableSearch()"
+              title="Clear search"
+            >
+              Clear
+            </button>
+            <!--
+            [options]="{ placeholder: 'Search document…', allowClear: true, width: '100%' }"
+            -->
+          </div>
         </div>
+      </div>
+      <div class="col-md-2">
+        <button
+          type="button"
+          class="btn btn-outline-primary btn-sm"
+          (click)="openAdvancedSearchModal()"
+          title="Open Advanced Search">
+          🔍 Advanced Search
+        </button>
       </div>
     </div>
 
-    <!-- OM Loader -->
+    <!-- Loader -->
     <div *ngIf="loadingDropdown" class="loading">
       Loading documents...
     </div>
@@ -51,7 +74,6 @@
             </button>
           </td>
           <td>
-            <!-- PDF button -->
             <button
               class="btn btn-primary btn-sm"
               (click)="onViewPdf({ documentId: +doc.id })"
@@ -59,8 +81,6 @@
             >
               {{ isPdfLoading(+doc.id) ? 'Loading...' : 'PDF' }}
             </button>
-
-            <!-- Word button -->
             <button
               class="btn btn-success btn-sm ms-1"
               (click)="onDownloadWord({ documentId: +doc.id })"
@@ -82,20 +102,20 @@
     <div class="pagination-wrapper">
       <div class="pagination-left">
         <app-pagination-data
-        [currentPage]="docCurrentPage"
-        [totalPages]="docTotalPages"
-        [totalRecords]="docTotalRecords"
-        [pageSize]="docPageSize"
-        (pageChange)="onDocPageChange($event)"
-        (pageSizeChange)="onDocPageSizeChange($event)"
-      >
-      </app-pagination-data>
+          [currentPage]="docCurrentPage"
+          [totalPages]="docTotalPages"
+          [totalRecords]="docTotalRecords"
+          [pageSize]="docPageSize"
+          (pageChange)="onDocPageChange($event)"
+          (pageSizeChange)="onDocPageSizeChange($event)"
+        >
+        </app-pagination-data>
       </div>
     </div>
 
   </div>
 
-  <!-- ─── Result / Pages Card (shown after selecting a document) ─── -->
+  <!-- ─── Result / Pages Card ─── -->
   <div class="card" *ngIf="selectedDocumentName">
 
     <!-- Card Header -->
@@ -104,19 +124,16 @@
         <h5 class="mb-0">📄 {{ documentName || selectedDocumentName }}</h5>
       </div>
       <div class="col-md-6 text-end d-flex justify-content-end gap-2">
-        <button
-          class="btn btn-light btn-sm"
-          (click)="backToTable()"
-        >
+        <button class="btn btn-light btn-sm" (click)="backToTable()">
           ← Back
         </button>
-                     <button
-                class="btn btn-outline-warning btn-sm"
-                (click)="openSuggestionModal()"
-                *ngIf="roleId === 5 || roleId === 4"
-              >
-                <i class="bi bi-lightbulb"></i> Suggestion
-              </button>
+        <button
+          class="btn btn-outline-warning btn-sm"
+          (click)="openSuggestionModal()"
+          *ngIf="roleId === 5 || roleId === 4"
+        >
+          <i class="bi bi-lightbulb"></i> Suggestion
+        </button>
         <button
           class="btn btn-outline-secondary btn-sm"
           [disabled]="isSummarizing"
@@ -127,7 +144,7 @@
       </div>
     </div>
 
-    <!-- OM Loader -->
+    <!-- Loader -->
     <div *ngIf="isLoading" class="loading">
       Searching documents, please wait…
     </div>
@@ -146,9 +163,7 @@
     <div class="card mb-3" *ngIf="showSummary && !isSummarizing">
       <div class="card-header d-flex justify-content-between align-items-center">
         <span>📋 Document Summary</span>
-        <button class="btn btn-light btn-sm" (click)="showSummary = false">
-          ✖ Close
-        </button>
+        <button class="btn btn-light btn-sm" (click)="showSummary = false">✖ Close</button>
       </div>
       <div class="card-body">
         <ngx-editor
@@ -164,35 +179,24 @@
     <!-- Single Page Viewer -->
     <div *ngIf="currentDocPage && !isLoading">
 
-      <!-- Page Table -->
       <table class="table table-bordered ocr-table">
         <thead class="table-light text-dark">
           <tr>
             <th>Content</th>
-            <!-- <th *ngIf="roleId === 5 || roleId === 4">Action</th> -->
           </tr>
         </thead>
         <tbody>
           <tr>
             <td>
               <div style="height: 400px; overflow-y: auto; overflow-x: hidden;">
-              <ngx-editor
-                [editor]="pageTextEditor"
-                [ngModel]="pageTextContent"
-                placeholder="Page text will appear here…"
-              >
-              </ngx-editor>
+                <ngx-editor
+                  [editor]="pageTextEditor"
+                  [ngModel]="pageTextContent"
+                  placeholder="Page text will appear here…"
+                >
+                </ngx-editor>
               </div>
             </td>
-            <!-- <td *ngIf="roleId === 5 || roleId === 4" style="width: 120px; vertical-align: top;">
-              <button
-                class="btn btn-outline-warning btn-sm"
-                (click)="openSuggestionModal()"
-                *ngIf="roleId === 5 || roleId === 4"
-              >
-                <i class="bi bi-lightbulb"></i> Suggestion
-              </button>
-            </td> -->
           </tr>
         </tbody>
       </table>
@@ -208,7 +212,6 @@
           ← Prev Page
         </button>
 
-        <!-- Go to page jump -->
         <div class="d-flex align-items-center gap-1" style="font-size: 0.85rem;">
           <span class="text-muted">Page {{ absolutePageNumber }} of {{ totalRecords }}</span>
           <span class="text-muted ms-3">Go to</span>
@@ -282,9 +285,7 @@
         <small class="text-muted float-end">{{ suggestionText.length }} / 500</small>
       </div>
       <div class="modal-box__footer">
-        <button class="btn btn-light btn-sm" (click)="closeSuggestionModal()">
-          Cancel
-        </button>
+        <button class="btn btn-light btn-sm" (click)="closeSuggestionModal()">Cancel</button>
         <button
           class="btn btn-primary btn-sm"
           [disabled]="isSavingSuggestion || !suggestionText.trim()"
@@ -295,5 +296,84 @@
       </div>
     </div>
   </div>
+
+  <!-- ─── Advanced Search Modal ─── -->
+  <div
+    class="modal fade"
+    [class.show]="showAdvancedSearchModal"
+    [style.display]="showAdvancedSearchModal ? 'block' : 'none'"
+    role="dialog"
+  >
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🔍 Advanced Search</h5>
+          <button type="button" class="btn-close" (click)="closeAdvancedSearchModal()"></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Document Type -->
+          <div class="mb-3">
+            <label for="advDocType" class="form-label">Select Document Type</label>
+            <select
+              id="advDocType"
+              class="form-select"
+              [(ngModel)]="selectedAdvDocType"
+              (change)="onAdvancedDocTypeChange(selectedAdvDocType)"
+              [disabled]="advDocTypeLoading"
+            >
+              <option value="">-- Choose Document Type --</option>
+              <option *ngFor="let docType of advancedDocumentTypes" [value]="docType.id">
+                {{ docType.text }}
+              </option>
+            </select>
+            <small class="text-muted" *ngIf="advDocTypeLoading">Loading document types...</small>
+          </div>
+
+          <!-- Document Name -->
+          <div class="mb-3">
+            <label for="advDocName" class="form-label">Select Document Name</label>
+            <select
+              id="advDocName"
+              class="form-select"
+              [(ngModel)]="selectedAdvDocName"
+              [disabled]="advDocNameLoading || !selectedAdvDocType"
+            >
+              <option value="">-- Choose Document Name --</option>
+              <option *ngFor="let docName of advancedDocumentNames" [value]="docName.id">
+                {{ docName.text }}
+              </option>
+            </select>
+            <small class="text-muted" *ngIf="advDocNameLoading">Loading document names...</small>
+            <small
+              class="text-warning"
+              *ngIf="!selectedAdvDocType && advancedDocumentNames.length === 0"
+            >
+              Please select a Document Type first
+            </small>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="clearAdvancedSearch()">
+            Clear Filter
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="closeAdvancedSearchModal()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" (click)="applyAdvancedSearch()">
+            Apply Filter
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Backdrop -->
+  <div
+    class="modal-backdrop fade"
+    [class.show]="showAdvancedSearchModal"
+    *ngIf="showAdvancedSearchModal"
+  ></div>
 
 </div>
