@@ -1297,11 +1297,15 @@ export class AddImageComponent implements OnInit, OnDestroy {
   private shouldSuppressBenignVerificationAlert(verification: OcrPageVerificationResult): boolean {
     if (!verification) return false;
 
-    const hasOnlyUnverifiableIssue =
-      (verification.issues || []).length > 0 &&
-      (verification.issues || []).every((issue) => issue?.type === 'unverifiable_page_numbers');
+    const issues = verification.issues || [];
+    const hasUnverifiableIssue = issues.some((issue) => issue?.type === 'unverifiable_page_numbers');
+    const hasOnlyFilenameDerivedIssues =
+      issues.length > 0 &&
+      issues.every((issue) =>
+        issue?.type === 'unverifiable_page_numbers' || issue?.type === 'missing_pages'
+      );
 
-    if (!hasOnlyUnverifiableIssue) return false;
+    if (!hasUnverifiableIssue || !hasOnlyFilenameDerivedIssues) return false;
 
     const hasNoRealMismatch =
       verification.hasDuplicatePages !== true &&
@@ -1314,7 +1318,10 @@ export class AddImageComponent implements OnInit, OnDestroy {
       verification.expectedTotalPages > 0 &&
       verification.processedResultCount >= verification.expectedTotalPages;
 
-    return hasNoRealMismatch && countsMatch;
+    // Also require that backend could not derive any explicit page number from filenames.
+    const noNumberedPagesDetected = (verification.detectedNumberedPageCount || 0) === 0;
+
+    return hasNoRealMismatch && countsMatch && noNumberedPagesDetected;
   }
 
   private buildVerificationIssueLines(verification: OcrPageVerificationResult): string[] {
@@ -1323,7 +1330,13 @@ export class AddImageComponent implements OnInit, OnDestroy {
     if (!verification.isPageOrderValid) {
       lines.push(`Page order is not ascending: ${verification.detectedPageOrder.join(', ') || 'unknown sequence'}`);
     }
-    if (verification.hasMissingPages && verification.missingPages?.length) {
+    // Avoid noisy "missing pages" messaging when filenames are unnumbered and
+    // backend inferred missing pages only from absent *_pN hints.
+    if (
+      verification.hasMissingPages &&
+      verification.missingPages?.length &&
+      (verification.detectedNumberedPageCount || 0) > 0
+    ) {
       lines.push(`Missing pages: ${verification.missingPages.join(', ')}`);
     }
     if (verification.hasDuplicatePages && verification.duplicatePages?.length) {
