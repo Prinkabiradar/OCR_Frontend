@@ -268,6 +268,7 @@ $radius:   10px;
       flex: 1;
       overflow: auto;
       min-height: 0;
+      max-height: clamp(360px, 52vh, 700px);
 
       &.image-pan-enabled {
         cursor: grab;
@@ -325,7 +326,7 @@ $radius:   10px;
 
       ::ng-deep .ck.ck-editor__editable_inline {
         min-height: 240px;
-        max-height: none;
+        max-height: clamp(360px, 52vh, 700px);
         overflow-y: auto;
       }
 

@@ -4,8 +4,61 @@
     class="modal-header ocr-header d-flex justify-content-between align-items-center"
   >
     <div>
-      <h4 class="ocr-title mb-0">{{ documentName }}</h4>
-      <small class="text-muted">Proofreading workspace: compare original and OCR text</small>
+      <!-- VIEW MODE -->
+      <div
+        *ngIf="!isEditingDocumentName"
+        class="d-flex align-items-center gap-2"
+      >
+        <h4 class="ocr-title mb-0">{{ documentName }}</h4>
+        <button
+          *ngIf="roleId === 4"
+          class="btn btn-sm btn-outline-light"
+          title="Edit document name"
+          (click)="startEditDocumentName()"
+        >
+          ✏️
+        </button>
+      </div>
+
+      <!-- EDIT MODE (Role 4 only) -->
+      <!-- EDIT MODE (Role 4 only) -->
+<div
+  *ngIf="isEditingDocumentName"
+  class="d-flex align-items-center gap-2"
+  style="width: 500px;"
+>
+  <input
+    type="text"
+    class="form-control form-control-sm flex-grow-1"
+    [(ngModel)]="editedDocumentName"
+    [disabled]="savingDocumentName"
+    (keydown.enter)="saveDocumentName()"
+    (keydown.escape)="cancelEditDocumentName()"
+    placeholder="Enter document name"
+  />
+        <button
+          class="btn btn-sm btn-success"
+          [disabled]="savingDocumentName || !editedDocumentName?.trim()"
+          (click)="saveDocumentName()"
+        >
+          <span
+            *ngIf="savingDocumentName"
+            class="spinner-border spinner-border-sm"
+          ></span>
+          <span *ngIf="!savingDocumentName">✔</span>
+        </button>
+        <button
+          class="btn btn-sm btn-outline-light"
+          [disabled]="savingDocumentName"
+          (click)="cancelEditDocumentName()"
+        >
+          ✖
+        </button>
+      </div>
+
+      <small class="text-muted"
+        >Proofreading workspace: compare original and OCR text</small
+      >
     </div>
     <div class="d-flex align-items-center gap-2">
       <button
@@ -85,24 +138,25 @@
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"
-              (mousedown)="$event.preventDefault(); indentFirstLineInCurrentEditor()"
+              (mousedown)="
+                $event.preventDefault(); indentFirstLineInCurrentEditor()
+              "
             >
               First Line +
             </button>
             <button
               type="button"
               class="btn btn-outline-secondary btn-sm"
-              (mousedown)="$event.preventDefault(); outdentFirstLineInCurrentEditor()"
+              (mousedown)="
+                $event.preventDefault(); outdentFirstLineInCurrentEditor()
+              "
             >
               First Line -
             </button>
           </div>
           <div data-summary-ckeditor-toolbar="true"></div>
         </div>
-        <div
-          class="summary-editor"
-          data-summary-ckeditor="true"
-        ></div>
+        <div class="summary-editor" data-summary-ckeditor="true"></div>
       </div>
     </div>
 
@@ -160,8 +214,12 @@
         <div
           class="ocr-card-header d-flex justify-content-between align-items-center"
         >
-          <span class="ocr-page-label">Page {{ item.PageNumber }} of {{ totalRecords }}</span>
-          <span class="small text-muted">{{ reviewProgressPercent }}% complete</span>
+          <span class="ocr-page-label"
+            >Page {{ item.PageNumber }} of {{ totalRecords }}</span
+          >
+          <span class="small text-muted"
+            >{{ reviewProgressPercent }}% complete</span
+          >
           <span class="ocr-badge" [ngClass]="getStatusClass(item.StatusId)">
             {{ getStatusLabel(item.StatusId) }}
           </span>
@@ -175,7 +233,8 @@
               <span class="panel-icon">📄</span>
               <span>Original Page</span>
               <span class="panel-sub">{{
-                getOriginalFileName(item) || (getFileType(item.FilePath) | uppercase)
+                getOriginalFileName(item) ||
+                  (getFileType(item.FilePath) | uppercase)
               }}</span>
               <div class="ms-auto d-flex align-items-center gap-1">
                 <button
@@ -215,7 +274,8 @@
               (mouseup)="onImagePanEnd()"
               (mouseleave)="onImagePanEnd()"
               [class.image-pan-enabled]="
-                getFileType(item.FilePath) === 'image' && getPreviewZoom(item) > 1
+                getFileType(item.FilePath) === 'image' &&
+                getPreviewZoom(item) > 1
               "
               [class.image-panning]="isImagePanning(item)"
             >
@@ -224,7 +284,10 @@
                 class="d-flex flex-column align-items-center justify-content-center py-5 text-muted"
                 style="min-height: 260px"
               >
-                <div class="spinner-border text-primary mb-2" role="status"></div>
+                <div
+                  class="spinner-border text-primary mb-2"
+                  role="status"
+                ></div>
                 <span>Loading page preview...</span>
               </div>
 
@@ -253,7 +316,8 @@
                     rel="noopener"
                     class="btn btn-sm btn-outline-secondary"
                   >
-                    Open {{ getOriginalFileName(item) || "document" }} in new tab ↗
+                    Open {{ getOriginalFileName(item) || "document" }} in new
+                    tab ↗
                   </a>
                 </div>
               </ng-container>
@@ -298,7 +362,9 @@
             <div class="panel-label right-label">
               <span class="panel-icon">✏️</span>
               <span>Editable OCR Text</span>
-              <span class="panel-sub">Correct text to match the original page</span>
+              <span class="panel-sub"
+                >Correct text to match the original page</span
+              >
               <span *ngIf="isDirty(item)" class="dirty-badge"
                 >Unsaved changes</span
               >
@@ -306,7 +372,8 @@
                 >🔒 Read-only</span
               >
               <span class="ms-auto small text-muted">
-                {{ getWordCount(item) }} words • {{ getCharacterCount(item) }} characters
+                {{ getWordCount(item) }} words •
+                {{ getCharacterCount(item) }} characters
               </span>
             </div>
 
@@ -321,7 +388,9 @@
                     class="form-control form-control-sm"
                     [(ngModel)]="pageSearchTerms[item.DocumentPageId]"
                     placeholder="Search in OCR text..."
-                    (keyup.enter)="findInPageEditor(item.DocumentPageId, 'next')"
+                    (keyup.enter)="
+                      findInPageEditor(item.DocumentPageId, 'next')
+                    "
                   />
                   <button
                     type="button"
@@ -340,19 +409,25 @@
                   <button
                     type="button"
                     class="btn btn-outline-secondary btn-sm"
-                    (mousedown)="$event.preventDefault(); indentFirstLineInCurrentEditor()"
+                    (mousedown)="
+                      $event.preventDefault(); indentFirstLineInCurrentEditor()
+                    "
                   >
                     First Line +
                   </button>
                   <button
                     type="button"
                     class="btn btn-outline-secondary btn-sm"
-                    (mousedown)="$event.preventDefault(); outdentFirstLineInCurrentEditor()"
+                    (mousedown)="
+                      $event.preventDefault(); outdentFirstLineInCurrentEditor()
+                    "
                   >
                     First Line -
                   </button>
                 </div>
-                <div [attr.data-page-ckeditor-toolbar]="item.DocumentPageId"></div>
+                <div
+                  [attr.data-page-ckeditor-toolbar]="item.DocumentPageId"
+                ></div>
               </div>
               <div [attr.data-page-ckeditor]="item.DocumentPageId"></div>
             </div>
@@ -382,9 +457,7 @@
   <!-- ═══════════════════════════════════════════════════════════ END BODY -->
 
   <!-- ═══════════════════════════════════════════════════════════ FOOTER -->
-  <div
-    class="modal-footer ocr-footer"
-  >
+  <div class="modal-footer ocr-footer">
     <div class="ocr-footer__layout">
       <div class="ocr-footer__left">
         <div class="page-local-nav">
@@ -395,7 +468,9 @@
           >
             ← Prev Page
           </button>
-          <span class="page-info">Page {{ currentPageNumber }} of {{ totalRecords }}</span>
+          <span class="page-info"
+            >Page {{ currentPageNumber }} of {{ totalRecords }}</span
+          >
           <button
             class="btn btn--footer btn--footer-ghost btn--sm"
             [disabled]="currentPageNumber === totalRecords"
@@ -430,109 +505,112 @@
             [disabled]="loadingStatusTarget"
             (click)="goToStatusTargetPage()"
           >
-            {{ loadingStatusTarget ? "Loading..." : statusNavigationButtonLabel }}
+            {{
+              loadingStatusTarget ? "Loading..." : statusNavigationButtonLabel
+            }}
           </button>
         </div>
 
         <div class="page-jump page-jump--swap">
           <span class="page-jump__label">Current: {{ currentPageNumber }}</span>
           <span class="page-jump__label">|</span>
-          
-        
-        <button
-          type="button"
-          class="btn btn--footer btn--footer-ghost btn--sm"
-          [disabled]="currentPageNumber === 1 || swappingPages"
-          (click)="swapCurrentPageWithPrevious()"
-        >
-          ⇄ Prev
-        </button>
-        <label class="page-jump__label">Move to</label>
-        <input
-          class="page-jump__input"
-          type="number"
-          min="1"
-          [max]="totalRecords"
-          [value]="swapToPageInput"
-          (input)="swapToPageInput = $any($event.target).value"
-          (keyup.enter)="swapCurrentPageToTarget(swapToPageInput)"
-          placeholder="1"
-        />
-        <button
-          type="button"
-          class="btn btn--footer btn--pag-go btn--sm"
-          [disabled]="swappingPages"
-          (click)="swapCurrentPageToTarget(swapToPageInput)"
-        >
-          {{ swappingPages ? "Moving..." : "Move" }}
-        </button>
-        <button
-          type="button"
-          class="btn btn--footer btn--footer-ghost btn--sm"
-          [disabled]="currentPageNumber === totalRecords || swappingPages"
-          (click)="swapCurrentPageWithNext()"
-        >
-          Next ⇄
-        </button>
+
+          <button
+            type="button"
+            class="btn btn--footer btn--footer-ghost btn--sm"
+            [disabled]="currentPageNumber === 1 || swappingPages"
+            (click)="swapCurrentPageWithPrevious()"
+          >
+            ⇄ Prev
+          </button>
+          <label class="page-jump__label">Move to</label>
+          <input
+            class="page-jump__input"
+            type="number"
+            min="1"
+            [max]="totalRecords"
+            [value]="swapToPageInput"
+            (input)="swapToPageInput = $any($event.target).value"
+            (keyup.enter)="swapCurrentPageToTarget(swapToPageInput)"
+            placeholder="1"
+          />
+          <button
+            type="button"
+            class="btn btn--footer btn--pag-go btn--sm"
+            [disabled]="swappingPages"
+            (click)="swapCurrentPageToTarget(swapToPageInput)"
+          >
+            {{ swappingPages ? "Moving..." : "Move" }}
+          </button>
+          <button
+            type="button"
+            class="btn btn--footer btn--footer-ghost btn--sm"
+            [disabled]="currentPageNumber === totalRecords || swappingPages"
+            (click)="swapCurrentPageWithNext()"
+          >
+            Next ⇄
+          </button>
         </div>
       </div>
 
-    <!-- Action buttons -->
-    <div class="ocr-footer__right" *ngIf="selectedItem">
-      <div class="d-flex gap-2">
-      <button     *ngIf=" 
-            roleId === 3 || roleId === 2
-          "
-        class="btn btn--footer btn--footer-success btn-sm"
-        (click)="saveAll()"
-        [disabled]="
-          savingAll ||
-          savingRows[selectedItem.DocumentPageId] ||
-          !canEdit(selectedItem) ||
-          selectedItem.StatusId === 3
-        "
-      >
-        <span *ngIf="!savingAll">
-         {{saveAllButtonLabel}}
-        </span>
-        <span *ngIf="savingAll">
-          <span class="spinner-border spinner-border-sm"></span> Saving...
-        </span>
-      </button>
-      <button
-        class="btn btn--footer btn--footer-success btn-sm"
-        (click)="saveRow(selectedItem)"
-        [disabled]="
-          savingRows[selectedItem.DocumentPageId] ||
-          !canEdit(selectedItem) ||
-          selectedItem.StatusId === 3
-        "
-      >
-        <span *ngIf="!savingRows[selectedItem.DocumentPageId]">
-          {{ saveButtonLabel }}
-        </span>
-        <span *ngIf="savingRows[selectedItem.DocumentPageId]">
-          <span class="spinner-border spinner-border-sm"></span> Saving...
-        </span>
-      </button>
+      <!-- Action buttons -->
+      <div class="ocr-footer__right" *ngIf="selectedItem">
+        <div class="d-flex gap-2">
+          <button
+            *ngIf="roleId === 3 || roleId === 2 || roleId === 4"
+            class="btn btn--footer btn--footer-success btn-sm"
+            (click)="saveAll()"
+            [disabled]="
+              savingAll ||
+              savingRows[selectedItem.DocumentPageId] ||
+              !canEdit(selectedItem) ||
+              selectedItem.StatusId === 3
+            "
+          >
+            <span *ngIf="!savingAll">
+              {{ saveAllButtonLabel }}
+            </span>
+            <span *ngIf="savingAll">
+              <span class="spinner-border spinner-border-sm"></span> Saving...
+            </span>
+          </button>
+          <button
+            class="btn btn--footer btn--footer-success btn-sm"
+            (click)="saveRow(selectedItem)"
+            [disabled]="
+              savingRows[selectedItem.DocumentPageId] ||
+              !canEdit(selectedItem) ||
+              selectedItem.StatusId === 3
+            "
+          >
+            <span *ngIf="!savingRows[selectedItem.DocumentPageId]">
+              {{ saveButtonLabel }}
+            </span>
+            <span *ngIf="savingRows[selectedItem.DocumentPageId]">
+              <span class="spinner-border spinner-border-sm"></span> Saving...
+            </span>
+          </button>
 
-      <button
-        class="btn btn--footer btn--footer-danger btn-sm"
-        (click)="rejectRow(selectedItem)"
-        [disabled]="
-          savingRows[selectedItem.DocumentPageId] ||
-          !canEdit(selectedItem) ||
-          selectedItem.StatusId === 3
-        "
-      >
-        ✕ Reject
-      </button>
+          <button
+            class="btn btn--footer btn--footer-danger btn-sm"
+            (click)="rejectRow(selectedItem)"
+            [disabled]="
+              savingRows[selectedItem.DocumentPageId] ||
+              !canEdit(selectedItem) ||
+              selectedItem.StatusId === 3
+            "
+          >
+            ✕ Reject
+          </button>
 
-      <button class="btn btn--footer btn--footer-outline btn-sm" (click)="close()">
-        Close
-      </button>
+          <button
+            class="btn btn--footer btn--footer-outline btn-sm"
+            (click)="close()"
+          >
+            Close
+          </button>
+        </div>
       </div>
-    </div>
     </div>
   </div>
   <!-- ═══════════════════════════════════════════════════════════ END FOOTER -->

@@ -83,7 +83,7 @@
           <th *ngIf="roleId === 3 || roleId === 4">Approved Date</th>
 
           <th *ngIf="roleId !== 5">Status</th>
-          <th *ngIf="roleId !== 5 && roleId !== 4">Action</th>
+          <th *ngIf="roleId !== 5">Action</th>
           <th  >PDF / Word</th>
         </tr>
       </thead>
@@ -128,7 +128,7 @@
           </td>
 
           <!-- Action -->
-          <td *ngIf="roleId !== 5 && roleId !== 4">
+          <td *ngIf="roleId !== 5">
             <ng-container *ngIf="canView(doc); else notAvailable">
               <button
                 class="btn btn-primary btn-sm"

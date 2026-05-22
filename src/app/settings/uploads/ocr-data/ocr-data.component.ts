@@ -147,6 +147,8 @@ export class OcrDataComponent implements OnInit {
         return doc.statusId >= 1 && doc.statusId !== 4; // 4 = Partially checked
       case 3:
         return doc.statusId >= 2 && doc.statusId !== 5; // 5 = Partially verified
+      case 4:
+        return doc.statusId !== 3;
       default:
         return false;
     }

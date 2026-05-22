@@ -862,8 +862,16 @@
 }
 
 .form-control--title {
-  width: min(520px, 100%);
-  flex: 1 1 420px;
+  width: min(820px, 100%);
+  flex: 1 1 640px;
+}
+
+.form-inline--document-name {
+  align-items: flex-start;
+
+  .form-control--title {
+    min-width: min(640px, 100%);
+  }
 }
 
 .mandir-select {

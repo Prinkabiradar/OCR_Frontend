@@ -155,6 +155,11 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
   readonly minPreviewZoom = 0.5;
   readonly maxPreviewZoom = 3;
   readonly previewZoomStep = 0.25;
+
+  isEditingDocumentName: boolean = false;
+editedDocumentName: string = '';
+savingDocumentName: boolean = false;
+
   private dragPreviewState: {
     active: boolean;
     pageId: number | null;
@@ -1188,10 +1193,15 @@ getRawUrl(item: any): string {
     if (this.roleId === 1) return 'Check OCR text against the original page.';
     if (this.roleId === 2) return 'Verify corrections and confirm page quality.';
     if (this.roleId === 3) return 'Finalize proofreading and approve the page.';
+    if (this.roleId === 4) return 'Check, verify, or approve the page based on its current status.';
     return 'Review OCR text carefully before saving.';
   }
 
   get saveButtonLabel(): string {
+    if (this.roleId === 4) {
+      return this.getRoleFourActionLabel(this.selectedItem?.StatusId, false);
+    }
+
     switch (this.roleId) {
       case 1:
         return '✔ Check';
@@ -1205,6 +1215,10 @@ getRawUrl(item: any): string {
   }
 
     get saveAllButtonLabel(): string {
+    if (this.roleId === 4) {
+      return ' Process All';
+    }
+
     switch (this.roleId) {
       case 1:
         return '✔ Check All';
@@ -1227,8 +1241,28 @@ getRawUrl(item: any): string {
         return statusId === 1 || statusId === 7 ? 2 : statusId;
       case 3:
         return statusId === 2 || statusId === 7 ? 3 : statusId;
+      case 4:
+        if (statusId === 0 || statusId === 7) return 1;
+        if (statusId === 1) return 2;
+        if (statusId === 2) return 3;
+        return statusId;
       default:
         return statusId;
+    }
+  }
+
+  private getRoleFourActionLabel(statusId: number | null | undefined, all: boolean): string {
+    const suffix = all ? ' All' : '';
+    switch (Number(statusId)) {
+      case 0:
+      case 7:
+        return ` Check${suffix}`;
+      case 1:
+        return ` Verify${suffix}`;
+      case 2:
+        return ` Approve${suffix}`;
+      default:
+        return ` Save${suffix}`;
     }
   }
 
@@ -1295,6 +1329,8 @@ getRawUrl(item: any): string {
         return { statusId: 1, label: 'Checked' };
       case 3:
         return { statusId: 2, label: 'Verified' };
+      case 4:
+        return { statusId: 0, label: 'Pending' };
       default:
         return null;
     }
@@ -1571,14 +1607,15 @@ getRawUrl(item: any): string {
   }
 
   get canReject(): boolean {
-    return this.roleId === 2 || this.roleId === 3;
+    return this.roleId === 2 || this.roleId === 3 || this.roleId === 4;
   }
 
   canEdit(item: any): boolean {
-    if (item.StatusId === 8 && this.roleId !== 3) return false;
+    if (item.StatusId === 8 && this.roleId !== 3 && this.roleId !== 4) return false;
     if (this.roleId === 1 && (item.StatusId === 2 || item.StatusId === 3))
       return false;
     if (this.roleId === 2 && item.StatusId === 3) return false;
+    if (this.roleId === 4 && item.StatusId === 3) return false;
     return true;
   }
 
@@ -1781,7 +1818,7 @@ getRawUrl(item: any): string {
           if (!requests.length) {
             this.savingAll = false;
             this.cdr.detectChanges();
-            Swal.fire('Info', 'No pages are available to verify.', 'info');
+            Swal.fire('Info', 'No pages are available to process.', 'info');
             return;
           }
 
@@ -1799,7 +1836,7 @@ getRawUrl(item: any): string {
               
               this.savingAll = false;
               this.cdr.detectChanges();
-              Swal.fire('Success', 'All pages verified successfully.', 'success').then(() => {
+              Swal.fire('Success', 'All available pages processed successfully.', 'success').then(() => {
                 this.modalRef.close(true);
                 this.router.navigate(['/settings/ocr-data']);
               });
@@ -1807,14 +1844,14 @@ getRawUrl(item: any): string {
             error: () => {
               this.savingAll = false;
               this.cdr.detectChanges();
-              Swal.fire('Error', 'Failed to verify all pages.', 'error');
+              Swal.fire('Error', 'Failed to process all pages.', 'error');
             },
           });
         },
         error: () => {
           this.savingAll = false;
           this.cdr.detectChanges();
-          Swal.fire('Error', 'Failed to load pages for verification.', 'error');
+          Swal.fire('Error', 'Failed to load pages for processing.', 'error');
         },
       });
     });
@@ -1888,6 +1925,53 @@ getRawUrl(item: any): string {
     this.modalRef.close();
   }
 
+  startEditDocumentName(): void {
+  this.editedDocumentName = this.documentName;
+  this.isEditingDocumentName = true;
+}
+
+cancelEditDocumentName(): void {
+  this.isEditingDocumentName = false;
+  this.editedDocumentName = '';
+}
+
+saveDocumentName(): void {
+  const trimmed = this.editedDocumentName?.trim();
+  if (!trimmed) {
+    Swal.fire('Validation', 'Document name cannot be empty.', 'warning');
+    return;
+  }
+  if (trimmed === this.documentName) {
+    this.isEditingDocumentName = false;
+    return;
+  }
+
+  this.savingDocumentName = true;
+  this.cdr.detectChanges();
+
+  const payload = {
+    documentId: this.documentId,
+    documentName: trimmed,
+    documentTypeId: 0,   // preserved by the SP if not changing
+    totalPages: this.totalRecords,
+    userId: this.currentUserId,
+  };
+
+  this.service.saveDocument(payload).subscribe({
+    next: () => {
+      this.documentName = trimmed;
+      this.isEditingDocumentName = false;
+      this.savingDocumentName = false;
+      this.cdr.detectChanges();
+      Swal.fire({ icon: 'success', title: 'Saved!', text: 'Document name updated.', timer: 1500, showConfirmButton: false });
+    },
+    error: (err: HttpErrorResponse) => {
+      this.savingDocumentName = false;
+      this.cdr.detectChanges();
+      Swal.fire('Error', err?.error?.message || 'Failed to update document name.', 'error');
+    },
+  });
+}
   // ─── DESTROY ────────────────────────────────────────────────────────────────
 
   ngOnDestroy() {
