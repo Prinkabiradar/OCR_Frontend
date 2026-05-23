@@ -49,7 +49,15 @@
         <button class="btn btn-light ms-2" (click)="clearDropdown()">✖</button>
       </div>
 
-      <div class="col-md-2"></div>
+      <div class="col-md-2">
+        <button
+          class="btn btn-outline-primary btn-sm"
+          (click)="openAdvancedSearch()"
+        >
+          <i class="bi bi-funnel"></i> Advanced Search
+        </button>
+      </div>
+
 
       <!-- Add Button -->
       <div class="col-md-2">
@@ -219,4 +227,91 @@
   [roleId]="roleId"
   [currentUserId]="currentUserId">
 </app-ocr-page-modal>
+
+  <!-- ─── Advanced Search Modal ─── -->
+  <div
+    class="modal fade"
+    [class.show]="showAdvancedSearchModal"
+    [style.display]="showAdvancedSearchModal ? 'block' : 'none'"
+    role="dialog"
+  >
+    <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">🔍 Advanced Search</h5>
+          <button type="button" class="btn-close" (click)="closeAdvancedSearch()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="advUser" class="form-label">Search By User</label>
+            <select
+              id="advUser"
+              class="form-select"
+              [(ngModel)]="selectedUserId"
+            >
+              <option value="">-- Choose User --</option>
+              <option *ngFor="let user of advancedUsers" [value]="user.id">
+                {{ user.text }}
+              </option>
+            </select>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="advFromDate" class="form-label">From Date</label>
+              <input
+                id="advFromDate"
+                type="date"
+                class="form-control"
+                [(ngModel)]="advancedFromDate"
+                (ngModelChange)="onFromDateChange($event)"
+              />
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="advToDate" class="form-label">To Date</label>
+              <input
+                id="advToDate"
+                type="date"
+                class="form-control"
+                [(ngModel)]="advancedToDate"
+              />
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="advStatus" class="form-label">Status</label>
+            <select
+              id="advStatus"
+              class="form-select"
+              [(ngModel)]="advancedStatusId"
+            >
+              <option *ngFor="let status of statusOptions" [value]="status.id">
+                {{ status.text }}
+              </option>
+            </select>
+            <small class="text-muted">
+              Status filters are applied in the frontend after fetching backend data.
+            </small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="clearAdvancedSearch()">
+            Clear Filter
+          </button>
+          <button type="button" class="btn btn-secondary" (click)="closeAdvancedSearch()">
+            Cancel
+          </button>
+          <button type="button" class="btn btn-primary" (click)="applyAdvancedSearch()">
+            Apply Filter
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div
+    class="modal-backdrop fade"
+    [class.show]="showAdvancedSearchModal"
+    *ngIf="showAdvancedSearchModal"
+  ></div>
 </div>

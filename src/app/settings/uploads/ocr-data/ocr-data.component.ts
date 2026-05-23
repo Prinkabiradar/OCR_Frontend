@@ -47,6 +47,28 @@ export class OcrDataComponent implements OnInit {
   searchBy: string = '';
   searchTimeout: any;
 
+  showAdvancedSearchModal = false;
+  advancedUsers: Array<{ id: string; text: string }> = [];
+  selectedUserId: string = '';
+  advancedFromDate: string = '';
+  advancedToDate: string = '';
+  advancedStatusId: string = '';
+  isAdvancedFilterApplied = false;
+  private allLoadedDocuments: any[] = [];
+
+  statusOptions = [
+    { id: '', text: 'All Status' },
+    { id: '0', text: 'Pending' },
+    { id: '1', text: 'Checked' },
+    { id: '2', text: 'Verified' },
+    { id: '3', text: 'Approved' },
+    { id: '4', text: 'Partially checked' },
+    { id: '5', text: 'Partially verified' },
+    { id: '6', text: 'Partially Approved' },
+    { id: '7', text: 'Rejected' },
+    { id: '8', text: 'Suggestion' },
+  ];
+
   loadingPdfIds : Set<number> = new Set();
   loadingWordIds: Set<number> = new Set();
 
@@ -126,6 +148,132 @@ export class OcrDataComponent implements OnInit {
     this.loadDocuments();
   }
 
+  openAdvancedSearch(): void {
+    this.showAdvancedSearchModal = true;
+    this.loadAdvancedUsers();
+    this.cdr.detectChanges();
+  }
+
+  closeAdvancedSearch(): void {
+    this.showAdvancedSearchModal = false;
+    this.cdr.detectChanges();
+  }
+
+  loadAdvancedUsers(): void {
+    this.service.dropdownAll('', '1', '8', '0').subscribe({
+      next: (response: any) => {
+        this.advancedUsers = (response || []).map((item: any) => ({
+          id: item.id?.toString() ?? '',
+          text: item.text ?? item.name ?? item.username ?? '',
+        }));
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error loading user dropdown:', err);
+      },
+    });
+  }
+
+  applyAdvancedSearch(): void {
+    this.isAdvancedFilterApplied = !!(
+      this.selectedUserId ||
+      this.advancedFromDate ||
+      this.advancedToDate ||
+      this.advancedStatusId
+    );
+    this.docCurrentPage = 1;
+    this.showAdvancedSearchModal = false;
+    this.loadDocuments();
+  }
+
+  clearAdvancedSearch(): void {
+    this.selectedUserId = '';
+    this.advancedFromDate = '';
+    this.advancedToDate = '';
+    this.advancedStatusId = '';
+    this.isAdvancedFilterApplied = false;
+    this.docCurrentPage = 1;
+    this.loadDocuments();
+  }
+
+  onFromDateChange(date: string): void {
+    this.advancedFromDate = date;
+    if (date && !this.advancedToDate) {
+      this.advancedToDate = date;
+    }
+  }
+
+  private getSelectedUserName(): string {
+    return (
+      this.advancedUsers.find((u) => u.id === this.selectedUserId)?.text || ''
+    ).toLowerCase();
+  }
+
+  private compareDateRange(value: any, fromDate: string, toDate: string): boolean {
+    if (!fromDate && !toDate) {
+      return true;
+    }
+
+    const dateValue = value ? new Date(value) : null;
+    if (!dateValue || isNaN(dateValue.getTime())) {
+      return false;
+    }
+
+    if (fromDate) {
+      const start = new Date(fromDate);
+      if (dateValue < start) {
+        return false;
+      }
+    }
+
+    if (toDate) {
+      const end = new Date(toDate);
+      end.setHours(23, 59, 59, 999);
+      if (dateValue > end) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private applyAdvancedFiltersToDocs(docs: any[]): any[] {
+    const userName = this.selectedUserId ? this.getSelectedUserName() : '';
+
+    return docs.filter((doc) => {
+      const statusId = Number(
+        doc.statusId ?? doc.statusid ?? doc.StatusId ?? -1,
+      );
+      const createdByName = (
+        doc.createdByName ?? doc.createdby_name ?? doc.CreatedByName ?? ''
+      ).toString().toLowerCase();
+      const createdDate =
+        doc.createdDate ?? doc.createddate ?? doc.CreatedDate ??
+        doc.updatedDate ?? doc.updateddate ?? doc.UpdatedDate;
+
+      if (this.advancedStatusId && statusId !== Number(this.advancedStatusId)) {
+        return false;
+      }
+
+      if (userName && !createdByName.includes(userName)) {
+        return false;
+      }
+
+      if (
+        !this.compareDateRange(createdDate, this.advancedFromDate, this.advancedToDate)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  private paginateDocs(docs: any[]): any[] {
+    const start = (this.docCurrentPage - 1) * this.docPageSize;
+    return docs.slice(start, start + this.docPageSize);
+  }
+
   isDirty(item: any): boolean {
     return this.editedTexts[item.DocumentPageId] !== item.ExtractedText;
   }
@@ -142,13 +290,10 @@ export class OcrDataComponent implements OnInit {
   canView(doc: any): boolean {
     switch (this.roleId) {
       case 1:
-        return true;
       case 2:
-        return doc.statusId >= 1 && doc.statusId !== 4; // 4 = Partially checked
       case 3:
-        return doc.statusId >= 2 && doc.statusId !== 5; // 5 = Partially verified
       case 4:
-        return doc.statusId !== 3;
+        return true;
       default:
         return false;
     }
@@ -207,25 +352,30 @@ export class OcrDataComponent implements OnInit {
   }
   // fetch document list — 0-based offset
   loadDocuments(): void {
-    //if (!this.selectedTypeId) return;
-
     this.loadingDocs = true;
     this.docsError = '';
 
-    const startIndex = (this.docCurrentPage - 1) * this.docPageSize;
+    const hasAdvancedFilter = !!(
+      this.selectedUserId ||
+      this.advancedFromDate ||
+      this.advancedToDate ||
+      this.advancedStatusId
+    );
+
+    const startIndex = hasAdvancedFilter
+      ? 0
+      : (this.docCurrentPage - 1) * this.docPageSize;
+    const requestPageSize = hasAdvancedFilter ? 100000 : this.docPageSize;
 
     const lsValue = localStorage.getItem(this.authLocalStorageToken);
     const userData = lsValue ? JSON.parse(lsValue) : null;
-    const userId = this.currentUserId;
     this.roleId = userData?.roleId ?? 0;
-    const searchCriteria = this.searchCriteria.trim();
-    const searchBy = this.searchBy;
 
     this.service
       .getDocumentsByTypeId(
         this.selectedTypeId ?? 0,
         startIndex,
-        this.docPageSize,
+        requestPageSize,
         this.roleId,
         this.searchBy,
         this.searchCriteria,
@@ -236,7 +386,7 @@ export class OcrDataComponent implements OnInit {
             ? res
             : (res?.data ?? res?.Data ?? []);
 
-          this.documentList = raw.map((d: any) => ({
+          const allDocs = raw.map((d: any) => ({
             documentId: d.documentid ?? d.documentId ?? d.DocumentId,
             documentName: d.documentname ?? d.documentName ?? d.DocumentName,
             statusId: d.statusid ?? d.statusId ?? d.StatusId,
@@ -244,20 +394,33 @@ export class OcrDataComponent implements OnInit {
               d.createdby_name ?? d.createdByName ?? d.CreatedByName,
             updatedByName:
               d.updatedby_name ?? d.updatedByName ?? d.UpdatedByName,
-            updatedDate: d.updateddate ?? d.updateddate ?? d.UpdatedDate,
-            createdDate: d.createddate ?? d.createdDate ?? d.CreatedDate,
+            updatedDate:
+              d.updateddate ?? d.updatedDate ?? d.UpdatedDate,
+            createdDate:
+              d.createddate ?? d.createdDate ?? d.CreatedDate,
             approvedByName:
               d.approvedby_name ?? d.approvedByName ?? d.ApprovedByName,
-            approvedDate: d.approveddate ?? d.approveddate ?? d.ApprovedDate,
+            approvedDate:
+              d.approveddate ?? d.approvedDate ?? d.ApprovedDate,
             lockedBy: d.lockedby ?? d.lockedBy ?? d.LockedBy,
-            lockedByName: d.lockedby_name ?? d.lockedByName ?? d.LockedByName,
+            lockedByName:
+              d.lockedby_name ?? d.lockedByName ?? d.LockedByName,
           }));
 
-          // ✅ IMPORTANT: get totalRecords from API
-          this.totalRecords = raw.length > 0 ? raw[0].totalrecords : 0;
-
-          // ✅ calculate total pages
-          this.totalPages = Math.ceil(this.totalRecords / this.docPageSize);
+          if (hasAdvancedFilter) {
+            this.allLoadedDocuments = allDocs;
+            const filteredDocs = this.applyAdvancedFiltersToDocs(this.allLoadedDocuments);
+            this.totalRecords = filteredDocs.length;
+            this.totalPages = Math.max(1, Math.ceil(this.totalRecords / this.docPageSize));
+            if (this.docCurrentPage > this.totalPages) {
+              this.docCurrentPage = 1;
+            }
+            this.documentList = this.paginateDocs(filteredDocs);
+          } else {
+            this.documentList = allDocs;
+            this.totalRecords = raw.length > 0 ? raw[0].totalrecords : 0;
+            this.totalPages = Math.ceil(this.totalRecords / this.docPageSize);
+          }
 
           this.loadingDocs = false;
           this.cdr.detectChanges();
