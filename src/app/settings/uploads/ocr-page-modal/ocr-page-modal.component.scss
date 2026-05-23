@@ -244,7 +244,7 @@ $radius:   10px;
   align-items: stretch;
   flex: 0 0 auto;
   height: auto;
-  min-height: clamp(420px, 56vh, 760px);
+  min-height: clamp(500px, 64vh, 860px);
 
   // ── Shared panel base ────────────────────────────────────
   .left-panel,
@@ -268,7 +268,7 @@ $radius:   10px;
       flex: 1;
       overflow: auto;
       min-height: 0;
-      max-height: clamp(360px, 52vh, 700px);
+      max-height: clamp(460px, 62vh, 820px);
 
       &.image-pan-enabled {
         cursor: grab;
@@ -282,7 +282,7 @@ $radius:   10px;
       iframe {
         width: 100%;
         display: block;
-        min-height: 500px;
+        min-height: 620px;
         border: none;
       }
 
