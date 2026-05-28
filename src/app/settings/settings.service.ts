@@ -780,9 +780,16 @@ getPdf(documentId: number, roleId: number): Observable<Blob> {
   });
 
   const cacheBust = Date.now();
+  const params = new HttpParams()
+    .set('DocumentId', documentId.toString())
+    .set('StartIndex', '0')
+    .set('PageSize', '1000')
+    .set('RoleId', roleId.toString())
+    .set('_', cacheBust.toString());
+
   return this.http.get(
-    `${environment.BaseUrl}api/DocumentPdf/GeneratePdf?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}&_=${cacheBust}`,
-    { headers, responseType: 'blob' }
+    `${environment.BaseUrl}api/DocumentPdf/GeneratePdf`,
+    { headers, params, responseType: 'blob' }
   );
 }
 SummaryDataGet(
@@ -1146,9 +1153,16 @@ getWord(documentId: number, roleId: number): Observable<HttpResponse<Blob>> {
   });
 
   const cacheBust = Date.now();
+  const params = new HttpParams()
+    .set('DocumentId', documentId.toString())
+    .set('StartIndex', '0')
+    .set('PageSize', '1000')
+    .set('RoleId', roleId.toString())
+    .set('_', cacheBust.toString());
+
   return this.http.get(
-    `${environment.BaseUrl}api/DocumentPdf/GenerateWord?DocumentId=${documentId}&StartIndex=1&PageSize=1000&RoleId=${roleId}&_=${cacheBust}`,
-    { headers, responseType: 'blob', observe: 'response' }  // ← add observe: 'response'
+    `${environment.BaseUrl}api/DocumentPdf/GenerateWord`,
+    { headers, params, responseType: 'blob', observe: 'response' }
   );
 }
 }

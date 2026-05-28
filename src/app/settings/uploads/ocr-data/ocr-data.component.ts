@@ -547,8 +547,10 @@ export class OcrDataComponent implements OnInit {
           this.loadingPdfIds.delete(id);
           this.cdr.detectChanges();
         },
-        error: (err) => {
+        error: async (err) => {
           console.error('Failed to load PDF:', err);
+          const message = await this.extractHttpErrorMessage(err);
+          Swal.fire('PDF Error', message, 'error');
           this.loadingPdfIds.delete(id);
           this.cdr.detectChanges();
         },
@@ -594,5 +596,37 @@ onDownloadWord(doc: any): void {
       this.cdr.detectChanges();
     }
   });
+}
+
+private async extractHttpErrorMessage(err: any): Promise<string> {
+  const fallback = 'Failed to generate PDF for this document.';
+
+  try {
+    const errorBody = err?.error;
+
+    if (errorBody instanceof Blob) {
+      const text = await errorBody.text();
+      if (!text) return fallback;
+
+      try {
+        const parsed = JSON.parse(text);
+        return parsed?.detail || parsed?.message || text || fallback;
+      } catch {
+        return text || fallback;
+      }
+    }
+
+    if (typeof errorBody === 'string' && errorBody.trim()) {
+      return errorBody;
+    }
+
+    if (errorBody?.detail || errorBody?.message) {
+      return errorBody.detail || errorBody.message;
+    }
+
+    return err?.message || fallback;
+  } catch {
+    return err?.message || fallback;
+  }
 }
 }

@@ -38,7 +38,7 @@
   />
         <button
           class="btn btn-sm btn-success"
-          [disabled]="savingDocumentName || !editedDocumentName?.trim()"
+          [disabled]="savingDocumentName || !editedDocumentName.trim()"
           (click)="saveDocumentName()"
         >
           <span
