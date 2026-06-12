@@ -54,6 +54,7 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
   editedTexts: any = {};
   savingRows: any = {};
   savedRows: any = {};
+  deletingRows: any = {};
   savingAll: boolean = false;
   selectedItem: any = null;
 
@@ -134,6 +135,7 @@ export class OcrPageModalComponent implements OnDestroy, AfterViewChecked {
   private summaryCkEditor: any = null;
   private pageCkEditors: { [id: number]: any } = {};
   private lastActiveCkEditable: HTMLElement | null = null;
+  activeJustifyAlignment: 'left' | 'center' | 'right' | null = null;
   private readonly ckDebug = true;
 
   summary: string = '';
@@ -539,7 +541,7 @@ getRawUrl(item: any): string {
     if (!this.summaryCkEditor) return;
     const current = this.summaryCkEditor.getData() || '';
     const next = this.summary || '';
-    if (current !== next) {
+    if (!this.areEditorHtmlEquivalentForSync(current, next)) {
       this.logCk('summaryEditor:sync-setData', {
         currentLength: current.length,
         nextLength: next.length,
@@ -602,7 +604,7 @@ getRawUrl(item: any): string {
       if (!editor) return;
       const next = this.editedTexts[pageId] || '';
       const current = editor.getData() || '';
-      if (current !== next) {
+      if (!this.areEditorHtmlEquivalentForSync(current, next)) {
         this.logCk('pageEditor:sync-setData', {
           pageId,
           currentLength: current.length,
@@ -831,6 +833,21 @@ getRawUrl(item: any): string {
       .replace(/padding-inline-start\s*:/gi, 'padding-left:');
   }
 
+  private areEditorHtmlEquivalentForSync(current: string, next: string): boolean {
+    return this.normalizeHtmlForSyncCompare(current) === this.normalizeHtmlForSyncCompare(next);
+  }
+
+  private normalizeHtmlForSyncCompare(html: string): string {
+    if (!html) return '';
+    return html
+      .replace(/\sdata-justify-alignment=(["'])(left|center|right)\1/gi, '')
+      .replace(/(?:^|;)\s*text-align-last\s*:\s*(left|center|right)\s*;?/gi, ';')
+      .replace(/(?:^|;)\s*-moz-text-align-last\s*:\s*(left|center|right)\s*;?/gi, ';')
+      .replace(/style=(["'])\s*;\s*\1/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   // ─── MODAL OPEN ─────────────────────────────────────────────────────────────
 
   open(): Promise<boolean> {
@@ -871,6 +888,7 @@ getRawUrl(item: any): string {
     this.editedTexts = {};
     this.savingRows = {};
     this.savedRows = {};
+    this.deletingRows = {};
     this.selectedPageIndex = 0;
     this.pageJumpInput = '';
     this.swapToPageInput = '';
@@ -1679,6 +1697,90 @@ getRawUrl(item: any): string {
     });
   }
 
+  deletePage(item: any) {
+    const documentPageId = Number(item?.DocumentPageId);
+    if (!Number.isFinite(documentPageId) || this.deletingRows[documentPageId]) return;
+
+    Swal.fire({
+      icon: 'warning',
+      title: `Delete page ${item.PageNumber}?`,
+      text: 'This will delete the page from the database and remove its stored file.',
+      showCancelButton: true,
+      confirmButtonText: 'Yes, delete it',
+      cancelButtonText: 'No',
+      confirmButtonColor: '#dc3545',
+    }).then((result) => {
+      if (!result.isConfirmed) return;
+
+      const payload = {
+        documentPageId,
+        documentId: Number(item.DocumentId ?? this.documentId ?? 0),
+        pageNumber: Number(item.PageNumber ?? this.currentPageNumber),
+        jobId: item.JobId ?? item.job_id ?? null,
+        filePath: item.FilePath ?? item.filepath ?? null,
+        fileName: this.getOriginalFileName(item) || null,
+      };
+
+      this.deletingRows[documentPageId] = true;
+      this.cdr.detectChanges();
+
+      this.service.deleteDocumentPage(payload).subscribe({
+        next: () => {
+          this.cleanupDeletedPageState(documentPageId);
+
+          const nextTotal = Math.max((this.totalRecords || 1) - 1, 0);
+          this.totalRecords = nextTotal;
+          this.currentPage = Math.min(
+            this.currentPage,
+            Math.max(1, Math.ceil(nextTotal / Math.max(this.pageSize, 1))),
+          );
+          this.selectedPageIndex = 0;
+
+          Swal.fire({
+            icon: 'success',
+            title: 'Deleted',
+            text: `Page ${item.PageNumber} has been deleted.`,
+            timer: 1500,
+            showConfirmButton: false,
+          });
+
+          this.loadPages();
+        },
+        error: (err: any) => {
+          this.deletingRows[documentPageId] = false;
+          this.cdr.detectChanges();
+          Swal.fire({
+            icon: 'error',
+            title: 'Delete failed',
+            text: err?.error?.message || 'Could not delete this page. Please try again.',
+          });
+        },
+      });
+    });
+  }
+
+  private cleanupDeletedPageState(documentPageId: number): void {
+    this.pageCkEditors[documentPageId]?.destroy?.();
+    delete this.pageCkEditors[documentPageId];
+    delete this.editedTexts[documentPageId];
+    delete this.savingRows[documentPageId];
+    delete this.savedRows[documentPageId];
+    delete this.deletingRows[documentPageId];
+    delete this.pageSearchTerms[documentPageId];
+    delete this.lastPageSearchTerms[documentPageId];
+    delete this.previewLoadAttempted[documentPageId];
+    delete this.previewLoadingByPage[documentPageId];
+    delete this.previewZoomByPage[documentPageId];
+
+    const previewUrl = this.previewBlobUrls[documentPageId];
+    if (previewUrl) {
+      try {
+        URL.revokeObjectURL(previewUrl);
+      } catch {}
+      delete this.previewBlobUrls[documentPageId];
+    }
+  }
+
   // ─── SAVE ROW ───────────────────────────────────────────────────────────────
 
   saveRow(item: any) {
@@ -2083,6 +2185,24 @@ saveDocumentName(): void {
     this.applyManualIndentFromTarget(target, -40, 'first-line');
   }
 
+  applyJustifyCombinationInCurrentEditor(alignment: 'left' | 'center' | 'right'): void {
+    const target = this.lastActiveCkEditable ?? (document.activeElement as HTMLElement | null);
+    const root = this.getActiveCkEditorRoot(target);
+    if (!root) return;
+
+    const blocks = this.getSelectedBlocksInRoot(root);
+    if (!blocks.length) return;
+
+    blocks.forEach((block) => {
+      block.style.textAlign = 'justify';
+      block.style.textAlignLast = alignment;
+      block.style.setProperty('-moz-text-align-last', alignment);
+      block.setAttribute('data-justify-alignment', alignment);
+    });
+
+    this.activeJustifyAlignment = alignment;
+  }
+
   private applyManualIndentFromTarget(
     target: HTMLElement | null,
     delta: number,
@@ -2140,7 +2260,14 @@ saveDocumentName(): void {
     ) as HTMLElement | null;
     if (editable) {
       this.lastActiveCkEditable = editable;
+      this.updateActiveJustifyAlignment(editable);
     }
+  }
+
+  @HostListener('document:selectionchange')
+  trackEditorSelectionChange() {
+    const target = this.lastActiveCkEditable ?? (document.activeElement as HTMLElement | null);
+    this.updateActiveJustifyAlignment(target);
   }
 
   private getSelectedBlocksInRoot(root: HTMLElement): HTMLElement[] {
@@ -2172,6 +2299,48 @@ saveDocumentName(): void {
     return single ? [single] : [];
   }
 
+  private updateActiveJustifyAlignment(target: HTMLElement | null): void {
+    const root = this.getActiveCkEditorRoot(target);
+    if (!root) {
+      this.activeJustifyAlignment = null;
+      return;
+    }
+
+    const blocks = this.getSelectedBlocksInRoot(root);
+    const firstBlock = blocks[0];
+    if (!firstBlock) {
+      this.activeJustifyAlignment = null;
+      return;
+    }
+
+    this.activeJustifyAlignment = this.getJustifyCombinationAlignment(firstBlock);
+  }
+
+  private getJustifyCombinationAlignment(
+    block: HTMLElement,
+  ): 'left' | 'center' | 'right' | null {
+    const stored = block.getAttribute('data-justify-alignment');
+    if (stored === 'left' || stored === 'center' || stored === 'right') {
+      return stored;
+    }
+
+    const style = block.style;
+    const align = (style.textAlign || window.getComputedStyle(block).textAlign || '').toLowerCase();
+    const lastAlign = (
+      style.textAlignLast ||
+      style.getPropertyValue('-moz-text-align-last') ||
+      window.getComputedStyle(block).textAlignLast ||
+      ''
+    ).toLowerCase();
+
+    if (align !== 'justify') return null;
+    if (lastAlign === 'left' || lastAlign === 'center' || lastAlign === 'right') {
+      return lastAlign;
+    }
+
+    return null;
+  }
+
   private readLeftIndentPx(element: HTMLElement): number {
     const inline = element.style.marginLeft || '';
     const parsedInline = Number.parseInt(inline.replace('px', ''), 10);
@@ -2198,10 +2367,10 @@ saveDocumentName(): void {
     const parser = new DOMParser();
     const parsed = parser.parseFromString(sourceHtml, 'text/html');
     const sourceBlocks = Array.from(
-      parsed.body.querySelectorAll('p, blockquote, h1, h2, h3, h4, h5, h6'),
+      parsed.body.querySelectorAll('p, blockquote, h1, h2, h3, h4, h5, h6, li'),
     ) as HTMLElement[];
     const liveBlocks = Array.from(
-      editable.querySelectorAll('p, blockquote, h1, h2, h3, h4, h5, h6'),
+      editable.querySelectorAll('p, blockquote, h1, h2, h3, h4, h5, h6, li'),
     ) as HTMLElement[];
 
     const count = Math.min(sourceBlocks.length, liveBlocks.length);
@@ -2212,6 +2381,14 @@ saveDocumentName(): void {
       if (sourceIndent > 0) {
         live.style.textIndent = `${sourceIndent}px`;
         live.setAttribute('data-first-line-indent', `${sourceIndent}`);
+      }
+
+      const justifyAlignment = this.getJustifyCombinationAlignment(source);
+      if (justifyAlignment) {
+        live.style.textAlign = 'justify';
+        live.style.textAlignLast = justifyAlignment;
+        live.style.setProperty('-moz-text-align-last', justifyAlignment);
+        live.setAttribute('data-justify-alignment', justifyAlignment);
       }
     }
   }

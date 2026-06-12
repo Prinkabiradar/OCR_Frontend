@@ -538,6 +538,19 @@ saveDocumentPage(model: any) {
     { headers }
   );
 }
+deleteDocumentPage(model: any) {
+  const lsValue = localStorage.getItem(this.authLocalStorageToken);
+
+  const headers = new HttpHeaders({
+    Authorization: 'Bearer ' + JSON.parse(lsValue!).authToken,
+    'Content-Type': 'application/json'
+  });
+
+  return this.http.delete<any>(
+    environment.BaseUrl + 'api/DocumentPage/DeleteDocumentPage',
+    { headers, body: model }
+  );
+}
 getDocumentPagesByDocument(documentId: number): Observable<any[]> {
   const lsValue = localStorage.getItem(this.authLocalStorageToken);
 

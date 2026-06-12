@@ -427,6 +427,13 @@ $radius:   10px;
   min-width: 160px;
 }
 
+.ocr-editor-wrap .editor-search-row .btn.active,
+.editor-search-row .btn.active {
+  background: #1f2937;
+  border-color: #1f2937;
+  color: #fff;
+}
+
 .ocr-editor-wrap ngx-editor-menu {
   flex-shrink: 0;
 }

@@ -153,6 +153,39 @@
             >
               First Line -
             </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              title="Left + Justify"
+              [class.active]="activeJustifyAlignment === 'left'"
+              (mousedown)="
+                $event.preventDefault(); applyJustifyCombinationInCurrentEditor('left')
+              "
+            >
+              L + J
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              title="Center + Justify"
+              [class.active]="activeJustifyAlignment === 'center'"
+              (mousedown)="
+                $event.preventDefault(); applyJustifyCombinationInCurrentEditor('center')
+              "
+            >
+              C + J
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline-secondary btn-sm"
+              title="Right + Justify"
+              [class.active]="activeJustifyAlignment === 'right'"
+              (mousedown)="
+                $event.preventDefault(); applyJustifyCombinationInCurrentEditor('right')
+              "
+            >
+              R + J
+            </button>
           </div>
           <div data-summary-ckeditor-toolbar="true"></div>
         </div>
@@ -424,6 +457,39 @@
                   >
                     First Line -
                   </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    title="Left + Justify"
+                    [class.active]="activeJustifyAlignment === 'left'"
+                    (mousedown)="
+                      $event.preventDefault(); applyJustifyCombinationInCurrentEditor('left')
+                    "
+                  >
+                    L + J
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    title="Center + Justify"
+                    [class.active]="activeJustifyAlignment === 'center'"
+                    (mousedown)="
+                      $event.preventDefault(); applyJustifyCombinationInCurrentEditor('center')
+                    "
+                  >
+                    C + J
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-secondary btn-sm"
+                    title="Right + Justify"
+                    [class.active]="activeJustifyAlignment === 'right'"
+                    (mousedown)="
+                      $event.preventDefault(); applyJustifyCombinationInCurrentEditor('right')
+                    "
+                  >
+                    R + J
+                  </button>
                 </div>
                 <div
                   [attr.data-page-ckeditor-toolbar]="item.DocumentPageId"
@@ -563,6 +629,7 @@
             [disabled]="
               savingAll ||
               savingRows[selectedItem.DocumentPageId] ||
+              deletingRows[selectedItem.DocumentPageId] ||
               !canEdit(selectedItem) ||
               selectedItem.StatusId === 3
             "
@@ -579,6 +646,7 @@
             (click)="saveRow(selectedItem)"
             [disabled]="
               savingRows[selectedItem.DocumentPageId] ||
+              deletingRows[selectedItem.DocumentPageId] ||
               !canEdit(selectedItem) ||
               selectedItem.StatusId === 3
             "
@@ -596,11 +664,30 @@
             (click)="rejectRow(selectedItem)"
             [disabled]="
               savingRows[selectedItem.DocumentPageId] ||
+              deletingRows[selectedItem.DocumentPageId] ||
               !canEdit(selectedItem) ||
               selectedItem.StatusId === 3
             "
           >
             ✕ Reject
+          </button>
+
+          <button
+            class="btn btn--footer btn--footer-danger btn-sm"
+            (click)="deletePage(selectedItem)"
+            [disabled]="
+              savingRows[selectedItem.DocumentPageId] ||
+              deletingRows[selectedItem.DocumentPageId] ||
+              savingAll ||
+              swappingPages
+            "
+          >
+            <span *ngIf="!deletingRows[selectedItem.DocumentPageId]">
+              Delete Page
+            </span>
+            <span *ngIf="deletingRows[selectedItem.DocumentPageId]">
+              <span class="spinner-border spinner-border-sm"></span> Deleting...
+            </span>
           </button>
 
           <button

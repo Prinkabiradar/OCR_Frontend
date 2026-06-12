@@ -711,22 +711,89 @@ clearAdvancedSearch(): void {
 
   onViewPdf(doc: any): void {
     const id = doc.documentId;
+    const pdfWindow = window.open('', '_blank');
+    this.showPdfLoadingWindow(pdfWindow);
     this.loadingPdfIds.add(id);
     this.cd.detectChanges();
 
     this.service.getPdf(id, this.roleId).subscribe({
       next: (res: Blob) => {
         const fileURL = URL.createObjectURL(res);
-        window.open(fileURL, '_blank');
+        if (pdfWindow) {
+          pdfWindow.location.href = fileURL;
+        } else {
+          window.open(fileURL, '_blank', 'noopener');
+        }
+        setTimeout(() => URL.revokeObjectURL(fileURL), 60_000);
         this.loadingPdfIds.delete(id);
         this.cd.detectChanges();
       },
       error: (err) => {
         console.error('Failed to load PDF:', err);
+        this.showPdfErrorWindow(pdfWindow);
         this.loadingPdfIds.delete(id);
         this.cd.detectChanges();
       }
     });
+  }
+
+  private showPdfLoadingWindow(pdfWindow: Window | null): void {
+    if (!pdfWindow) return;
+    try {
+      pdfWindow.opener = null;
+      pdfWindow.document.write(`
+        <!doctype html>
+        <html>
+          <head>
+            <title>Generating PDF</title>
+            <style>
+              body {
+                margin: 0;
+                min-height: 100vh;
+                display: grid;
+                place-items: center;
+                font-family: Arial, sans-serif;
+                color: #111827;
+                background: #f8fafc;
+              }
+              .box {
+                text-align: center;
+                padding: 24px;
+              }
+              .spinner {
+                width: 34px;
+                height: 34px;
+                margin: 0 auto 14px;
+                border: 3px solid #dbe4ef;
+                border-top-color: #2563eb;
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+              }
+              @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
+          </head>
+          <body>
+            <div class="box">
+              <div class="spinner"></div>
+              <div>Generating PDF...</div>
+            </div>
+          </body>
+        </html>
+      `);
+      pdfWindow.document.close();
+    } catch {}
+  }
+
+  private showPdfErrorWindow(pdfWindow: Window | null): void {
+    if (!pdfWindow) return;
+    try {
+      pdfWindow.document.body.innerHTML = `
+        <div style="font-family: Arial, sans-serif; padding: 32px; color: #991b1b;">
+          <h2 style="margin: 0 0 8px;">PDF Error</h2>
+          <p style="margin: 0;">Failed to generate PDF. Please try again.</p>
+        </div>
+      `;
+    } catch {}
   }
 
   onDownloadWord(doc: any): void {

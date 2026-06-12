@@ -536,13 +536,19 @@ export class OcrDataComponent implements OnInit {
   // For role 5: download and open the PDF in a new tab
     onViewPdf(doc: any): void {
       const id = doc.documentId;
+      const pdfWindow = window.open('', '_blank');
+      this.showPdfLoadingWindow(pdfWindow);
       this.loadingPdfIds.add(id);
       this.cdr.detectChanges();
 
       this.service.getPdf(id, this.roleId).subscribe({
         next: (res: Blob) => {
           const fileURL = URL.createObjectURL(res);
-          window.open(fileURL, '_blank', 'noopener');
+          if (pdfWindow) {
+            pdfWindow.location.href = fileURL;
+          } else {
+            window.open(fileURL, '_blank', 'noopener');
+          }
           setTimeout(() => URL.revokeObjectURL(fileURL), 60_000);
           this.loadingPdfIds.delete(id);
           this.cdr.detectChanges();
@@ -550,12 +556,81 @@ export class OcrDataComponent implements OnInit {
         error: async (err) => {
           console.error('Failed to load PDF:', err);
           const message = await this.extractHttpErrorMessage(err);
+          this.showPdfErrorWindow(pdfWindow, message);
           Swal.fire('PDF Error', message, 'error');
           this.loadingPdfIds.delete(id);
           this.cdr.detectChanges();
         },
       });
     }
+
+private showPdfLoadingWindow(pdfWindow: Window | null): void {
+  if (!pdfWindow) return;
+  try {
+    pdfWindow.opener = null;
+    pdfWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>Generating PDF</title>
+          <style>
+            body {
+              margin: 0;
+              min-height: 100vh;
+              display: grid;
+              place-items: center;
+              font-family: Arial, sans-serif;
+              color: #111827;
+              background: #f8fafc;
+            }
+            .box {
+              text-align: center;
+              padding: 24px;
+            }
+            .spinner {
+              width: 34px;
+              height: 34px;
+              margin: 0 auto 14px;
+              border: 3px solid #dbe4ef;
+              border-top-color: #2563eb;
+              border-radius: 50%;
+              animation: spin 0.8s linear infinite;
+            }
+            @keyframes spin { to { transform: rotate(360deg); } }
+          </style>
+        </head>
+        <body>
+          <div class="box">
+            <div class="spinner"></div>
+            <div>Generating PDF...</div>
+          </div>
+        </body>
+      </html>
+    `);
+    pdfWindow.document.close();
+  } catch {}
+}
+
+private showPdfErrorWindow(pdfWindow: Window | null, message: string): void {
+  if (!pdfWindow) return;
+  try {
+    pdfWindow.document.body.innerHTML = `
+      <div style="font-family: Arial, sans-serif; padding: 32px; color: #991b1b;">
+        <h2 style="margin: 0 0 8px;">PDF Error</h2>
+        <p style="margin: 0;">${this.escapeHtml(message)}</p>
+      </div>
+    `;
+  } catch {}
+}
+
+private escapeHtml(value: string): string {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 onDownloadWord(doc: any): void {
   const id = doc.documentId;
