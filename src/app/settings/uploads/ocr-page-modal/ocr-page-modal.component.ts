@@ -830,7 +830,13 @@ getRawUrl(item: any): string {
     if (!html) return '';
     return html
       .replace(/margin-inline-start\s*:/gi, 'margin-left:')
-      .replace(/padding-inline-start\s*:/gi, 'padding-left:');
+      .replace(/padding-inline-start\s*:/gi, 'padding-left:')
+      .replace(/\bmarginleft\s*:/gi, 'margin-left:')
+      .replace(/\bmarginright\s*:/gi, 'margin-right:')
+      .replace(/\bpaddingleft\s*:/gi, 'padding-left:')
+      .replace(/\bpaddingright\s*:/gi, 'padding-right:')
+      .replace(/\btextindent\s*:/gi, 'text-indent:')
+      .replace(/\btextalign\s*:/gi, 'text-align:');
   }
 
   private areEditorHtmlEquivalentForSync(current: string, next: string): boolean {

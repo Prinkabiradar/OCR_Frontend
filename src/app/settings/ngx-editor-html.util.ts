@@ -12,7 +12,13 @@ export function normalizeNgxEditorHtml(
 
   let normalized = html
     .replace(/margin-inline-start\s*:/gi, 'margin-left:')
-    .replace(/padding-inline-start\s*:/gi, 'padding-left:');
+    .replace(/padding-inline-start\s*:/gi, 'padding-left:')
+    .replace(/\bmarginleft\s*:/gi, 'margin-left:')
+    .replace(/\bmarginright\s*:/gi, 'margin-right:')
+    .replace(/\bpaddingleft\s*:/gi, 'padding-left:')
+    .replace(/\bpaddingright\s*:/gi, 'padding-right:')
+    .replace(/\btextindent\s*:/gi, 'text-indent:')
+    .replace(/\btextalign\s*:/gi, 'text-align:');
 
   normalized = normalized.replace(
     /\sclass\s*=\s*(['"])(.*?)\1/gi,
@@ -70,12 +76,15 @@ export function normalizeNgxEditorHtml(
       }
       const hasIndentAttr = /\bindent\s*=\s*(['"]?)\d+\1/i.test(attrText);
 
-      const styleTextIndentMatch = attrText.match(/text-indent\s*:\s*([0-9.]+)\s*em/i);
+      const styleTextIndentMatch = attrText.match(/text-indent\s*:\s*([0-9.]+)\s*(px|em|rem)?/i);
       if (level === null) {
         if (styleTextIndentMatch) {
-          const em = Number.parseFloat(styleTextIndentMatch[1]);
-          if (Number.isFinite(em) && em > 0) {
-            level = Math.round(em / 2);
+          const value = Number.parseFloat(styleTextIndentMatch[1]);
+          const unit = (styleTextIndentMatch[2] || 'px').toLowerCase();
+          if (Number.isFinite(value) && value > 0) {
+            level = unit === 'em' || unit === 'rem'
+              ? Math.round(value / 2)
+              : Math.round(value / 40);
           }
         }
       }
@@ -107,8 +116,8 @@ export function normalizeNgxEditorHtml(
       const modeMatch = attrText.match(/\bdata-indent-mode\s*=\s*(['"]?)(first-line|full)\1/i);
       const hasPositiveTextIndent = (() => {
         if (!styleTextIndentMatch) return false;
-        const textIndentEm = Number.parseFloat(styleTextIndentMatch[1]);
-        return Number.isFinite(textIndentEm) && textIndentEm > 0;
+        const textIndentValue = Number.parseFloat(styleTextIndentMatch[1]);
+        return Number.isFinite(textIndentValue) && textIndentValue > 0;
       })();
       const hasPositiveMarginLeft = (() => {
         if (stylePxMatch) {
